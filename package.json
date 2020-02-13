@@ -1,0 +1,19 @@
+{
+  "name": "synctube",
+  "version": "1.0.0",
+  "description": "Synchronized video viewing with chat and other features",
+  "main": "build/server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RblSb/SyncTube.git"
+  },
+  "author": "RblSb",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/RblSb/SyncTube/issues"
+  },
+  "homepage": "https://github.com/RblSb/SyncTube#readme",
+  "dependencies": {
+    "ws": "^7.2.0"
+  }
+}

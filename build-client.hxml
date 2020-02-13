@@ -1,0 +1,5 @@
+-cp src
+--main client.Main
+-D analyzer-optimize
+--dce full
+--js build/client.js

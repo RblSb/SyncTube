@@ -1,0 +1,7 @@
+--each
+
+build-client.hxml
+
+--next
+
+build-server.hxml
