@@ -1,5 +1,8 @@
 package server;
 
+import js.lib.Date;
+import sys.FileSystem;
+import sys.io.File;
 import haxe.Timer;
 import Client.ClientData;
 import haxe.Json;
@@ -8,21 +11,24 @@ import js.Node.__dirname;
 import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
 import js.node.Http;
-import js.node.Dns;
 import Types;
 using ClientTools;
 using Lambda;
 
 class Main {
 
+	final rootDir = '$__dirname/..';
 	final wss:WSServer;
+	final config:Config;
 	final clients:Array<Client> = [];
 	final videoList:Array<VideoItem> = [];
 	final videoTimer = new VideoTimer();
+	final messages:Array<Message> = [];
 
 	static function main():Void new Main();
 
 	public function new(port = 4200, wsPort = 4201) {
+		config = getUserConfig();
 		wss = new WSServer({port: wsPort});
 		wss.on("connection", onConnect);
 		function exit() {
@@ -37,12 +43,13 @@ class Main {
 			trace("Unhandled Rejection at:", reason);
 		});
 
-		getPublicIp(ip -> {
-			trace('Local: http://127.0.0.1:$port');
+		Utils.getGlobalIp(ip -> {
+			final local = Utils.getLocalIp();
+			trace('Local: http://$local:$port');
 			trace('Global: http://$ip:$port');
 		});
 
-		final dir = '$__dirname/../res';
+		final dir = '$rootDir/res';
 		HttpServer.init(dir);
 		Lang.init('$dir/langs');
 
@@ -51,17 +58,16 @@ class Main {
 		}).listen(port);
 	}
 
-	function getPublicIp(callback:(ip:String)->Void):Void {
-		Dns.resolve("google.com", function(err, arr) {
-			if (err != null) {
-				callback("ERROR " + err.code);
-				return;
-			}
-			Http.get("http://myexternalip.com/raw", r -> {
-				r.setEncoding("utf8");
-				r.on("data", callback);
-			});
-		});
+	function getUserConfig():Config {
+		final config:Config = Json.parse(File.getContent('$rootDir/default-config.json'));
+		final customPath = '$rootDir/config.json';
+		if (!FileSystem.exists(customPath)) return config;
+		final customConfig:Config = Json.parse(File.getContent(customPath));
+		for (field in Reflect.fields(customConfig)) {
+			if (Reflect.field(config, field) == null) trace('Warning: config field "$field" is unknown');
+			Reflect.setField(config, field, Reflect.field(customConfig, field));
+		}
+		return config;
 	}
 
 	function onConnect(ws:WebSocket, req):Void {
@@ -73,6 +79,8 @@ class Main {
 		send(client, {
 			type: Connected,
 			connected: {
+				config: config,
+				history: messages,
 				isUnknownClient: true,
 				clientName: client.name,
 				clients: [
@@ -103,7 +111,7 @@ class Main {
 				sendClientList();
 			case Login:
 				final name = data.login.clientName;
-				if (name.length == 0 || name.length > 20 || clients.getByName(name) != null) {
+				if (name.length == 0 || name.length > config.maxLoginLength || clients.getByName(name) != null) {
 					send(client, {type: LoginError});
 					return;
 				}
@@ -130,9 +138,16 @@ class Main {
 				});
 				sendClientList();
 			case Message:
-				// todo message log, max items
-				// todo message max length check
+				var text = data.message.text;
+				if (text.length == 0) return;
+				if (text.length > config.maxMessageLength) {
+					text = text.substr(0, config.maxMessageLength);
+				}
+				data.message.text = text;
 				data.message.clientName = client.name;
+				final time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+				messages.push({text: text, name: client.name, time: time});
+				if (messages.length > config.serverChatHistory) messages.pop();
 				broadcast(data);
 			case AddVideo:
 				videoList.push(data.addVideo.item);

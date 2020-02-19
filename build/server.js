@@ -456,9 +456,9 @@ js_Boot.__string_rec = function(o,s) {
 		return String(o);
 	}
 };
-var js_node_Dns = require("dns");
 var js_node_Fs = require("fs");
 var js_node_Http = require("http");
+var js_node_Os = require("os");
 var js_node_Path = require("path");
 var js_npm_ws_Server = require("ws").Server;
 var server_HttpServer = function() { };
@@ -537,9 +537,12 @@ var server_Main = function(port,wsPort) {
 		port = 4200;
 	}
 	this.loadedClientsCount = 0;
+	this.messages = [];
 	this.videoTimer = new server_VideoTimer();
 	this.videoList = [];
 	this.clients = [];
+	this.rootDir = "" + __dirname + "/..";
+	this.config = this.getUserConfig();
 	this.wss = new js_npm_ws_Server({ port : wsPort});
 	this.wss.on("connection",$bind(this,this.onConnect));
 	var exit = function() {
@@ -548,19 +551,19 @@ var server_Main = function(port,wsPort) {
 	process.on("exit",exit);
 	process.on("SIGINT",exit);
 	process.on("uncaughtException",function(log) {
-		haxe_Log.trace(log,{ fileName : "src/server/Main.hx", lineNumber : 34, className : "server.Main", methodName : "new"});
+		haxe_Log.trace(log,{ fileName : "src/server/Main.hx", lineNumber : 40, className : "server.Main", methodName : "new"});
 		return;
 	});
 	process.on("unhandledRejection",function(reason,promise) {
-		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 37, className : "server.Main", methodName : "new", customParams : [reason]});
+		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 43, className : "server.Main", methodName : "new", customParams : [reason]});
 		return;
 	});
-	this.getPublicIp(function(ip) {
-		haxe_Log.trace("Local: http://127.0.0.1:" + port,{ fileName : "src/server/Main.hx", lineNumber : 41, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + ip + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 42, className : "server.Main", methodName : "new"});
+	server_Utils.getGlobalIp(function(ip) {
+		haxe_Log.trace("Local: http://" + server_Utils.getLocalIp() + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 48, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + ip + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 49, className : "server.Main", methodName : "new"});
 		return;
 	});
-	var dir = "" + __dirname + "/../res";
+	var dir = "" + this.rootDir + "/res";
 	server_HttpServer.init(dir);
 	Lang.init("" + dir + "/langs");
 	js_node_Http.createServer(function(req,res) {
@@ -573,37 +576,46 @@ server_Main.main = function() {
 	new server_Main();
 };
 server_Main.prototype = {
-	getPublicIp: function(callback) {
-		js_node_Dns.resolve("google.com",function(err,arr) {
-			if(err != null) {
-				callback("ERROR " + err.code);
-				return;
+	getUserConfig: function() {
+		var config = JSON.parse(js_node_Fs.readFileSync("" + this.rootDir + "/default-config.json",{ encoding : "utf8"}));
+		var customPath = "" + this.rootDir + "/config.json";
+		if(!sys_FileSystem.exists(customPath)) {
+			return config;
+		}
+		var customConfig = JSON.parse(js_node_Fs.readFileSync(customPath,{ encoding : "utf8"}));
+		var _g = 0;
+		var _g1 = Reflect.fields(customConfig);
+		while(_g < _g1.length) {
+			var field = _g1[_g];
+			++_g;
+			if(Reflect.field(config,field) == null) {
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 67, className : "server.Main", methodName : "getUserConfig"});
 			}
-			js_node_Http.get("http://myexternalip.com/raw",function(r) {
-				r.setEncoding("utf8");
-				return r.on("data",callback);
-			});
-		});
+			config[field] = Reflect.field(customConfig,field);
+		}
+		return config;
 	}
 	,onConnect: function(ws,req) {
 		var _gthis = this;
-		haxe_Log.trace("Client connected (" + req.connection.remoteAddress + ")",{ fileName : "src/server/Main.hx", lineNumber : 69, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("Client connected (" + req.connection.remoteAddress + ")",{ fileName : "src/server/Main.hx", lineNumber : 75, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,"Unknown",false);
 		this.clients.push(client);
+		var tmp = this.config;
+		var tmp1 = this.messages;
 		var client1 = client.name;
 		var _g = [];
 		var _g1 = 0;
 		var _g2 = this.clients;
 		while(_g1 < _g2.length) _g.push(_g2[_g1++].getData());
-		this.send(client,{ type : "Connected", connected : { isUnknownClient : true, clientName : client1, clients : _g, videoList : this.videoList}});
+		this.send(client,{ type : "Connected", connected : { config : tmp, history : tmp1, isUnknownClient : true, clientName : client1, clients : _g, videoList : this.videoList}});
 		this.sendClientList();
 		ws.on("message",function(data) {
-			var tmp = JSON.parse(data);
-			_gthis.onMessage(client,tmp);
+			var tmp2 = JSON.parse(data);
+			_gthis.onMessage(client,tmp2);
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 90, className : "server.Main", methodName : "onConnect"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 98, className : "server.Main", methodName : "onConnect"});
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
 			if(client.isLeader) {
@@ -638,7 +650,7 @@ server_Main.prototype = {
 			break;
 		case "Login":
 			var name = data.login.clientName;
-			if(name.length == 0 || name.length > 20 || ClientTools.getByName(this.clients,name) != null) {
+			if(name.length == 0 || name.length > this.config.maxLoginLength || ClientTools.getByName(this.clients,name) != null) {
 				this.send(client,{ type : "LoginError"});
 				return;
 			}
@@ -655,7 +667,20 @@ server_Main.prototype = {
 			this.sendClientList();
 			break;
 		case "Message":
+			var text = data.message.text;
+			if(text.length == 0) {
+				return;
+			}
+			if(text.length > this.config.maxMessageLength) {
+				text = HxOverrides.substr(text,0,this.config.maxMessageLength);
+			}
+			data.message.text = text;
 			data.message.clientName = client.name;
+			var time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+			this.messages.push({ text : text, name : client.name, time : time});
+			if(this.messages.length > this.config.serverChatHistory) {
+				this.messages.pop();
+			}
 			this.broadcast(data);
 			break;
 		case "Pause":
@@ -775,6 +800,32 @@ server_Main.prototype = {
 		this.videoTimer.start();
 	}
 };
+var server_Utils = function() { };
+server_Utils.__name__ = true;
+server_Utils.getGlobalIp = function(callback) {
+	js_node_Http.get("http://myexternalip.com/raw",function(r) {
+		r.setEncoding("utf8");
+		return r.on("data",callback);
+	});
+};
+server_Utils.getLocalIp = function() {
+	var ifaces = js_node_Os.networkInterfaces();
+	var _g = 0;
+	var _g1 = Reflect.fields(ifaces);
+	while(_g < _g1.length) {
+		var type = Reflect.field(ifaces,_g1[_g++]);
+		var _g2 = 0;
+		var _g11 = Reflect.fields(type);
+		while(_g2 < _g11.length) {
+			var iface = Reflect.field(type,_g11[_g2++]);
+			if("IPv4" != iface.family || iface.internal != false) {
+				continue;
+			}
+			return iface.address;
+		}
+	}
+	return "127.0.0.1";
+};
 var server_VideoTimer = function() {
 	this.pauseStartTime = 0.0;
 	this.startTime = 0.0;
@@ -822,6 +873,16 @@ server_VideoTimer.prototype = {
 			return 0;
 		}
 		return Date.now() / 1000 - this.pauseStartTime;
+	}
+};
+var sys_FileSystem = function() { };
+sys_FileSystem.__name__ = true;
+sys_FileSystem.exists = function(path) {
+	try {
+		js_node_Fs.accessSync(path);
+		return true;
+	} catch( _ ) {
+		return false;
 	}
 };
 function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); else return o.iterator(); }

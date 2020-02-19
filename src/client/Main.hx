@@ -13,18 +13,23 @@ import js.Browser.document;
 import js.lib.Date;
 import Client.ClientData;
 import Types;
+using StringTools;
 using ClientTools;
 
 class Main {
 
 	final clients:Array<Client> = [];
 	final personalHistory:Array<String> = [];
+	var pageTitle = document.title;
+	var config:Null<Config>;
+	final filters:Array<{regex:EReg, replace:String}> = [];
 	var personal:Null<Client>;
 	var personalHistoryId = -1;
 	var isConnected = false;
 	var ws:WebSocket;
 	final player:Player;
 	final onTimeGet = new Timer(2000);
+	var onBlinkTab:Null<Timer>;
 
 	static function main():Void new Main();
 
@@ -35,6 +40,13 @@ class Main {
 
 		initListeners();
 		onTimeGet.run = () -> send({type: GetTime});
+		document.onvisibilitychange = () -> {
+			if (!document.hidden && onBlinkTab != null) {
+				document.title = getPageTitle();
+				onBlinkTab.stop();
+				onBlinkTab = null;
+			}
+		}
 		Lang.init("langs", () -> {
 			openWebSocket(host, port);
 		});
@@ -58,8 +70,17 @@ class Main {
 	}
 
 	function initListeners():Void {
+		final smilesBtn = ge("#smilesbtn");
+		smilesBtn.onclick = e -> {
+			final smilesWrap = ge("#smileswrap");
+			if (smilesWrap.style.display == "")
+				smilesWrap.style.display = "block";
+			else smilesWrap.style.display = "";
+		}
+
 		final guestName:InputElement = cast ge("#guestname");
 		guestName.onkeydown = (e:KeyboardEvent) -> {
+			if (guestName.value.length == 0) return;
 			if (e.keyCode == 13) send({
 				type: Login,
 				login: {
@@ -72,6 +93,7 @@ class Main {
 		chatLine.onkeydown = function(e:KeyboardEvent) {
 			switch (e.keyCode) {
 				case 13: // Enter
+					if (chatLine.value.length == 0) return;
 					send({
 						type: Message,
 						message: {
@@ -107,7 +129,8 @@ class Main {
 		final leaderBtn:InputElement = cast ge("#leader_btn");
 		leaderBtn.onclick = (e) -> {
 			if (personal == null) return;
-			leaderBtn.classList.toggle('label-success');
+			if (!personal.isLeader) leaderBtn.classList.add('label-success');
+			else leaderBtn.classList.remove('label-success');
 			final name = personal.isLeader ? "" : personal.name;
 			send({
 				type: SetLeader,
@@ -178,12 +201,23 @@ class Main {
 		trace('Event: ${data.type}', untyped data[t]);
 		switch (data.type) {
 			case Connected:
+				setConfig(data.connected.config);
 				if (data.connected.isUnknownClient) {
 					updateClients(data.connected.clients);
 					ge("#guestlogin").style.display = "block";
 					ge("#chatline").style.display = "none";
 				} else {
 					onLogin(data.connected.clients, data.connected.clientName);
+				}
+				final guestName:InputElement = cast ge("#guestname");
+				if (guestName.value.length > 0) send({
+					type: Login,
+					login: {
+						clientName: guestName.value
+					}
+				});
+				for (message in data.connected.history) {
+					addMessage(message.name, message.text, message.time);
 				}
 				final list = data.connected.videoList;
 				if (list.length == 0) return;
@@ -194,7 +228,9 @@ class Main {
 			case Login:
 				onLogin(data.login.clients, data.login.clientName);
 			case LoginError:
-				serverMessage(4, Lang.get("usernameError"));
+				final text = Lang.get("usernameError")
+					.replace("$MAX", '${config.maxLoginLength}');
+				serverMessage(4, text);
 			case Logout:
 				updateClients(data.logout.clients);
 				personal = null;
@@ -238,6 +274,44 @@ class Main {
 				final leaderBtn:InputElement = cast ge("#leader_btn");
 				if (personal.isLeader) leaderBtn.classList.add('label-success');
 				else leaderBtn.classList.remove('label-success');
+		}
+	}
+
+	function setConfig(config:Config):Void {
+		this.config = config;
+		pageTitle = config.channelName;
+		final login:InputElement = cast ge("#guestname");
+		login.maxLength = config.maxLoginLength;
+		final form:InputElement = cast ge("#chatline");
+		form.maxLength = config.maxMessageLength;
+
+		filters.resize(0);
+		for (filter in config.filters) {
+			filters.push({
+				regex: new EReg(filter.regex, filter.flags),
+				replace: filter.replace
+			});
+		}
+		for (emote in config.emotes) {
+			filters.push({
+				regex: new EReg(escapeRegExp(emote.name), "g"),
+				replace: '<img class="channel-emote" src="${emote.image}" title="${emote.name}"/>'
+			});
+		}
+		final smilesWrap = ge("#smileswrap");
+		smilesWrap.onclick = (e:MouseEvent) -> {
+			final el:Element = cast e.target;
+			final form:InputElement = cast ge("#chatline");
+			form.value += ' ${el.title}';
+			form.focus();
+		}
+		smilesWrap.innerHTML = "";
+		for (emote in config.emotes) {
+			final img = document.createImageElement();
+			img.className = "smile-preview";
+			img.src = emote.image;
+			img.title = emote.name;
+			smilesWrap.appendChild(img);
 		}
 	}
 
@@ -285,12 +359,10 @@ class Main {
 		msgBuf.scrollTop = msgBuf.scrollHeight;
 	}
 
-	final pageTitle = document.title;
-
 	function updateUserList():Void {
 		final userCount = ge("#usercount");
 		userCount.innerHTML = clients.length + " " + Lang.get("online");
-		document.title = '$pageTitle (${clients.length})';
+		document.title = getPageTitle();
 
 		final list = new StringBuf();
 		for (client in clients) {
@@ -303,28 +375,55 @@ class Main {
 		userlist.innerHTML = list.toString();
 	}
 
-	function addMessage(name:String, msg:String):Void {
+	function getPageTitle():String {
+		return '$pageTitle (${clients.length})';
+	}
+
+	function addMessage(name:String, text:String, ?time:String):Void {
 		final msgBuf = ge("#messagebuffer");
 		final userDiv = document.createDivElement();
 		userDiv.className = 'chat-msg-$name';
 
 		final tstamp = document.createSpanElement();
 		tstamp.className = "timestamp";
-		tstamp.innerHTML = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+		if (time == null) time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+		tstamp.innerHTML = time;
 
 		final nameDiv = document.createElement("strong");
 		nameDiv.className = "username";
 		nameDiv.innerHTML = name + ": ";
 
 		final textDiv = document.createSpanElement();
-		textDiv.innerHTML = msg;
+		for (filter in filters) {
+			text = filter.regex.replace(text, filter.replace);
+		}
+		textDiv.innerHTML = text;
 
 		final isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;
 		userDiv.appendChild(tstamp);
 		userDiv.appendChild(nameDiv);
 		userDiv.appendChild(textDiv);
 		msgBuf.appendChild(userDiv);
-		if (isInChatEnd) msgBuf.scrollTop = msgBuf.scrollHeight;
+		if (isInChatEnd) {
+			while (msgBuf.children.length > 200) msgBuf.removeChild(msgBuf.firstChild);
+			msgBuf.scrollTop = msgBuf.scrollHeight;
+		}
+		if (personal != null && personal.name == name) {
+			msgBuf.scrollTop = msgBuf.scrollHeight;
+		}
+		if (document.hidden && onBlinkTab == null) {
+			onBlinkTab = new Timer(1000);
+			onBlinkTab.run = () -> {
+				if (document.title.startsWith(pageTitle))
+					document.title = "*Chat*";
+				else document.title = getPageTitle();
+			}
+			onBlinkTab.run();
+		}
+	}
+
+	function escapeRegExp(regex:String):String {
+		return ~/([.*+?^${}()|[\]\\])/g.replace(regex, "\\$1");
 	}
 
 	public static inline function ge(id:String):Element {

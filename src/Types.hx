@@ -2,6 +2,35 @@ package;
 
 import Client.ClientData;
 
+typedef Config = {
+	channelName:String,
+	maxLoginLength:Int,
+	maxMessageLength:Int,
+	serverChatHistory:Int,
+	videoLimit:Int,
+	leaderRequest:String,
+	emotes:Array<Emote>,
+	filters:Array<Filter>
+};
+
+typedef Emote = {
+	name:String,
+	image:String
+};
+
+typedef Filter = {
+	name:String,
+	regex:String,
+	flags:String,
+	replace:String
+};
+
+typedef Message = {
+	text:String,
+	name:String,
+	time:String
+}
+
 typedef VideoItem = {
 	url:String,
 	title:String,
@@ -12,6 +41,8 @@ typedef VideoItem = {
 typedef WsEvent = {
 	type:WsEventType,
 	?connected:{
+		config:Config,
+		history:Array<Message>,
 		clients:Array<ClientData>,
 		isUnknownClient:Bool,
 		clientName:String,

@@ -106,6 +106,25 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+haxe_ds_StringMap.__name__ = true;
+haxe_ds_StringMap.prototype = {
+	setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+};
 var Lang = function() { };
 Lang.__name__ = true;
 Lang.request = function(path,callback) {
@@ -218,14 +237,27 @@ Std.__name__ = true;
 Std.string = function(s) {
 	return js_Boot.__string_rec(s,"");
 };
+var StringTools = function() { };
+StringTools.__name__ = true;
+StringTools.startsWith = function(s,start) {
+	if(s.length >= start.length) {
+		return s.lastIndexOf(start,0) == 0;
+	} else {
+		return false;
+	}
+};
+StringTools.replace = function(s,sub,by) {
+	return s.split(sub).join(by);
+};
 var client_Main = function(host,port) {
 	if(port == null) {
 		port = 4201;
 	}
-	this.pageTitle = window.document.title;
 	this.onTimeGet = new haxe_Timer(2000);
 	this.isConnected = false;
 	this.personalHistoryId = -1;
+	this.filters = [];
+	this.pageTitle = window.document.title;
 	this.personalHistory = [];
 	this.clients = [];
 	var _gthis = this;
@@ -239,6 +271,14 @@ var client_Main = function(host,port) {
 	this.initListeners();
 	this.onTimeGet.run = function() {
 		_gthis.send({ type : "GetTime"});
+		return;
+	};
+	window.document.onvisibilitychange = function() {
+		if(!window.document.hidden && _gthis.onBlinkTab != null) {
+			window.document.title = _gthis.getPageTitle();
+			_gthis.onBlinkTab.stop();
+			_gthis.onBlinkTab = null;
+		}
 		return;
 	};
 	Lang.init("langs",function() {
@@ -273,17 +313,31 @@ client_Main.prototype = {
 	}
 	,initListeners: function() {
 		var _gthis = this;
+		window.document.querySelector("#smilesbtn").onclick = function(e) {
+			var smilesWrap = window.document.querySelector("#smileswrap");
+			if(smilesWrap.style.display == "") {
+				return smilesWrap.style.display = "block";
+			} else {
+				return smilesWrap.style.display = "";
+			}
+		};
 		var guestName = window.document.querySelector("#guestname");
-		guestName.onkeydown = function(e) {
-			if(e.keyCode == 13) {
+		guestName.onkeydown = function(e1) {
+			if(guestName.value.length == 0) {
+				return;
+			}
+			if(e1.keyCode == 13) {
 				_gthis.send({ type : "Login", login : { clientName : guestName.value}});
 			}
 			return;
 		};
 		var chatLine = window.document.querySelector("#chatline");
-		chatLine.onkeydown = function(e1) {
-			switch(e1.keyCode) {
+		chatLine.onkeydown = function(e2) {
+			switch(e2.keyCode) {
 			case 13:
+				if(chatLine.value.length == 0) {
+					return;
+				}
 				_gthis.send({ type : "Message", message : { clientName : "", text : chatLine.value}});
 				_gthis.personalHistory.push(chatLine.value);
 				if(_gthis.personalHistory.length > 50) {
@@ -320,29 +374,33 @@ client_Main.prototype = {
 		};
 		client_MobileView.init();
 		var leaderBtn = window.document.querySelector("#leader_btn");
-		leaderBtn.onclick = function(e2) {
+		leaderBtn.onclick = function(e3) {
 			if(_gthis.personal == null) {
 				return;
 			}
-			leaderBtn.classList.toggle("label-success");
+			if(!_gthis.personal.isLeader) {
+				leaderBtn.classList.add("label-success");
+			} else {
+				leaderBtn.classList.remove("label-success");
+			}
 			_gthis.send({ type : "SetLeader", setLeader : { clientName : _gthis.personal.isLeader ? "" : _gthis.personal.name}});
 			return;
 		};
-		window.document.querySelector("#showmediaurl").onclick = function(e3) {
+		window.document.querySelector("#showmediaurl").onclick = function(e4) {
 			window.document.querySelector("#showmediaurl").classList.toggle("collapsed");
 			window.document.querySelector("#showmediaurl").classList.toggle("active");
 			return window.document.querySelector("#addfromurl").classList.toggle("collapse");
 		};
-		window.document.querySelector("#queue_next").onclick = function(e4) {
+		window.document.querySelector("#queue_next").onclick = function(e5) {
 			_gthis.addVideoUrl();
 			return;
 		};
-		window.document.querySelector("#queue_end").onclick = function(e5) {
+		window.document.querySelector("#queue_end").onclick = function(e6) {
 			_gthis.addVideoUrl();
 			return;
 		};
-		window.document.querySelector("#mediaurl").onkeydown = function(e6) {
-			if(e6.keyCode == 13) {
+		window.document.querySelector("#mediaurl").onkeydown = function(e7) {
+			if(e7.keyCode == 13) {
 				_gthis.addVideoUrl();
 			}
 		};
@@ -371,7 +429,7 @@ client_Main.prototype = {
 		var video = window.document.createElement("video");
 		video.src = src;
 		video.onloadedmetadata = function() {
-			haxe_Log.trace(video.duration,{ fileName : "src/client/Main.hx", lineNumber : 162, className : "client.Main", methodName : "getRemoteVideoDuration"});
+			haxe_Log.trace(video.duration,{ fileName : "src/client/Main.hx", lineNumber : 185, className : "client.Main", methodName : "getRemoteVideoDuration"});
 			player.removeChild(video);
 			callback(video.duration);
 			return;
@@ -389,7 +447,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 178, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 201, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			if(this.player.isListEmpty()) {
@@ -398,6 +456,7 @@ client_Main.prototype = {
 			this.player.addVideoItem(data.addVideo.item);
 			break;
 		case "Connected":
+			this.setConfig(data.connected.config);
 			if(data.connected.isUnknownClient) {
 				this.updateClients(data.connected.clients);
 				window.document.querySelector("#guestlogin").style.display = "block";
@@ -405,16 +464,27 @@ client_Main.prototype = {
 			} else {
 				this.onLogin(data.connected.clients,data.connected.clientName);
 			}
+			var guestName = window.document.querySelector("#guestname");
+			if(guestName.value.length > 0) {
+				this.send({ type : "Login", login : { clientName : guestName.value}});
+			}
+			var _g = 0;
+			var _g1 = data.connected.history;
+			while(_g < _g1.length) {
+				var message = _g1[_g];
+				++_g;
+				this.addMessage(message.name,message.text,message.time);
+			}
 			var list = data.connected.videoList;
 			if(list.length == 0) {
 				return;
 			}
 			this.player.setVideo(list[0]);
-			var _g = 0;
-			var _g1 = data.connected.videoList;
-			while(_g < _g1.length) {
-				var video = _g1[_g];
-				++_g;
+			var _g2 = 0;
+			var _g3 = data.connected.videoList;
+			while(_g2 < _g3.length) {
+				var video = _g3[_g2];
+				++_g2;
 				this.player.addVideoItem(video);
 			}
 			break;
@@ -433,7 +503,8 @@ client_Main.prototype = {
 			this.onLogin(data.login.clients,data.login.clientName);
 			break;
 		case "LoginError":
-			this.serverMessage(4,Lang.get("usernameError"));
+			var text = StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.config.maxLoginLength);
+			this.serverMessage(4,text);
 			break;
 		case "Logout":
 			this.updateClients(data.logout.clients);
@@ -491,6 +562,47 @@ client_Main.prototype = {
 			break;
 		}
 	}
+	,setConfig: function(config) {
+		this.config = config;
+		this.pageTitle = config.channelName;
+		window.document.querySelector("#guestname").maxLength = config.maxLoginLength;
+		window.document.querySelector("#chatline").maxLength = config.maxMessageLength;
+		this.filters.length = 0;
+		var _g = 0;
+		var _g1 = config.filters;
+		while(_g < _g1.length) {
+			var filter = _g1[_g];
+			++_g;
+			this.filters.push({ regex : new EReg(filter.regex,filter.flags), replace : filter.replace});
+		}
+		var _g2 = 0;
+		var _g3 = config.emotes;
+		while(_g2 < _g3.length) {
+			var emote = _g3[_g2];
+			++_g2;
+			this.filters.push({ regex : new EReg(this.escapeRegExp(emote.name),"g"), replace : "<img class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>"});
+		}
+		var smilesWrap = window.document.querySelector("#smileswrap");
+		smilesWrap.onclick = function(e) {
+			var el = e.target;
+			var form = window.document.querySelector("#chatline");
+			form.value += " " + el.title;
+			form.focus();
+			return;
+		};
+		smilesWrap.innerHTML = "";
+		var _g4 = 0;
+		var _g5 = config.emotes;
+		while(_g4 < _g5.length) {
+			var emote1 = _g5[_g4];
+			++_g4;
+			var img = window.document.createElement("img");
+			img.className = "smile-preview";
+			img.src = emote1.image;
+			img.title = emote1.name;
+			smilesWrap.appendChild(img);
+		}
+	}
 	,onLogin: function(data,clientName) {
 		this.updateClients(data);
 		this.personal = ClientTools.getByName(this.clients,clientName);
@@ -540,7 +652,7 @@ client_Main.prototype = {
 	}
 	,updateUserList: function() {
 		window.document.querySelector("#usercount").innerHTML = this.clients.length + " " + Lang.get("online");
-		window.document.title = "" + this.pageTitle + " (" + this.clients.length + ")";
+		window.document.title = this.getPageTitle();
 		var list_b = "";
 		var _g = 0;
 		var _g1 = this.clients;
@@ -554,26 +666,59 @@ client_Main.prototype = {
 		}
 		window.document.querySelector("#userlist").innerHTML = list_b;
 	}
-	,addMessage: function(name,msg) {
+	,getPageTitle: function() {
+		return "" + this.pageTitle + " (" + this.clients.length + ")";
+	}
+	,addMessage: function(name,text,time) {
+		var _gthis = this;
 		var msgBuf = window.document.querySelector("#messagebuffer");
 		var userDiv = window.document.createElement("div");
 		userDiv.className = "chat-msg-" + name;
 		var tstamp = window.document.createElement("span");
 		tstamp.className = "timestamp";
-		tstamp.innerHTML = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+		if(time == null) {
+			time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+		}
+		tstamp.innerHTML = time;
 		var nameDiv = window.document.createElement("strong");
 		nameDiv.className = "username";
 		nameDiv.innerHTML = name + ": ";
 		var textDiv = window.document.createElement("span");
-		textDiv.innerHTML = msg;
+		var _g = 0;
+		var _g1 = this.filters;
+		while(_g < _g1.length) {
+			var filter = _g1[_g];
+			++_g;
+			text = text.replace(filter.regex.r,filter.replace);
+		}
+		textDiv.innerHTML = text;
 		var isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;
 		userDiv.appendChild(tstamp);
 		userDiv.appendChild(nameDiv);
 		userDiv.appendChild(textDiv);
 		msgBuf.appendChild(userDiv);
 		if(isInChatEnd) {
+			while(msgBuf.children.length > 200) msgBuf.removeChild(msgBuf.firstChild);
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
+		if(this.personal != null && this.personal.name == name) {
+			msgBuf.scrollTop = msgBuf.scrollHeight;
+		}
+		if(window.document.hidden && this.onBlinkTab == null) {
+			this.onBlinkTab = new haxe_Timer(1000);
+			this.onBlinkTab.run = function() {
+				if(StringTools.startsWith(window.document.title,_gthis.pageTitle)) {
+					return window.document.title = "*Chat*";
+				} else {
+					return window.document.title = _gthis.getPageTitle();
+				}
+			};
+			this.onBlinkTab.run();
+		}
+	}
+	,escapeRegExp: function(regex) {
+		var _this_r = new RegExp("([.*+?^${}()|[\\]\\\\])","g".split("u").join(""));
+		return regex.replace(_this_r,"\\$1");
 	}
 };
 var client_MobileView = function() { };
@@ -820,25 +965,6 @@ haxe_Timer.prototype = {
 		this.id = null;
 	}
 	,run: function() {
-	}
-};
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-haxe_ds_StringMap.__name__ = true;
-haxe_ds_StringMap.prototype = {
-	setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
 	}
 };
 var haxe_http_HttpBase = function(url) {
@@ -1225,10 +1351,10 @@ js_Browser.createXMLHttpRequest = function() {
 function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); else return o.iterator(); }
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;
+var __map_reserved = {};
 if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 String.__name__ = true;
 Array.__name__ = true;
-var __map_reserved = {};
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
 }});
