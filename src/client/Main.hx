@@ -251,17 +251,27 @@ class Main {
 				player.removeItem(data.removeVideo.url);
 				if (player.isListEmpty()) player.pause();
 			case Pause:
+				if (isLeader()) return;
 				player.pause();
 				player.setTime(data.pause.time);
 			case Play:
+				if (isLeader()) return;
 				player.setTime(data.play.time);
 				player.play();
 			case GetTime:
 				final newTime = data.getTime.time;
 				final time = player.getTime();
+				if (isLeader()) {
+					// if video is loading on leader
+					// move other clients back in time
+					if (Math.abs(time - newTime) < 2) return;
+					player.setTime(time, false);
+					return;
+				}
 				if (Math.abs(time - newTime) < 2) return;
 				player.setTime(newTime);
 				if (!data.getTime.paused) player.play();
+				else player.pause();
 			case SetTime:
 				final newTime = data.setTime.time;
 				final time = player.getTime();
@@ -270,10 +280,10 @@ class Main {
 			case SetLeader:
 				clients.setLeader(data.setLeader.clientName);
 				updateUserList();
-				if (personal == null) return;
 				final leaderBtn:InputElement = cast ge("#leader_btn");
-				if (personal.isLeader) leaderBtn.classList.add('label-success');
+				if (isLeader()) leaderBtn.classList.add('label-success');
 				else leaderBtn.classList.remove('label-success');
+				if (isLeader()) player.setTime(player.getTime(), false);
 		}
 	}
 

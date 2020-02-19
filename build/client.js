@@ -491,12 +491,21 @@ client_Main.prototype = {
 		case "GetTime":
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
+			if(this.isLeader()) {
+				if(Math.abs(time - newTime) < 2) {
+					return;
+				}
+				this.player.setTime(time,false);
+				return;
+			}
 			if(Math.abs(time - newTime) < 2) {
 				return;
 			}
 			this.player.setTime(newTime);
 			if(!data.getTime.paused) {
 				this.player.play();
+			} else {
+				this.player.pause();
 			}
 			break;
 		case "Login":
@@ -516,10 +525,16 @@ client_Main.prototype = {
 			this.addMessage(data.message.clientName,data.message.text);
 			break;
 		case "Pause":
+			if(this.isLeader()) {
+				return;
+			}
 			this.player.pause();
 			this.player.setTime(data.pause.time);
 			break;
 		case "Play":
+			if(this.isLeader()) {
+				return;
+			}
 			this.player.setTime(data.play.time);
 			this.player.play();
 			break;
@@ -532,14 +547,14 @@ client_Main.prototype = {
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
 			this.updateUserList();
-			if(this.personal == null) {
-				return;
-			}
 			var leaderBtn = window.document.querySelector("#leader_btn");
-			if(this.personal.isLeader) {
+			if(this.isLeader()) {
 				leaderBtn.classList.add("label-success");
 			} else {
 				leaderBtn.classList.remove("label-success");
+			}
+			if(this.isLeader()) {
+				this.player.setTime(this.player.getTime(),false);
 			}
 			break;
 		case "SetTime":
@@ -792,7 +807,7 @@ client_Player.prototype = {
 			}
 			return _gthis.isLoaded = true;
 		};
-		this.video.ontimeupdate = function(e1) {
+		this.video.onseeking = function(e1) {
 			if(_gthis.skipSetTime) {
 				_gthis.skipSetTime = false;
 				return;

@@ -1014,8 +1014,7 @@ border-top-left-radius:0
   border:0
 }
 .embed-responsive.embed-responsive-16by9 {
-  /* padding-bottom:56.25%; */
-  padding-bottom:60%;
+  padding-bottom:56.25%;
   background-color: rgb(26, 29, 32);
 }
 .embed-responsive.embed-responsive-4by3 {

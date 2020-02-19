@@ -33,7 +33,7 @@ class Player {
 			if (!isLoaded) main.send({type: VideoLoaded});
 			isLoaded = true;
 		}
-		video.ontimeupdate = (e) -> {
+		video.onseeking = e -> {
 			if (skipSetTime) {
 				skipSetTime = false;
 				return;
