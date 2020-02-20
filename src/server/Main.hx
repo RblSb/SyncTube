@@ -75,6 +75,8 @@ class Main {
 		trace('Client connected ($ip)');
 		final client = new Client(ws, "Unknown", false);
 		clients.push(client);
+		if (clients.length == 1)
+			if (videoTimer.isPaused()) videoTimer.play();
 
 		send(client, {
 			type: Connected,
@@ -101,6 +103,7 @@ class Main {
 			if (client.isLeader) {
 				if (videoTimer.isPaused()) videoTimer.play();
 			}
+			if (clients.length == 0) videoTimer.pause();
 		});
 	}
 
