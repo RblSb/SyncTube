@@ -259,6 +259,25 @@ Std.__name__ = true;
 Std.string = function(s) {
 	return js_Boot.__string_rec(s,"");
 };
+Std.parseInt = function(x) {
+	if(x != null) {
+		var _g = 0;
+		var _g1 = x.length;
+		while(_g < _g1) {
+			var i = _g++;
+			var c = x.charCodeAt(i);
+			if(c <= 8 || c >= 14 && c != 32 && c != 45) {
+				var v = parseInt(x, (x[(i + 1)]=="x" || x[(i + 1)]=="X") ? 16 : 10);
+				if(isNaN(v)) {
+					return null;
+				} else {
+					return v;
+				}
+			}
+		}
+	}
+	return null;
+};
 var StringTools = function() { };
 StringTools.__name__ = true;
 StringTools.startsWith = function(s,start) {
@@ -410,6 +429,7 @@ var client_Main = function(host,port) {
 	if(port == null) {
 		port = 4201;
 	}
+	this.matchNumbers = new EReg("^-?[0-9]+$","");
 	this.onTimeGet = new haxe_Timer(2000);
 	this.isConnected = false;
 	this.personal = new Client(null,null,"Unknown",0);
@@ -603,6 +623,9 @@ client_Main.prototype = {
 				this.player.pause();
 			}
 			break;
+		case "Rewind":
+			this.player.setTime(data.rewind.time);
+			break;
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
 			this.updateUserList();
@@ -790,12 +813,18 @@ client_Main.prototype = {
 		nameDiv.className = "username";
 		nameDiv.innerHTML = name + ": ";
 		var textDiv = window.document.createElement("span");
-		var _g = 0;
-		var _g1 = this.filters;
-		while(_g < _g1.length) {
-			var filter = _g1[_g];
-			++_g;
-			text = text.replace(filter.regex.r,filter.replace);
+		if(StringTools.startsWith(text,"/")) {
+			if(name == this.personal.name) {
+				this.handleCommands(HxOverrides.substr(text,1,null));
+			}
+		} else {
+			var _g = 0;
+			var _g1 = this.filters;
+			while(_g < _g1.length) {
+				var filter = _g1[_g];
+				++_g;
+				text = text.replace(filter.regex.r,filter.replace);
+			}
 		}
 		textDiv.innerHTML = text;
 		var isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;
@@ -807,7 +836,7 @@ client_Main.prototype = {
 			while(msgBuf.children.length > 200) msgBuf.removeChild(msgBuf.firstChild);
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
-		if(this.personal.name == name) {
+		if(name == this.personal.name) {
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
 		if(window.document.hidden && this.onBlinkTab == null) {
@@ -820,6 +849,11 @@ client_Main.prototype = {
 				}
 			};
 			this.onBlinkTab.run();
+		}
+	}
+	,handleCommands: function(text) {
+		if(this.matchNumbers.match(text)) {
+			this.send({ type : "Rewind", rewind : { time : Std.parseInt(text)}});
 		}
 	}
 	,setLeaderButton: function(flag) {

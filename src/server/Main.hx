@@ -219,6 +219,13 @@ class Main {
 				if (!client.isLeader) return;
 				videoTimer.setTime(data.setTime.time);
 				broadcastExcept(client, data);
+			case Rewind:
+				if (videoList.length == 0) return;
+				// TODO permission
+				data.rewind.time += videoTimer.getTime();
+				if (data.rewind.time < 0) data.rewind.time = 0;
+				videoTimer.setTime(data.rewind.time);
+				broadcast(data);
 			case SetLeader:
 				clients.setLeader(data.setLeader.clientName);
 				broadcast({

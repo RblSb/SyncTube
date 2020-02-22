@@ -84,6 +84,9 @@ typedef WsEvent = {
 	?setTime:{
 		time:Float
 	},
+	?rewind:{
+		time:Float
+	},
 	?setLeader:{
 		clientName:String
 	}
@@ -105,6 +108,7 @@ enum abstract WsEventType(String) {
 	var Play;
 	var GetTime;
 	var SetTime;
+	var Rewind;
 	var SetLeader;
 	var ClearChat;
 }

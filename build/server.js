@@ -794,6 +794,17 @@ server_Main.prototype = {
 			}));
 			this.broadcast(data);
 			break;
+		case "Rewind":
+			if(this.videoList.length == 0) {
+				return;
+			}
+			data.rewind.time += this.videoTimer.getTime();
+			if(data.rewind.time < 0) {
+				data.rewind.time = 0;
+			}
+			this.videoTimer.setTime(data.rewind.time);
+			this.broadcast(data);
+			break;
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
 			this.broadcast({ type : "SetLeader", setLeader : { clientName : data.setLeader.clientName}});

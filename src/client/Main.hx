@@ -201,6 +201,8 @@ class Main {
 				final time = player.getTime();
 				if (Math.abs(time - newTime) < 2) return;
 				player.setTime(newTime);
+			case Rewind:
+				player.setTime(data.rewind.time);
 			case SetLeader:
 				clients.setLeader(data.setLeader.clientName);
 				updateUserList();
@@ -366,8 +368,12 @@ class Main {
 		nameDiv.innerHTML = name + ": ";
 
 		final textDiv = document.createSpanElement();
-		for (filter in filters) {
-			text = filter.regex.replace(text, filter.replace);
+		if (text.startsWith("/")) {
+			if (name == personal.name) handleCommands(text.substr(1));
+		} else {
+			for (filter in filters) {
+				text = filter.regex.replace(text, filter.replace);
+			}
 		}
 		textDiv.innerHTML = text;
 
@@ -380,7 +386,7 @@ class Main {
 			while (msgBuf.children.length > 200) msgBuf.removeChild(msgBuf.firstChild);
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
-		if (personal.name == name) {
+		if (name == personal.name) {
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
 		if (document.hidden && onBlinkTab == null) {
@@ -391,6 +397,20 @@ class Main {
 				else document.title = getPageTitle();
 			}
 			onBlinkTab.run();
+		}
+	}
+
+	final matchNumbers = ~/^-?[0-9]+$/;
+
+	function handleCommands(text:String):Void {
+		switch (text) {
+			case "clear":
+				if (isAdmin()) send({type: ClearChat});
+		}
+		if (matchNumbers.match(text)) {
+			send({type: Rewind, rewind: {
+				time: Std.parseInt(text)
+			}});
 		}
 	}
 
