@@ -19,12 +19,10 @@ using ClientTools;
 class Main {
 
 	final clients:Array<Client> = [];
-	final personalHistory:Array<String> = [];
 	var pageTitle = document.title;
 	var config:Null<Config>;
 	final filters:Array<{regex:EReg, replace:String}> = [];
-	var personal:Null<Client>;
-	var personalHistoryId = -1;
+	var personal = new Client("Unknown", 0);
 	var isConnected = false;
 	var ws:WebSocket;
 	final player:Player;
@@ -70,67 +68,13 @@ class Main {
 	}
 
 	function initListeners():Void {
-		final smilesBtn = ge("#smilesbtn");
-		smilesBtn.onclick = e -> {
-			final smilesWrap = ge("#smileswrap");
-			if (smilesWrap.style.display == "")
-				smilesWrap.style.display = "block";
-			else smilesWrap.style.display = "";
-		}
-
-		final guestName:InputElement = cast ge("#guestname");
-		guestName.onkeydown = (e:KeyboardEvent) -> {
-			if (guestName.value.length == 0) return;
-			if (e.keyCode == 13) send({
-				type: Login,
-				login: {
-					clientName: guestName.value
-				}
-			});
-		}
-
-		final chatLine:InputElement = cast ge("#chatline");
-		chatLine.onkeydown = function(e:KeyboardEvent) {
-			switch (e.keyCode) {
-				case 13: // Enter
-					if (chatLine.value.length == 0) return;
-					send({
-						type: Message,
-						message: {
-							clientName: "",
-							text: chatLine.value
-						}
-					});
-					personalHistory.push(chatLine.value);
-					if (personalHistory.length > 50) personalHistory.shift();
-					personalHistoryId = -1;
-					chatLine.value = "";
-				case 38: // Up
-					personalHistoryId--;
-					if (personalHistoryId == -2) {
-						personalHistoryId = personalHistory.length - 1;
-						if (personalHistoryId == -1) return;
-					} else if (personalHistoryId == -1) personalHistoryId++;
-					chatLine.value = personalHistory[personalHistoryId];
-				case 40: // Down
-					if (personalHistoryId == -1) return;
-					personalHistoryId++;
-					if (personalHistoryId > personalHistory.length - 1) {
-						personalHistoryId = -1;
-						chatLine.value = "";
-						return;
-					}
-					chatLine.value = personalHistory[personalHistoryId];
-			}
-		}
-
+		Buttons.init(this);
 		MobileView.init();
 
-		final leaderBtn:InputElement = cast ge("#leader_btn");
+		final leaderBtn = ge("#leader_btn");
 		leaderBtn.onclick = (e) -> {
-			if (personal == null) return;
-			if (!personal.isLeader) leaderBtn.classList.add('label-success');
-			else leaderBtn.classList.remove('label-success');
+			// change button style before answer
+			setLeaderButton(!personal.isLeader);
 			final name = personal.isLeader ? "" : personal.name;
 			send({
 				type: SetLeader,
@@ -140,12 +84,7 @@ class Main {
 			});
 		}
 
-		final showMediaUrl:ButtonElement = cast ge("#showmediaurl");
-		showMediaUrl.onclick = (e:MouseEvent) -> {
-			ge("#showmediaurl").classList.toggle("collapsed");
-			ge("#showmediaurl").classList.toggle("active");
-			ge("#addfromurl").classList.toggle("collapse");
-		}
+		// TODO next/end
 		ge("#queue_next").onclick = (e:MouseEvent) -> addVideoUrl();
 		ge("#queue_end").onclick = (e:MouseEvent) -> addVideoUrl();
 		ge("#mediaurl").onkeydown = function(e:KeyboardEvent) {
@@ -153,26 +92,32 @@ class Main {
 		}
 	}
 
-	public function isLeader():Bool {
-		return personal != null && personal.isLeader;
+	public inline function isLeader():Bool {
+		return personal.isLeader;
+	}
+
+	public inline function isAdmin():Bool {
+		return personal.isAdmin;
 	}
 
 	function addVideoUrl():Void {
 		final mediaUrl:InputElement = cast ge("#mediaurl");
 		final url = mediaUrl.value;
-		final name = personal == null ? "Unknown" : personal.name;
+		var name = url.substr(url.lastIndexOf('/') + 1);
+		final matchName = ~/^(.+)\./;
+		if (matchName.match(name)) name = matchName.matched(1);
+		else name = Lang.get("rawVideo");
+
 		getRemoteVideoDuration(mediaUrl.value, (duration:Float) -> {
 			send({
-				type: AddVideo,
-				addVideo: {
+				type: AddVideo, addVideo: {
 					item: {
 						url: url,
-						title: Lang.get("rawVideo"),
-						author: name,
+						title: name,
+						author: personal.name,
 						duration: duration
 					}
-				}
-			});
+				}});
 		});
 		mediaUrl.value = "";
 	}
@@ -181,8 +126,11 @@ class Main {
 		final player:Element = ge("#ytapiplayer");
 		final video = document.createVideoElement();
 		video.src = src;
+		// TODO catch errors on AddVideo and getRemoteVideoDuration
+		video.onerror = e -> {
+			callback(0);
+		}
 		video.onloadedmetadata = () -> {
-			trace(video.duration);
 			player.removeChild(video);
 			callback(video.duration);
 		}
@@ -201,30 +149,7 @@ class Main {
 		trace('Event: ${data.type}', untyped data[t]);
 		switch (data.type) {
 			case Connected:
-				setConfig(data.connected.config);
-				if (data.connected.isUnknownClient) {
-					updateClients(data.connected.clients);
-					ge("#guestlogin").style.display = "block";
-					ge("#chatline").style.display = "none";
-				} else {
-					onLogin(data.connected.clients, data.connected.clientName);
-				}
-				final guestName:InputElement = cast ge("#guestname");
-				if (guestName.value.length > 0) send({
-					type: Login,
-					login: {
-						clientName: guestName.value
-					}
-				});
-				for (message in data.connected.history) {
-					addMessage(message.name, message.text, message.time);
-				}
-				final list = data.connected.videoList;
-				if (list.length == 0) return;
-				player.setVideo(list[0]);
-				for (video in data.connected.videoList) {
-					player.addVideoItem(video);
-				}
+				onConnected(data);
 			case Login:
 				onLogin(data.login.clients, data.login.clientName);
 			case LoginError:
@@ -233,12 +158,11 @@ class Main {
 				serverMessage(4, text);
 			case Logout:
 				updateClients(data.logout.clients);
-				personal = null;
-				ge("#guestlogin").style.display = "block";
-				ge("#chatline").style.display = "none";
+				personal = new Client(data.logout.clientName, 0);
+				showGuestLoginPanel();
 			case UpdateClients:
 				updateClients(data.updateClients.clients);
-				if (personal != null) personal = clients.getByName(personal.name);
+				personal = clients.getByName(personal.name, personal);
 			case Message:
 				addMessage(data.message.clientName, data.message.text);
 			case AddVideo:
@@ -280,10 +204,38 @@ class Main {
 			case SetLeader:
 				clients.setLeader(data.setLeader.clientName);
 				updateUserList();
-				final leaderBtn:InputElement = cast ge("#leader_btn");
-				if (isLeader()) leaderBtn.classList.add('label-success');
-				else leaderBtn.classList.remove('label-success');
+				setLeaderButton(isLeader());
 				if (isLeader()) player.setTime(player.getTime(), false);
+			case ClearChat:
+				ge("#messagebuffer").innerHTML = "";
+		}
+	}
+
+	function onConnected(data:WsEvent):Void {
+		final connected = data.connected;
+		setConfig(connected.config);
+		if (connected.isUnknownClient) {
+			updateClients(connected.clients);
+			personal = clients.getByName(connected.clientName, personal);
+			showGuestLoginPanel();
+		} else {
+			onLogin(connected.clients, connected.clientName);
+		}
+		final guestName:InputElement = cast ge("#guestname");
+		if (guestName.value.length > 0) send({
+			type: Login,
+			login: {
+				clientName: guestName.value
+			}
+		});
+		for (message in connected.history) {
+			addMessage(message.name, message.text, message.time);
+		}
+		final list = connected.videoList;
+		if (list.length == 0) return;
+		player.setVideo(list[0]);
+		for (video in connected.videoList) {
+			player.addVideoItem(video);
 		}
 	}
 
@@ -327,8 +279,18 @@ class Main {
 
 	function onLogin(data:Array<ClientData>, clientName:String):Void {
 		updateClients(data);
-		personal = clients.getByName(clientName);
-		if (personal == null) return;
+		final newPersonal = clients.getByName(clientName);
+		if (newPersonal == null) return;
+		personal = newPersonal;
+		hideGuestLoginPanel();
+	}
+
+	function showGuestLoginPanel():Void {
+		ge("#guestlogin").style.display = "block";
+		ge("#chatline").style.display = "none";
+	}
+
+	function hideGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "none";
 		ge("#chatline").style.display = "block";
 	}
@@ -376,10 +338,10 @@ class Main {
 
 		final list = new StringBuf();
 		for (client in clients) {
-			// final klass = client.isLeader ? "userlist_owner" : "userlist_item";
-			final klass = "userlist_item";
+			list.add('<div class="userlist_item">');
 			if (client.isLeader) list.add('<span class="glyphicon glyphicon-star-empty"></span>');
-			list.add('<span class="$klass">${client.name}</span></br>');
+			final klass = client.isAdmin ? "userlist_owner" : "";
+			list.add('<span class="$klass">${client.name}</span></div>');
 		}
 		final userlist = ge("#userlist");
 		userlist.innerHTML = list.toString();
@@ -418,7 +380,7 @@ class Main {
 			while (msgBuf.children.length > 200) msgBuf.removeChild(msgBuf.firstChild);
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
-		if (personal != null && personal.name == name) {
+		if (personal.name == name) {
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
 		if (document.hidden && onBlinkTab == null) {
@@ -430,6 +392,13 @@ class Main {
 			}
 			onBlinkTab.run();
 		}
+	}
+
+	function setLeaderButton(flag:Bool):Void {
+		final leaderBtn = ge("#leader_btn");
+		if (isLeader()) {
+			leaderBtn.classList.add("label-success");
+		} else leaderBtn.classList.remove("label-success");
 	}
 
 	function escapeRegExp(regex:String):String {

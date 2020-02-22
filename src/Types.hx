@@ -54,6 +54,7 @@ typedef WsEvent = {
 		?isUnknownClient:Bool,
 	},
 	?logout:{
+		oldClientName:String,
 		clientName:String,
 		clients:Array<ClientData>,
 	},
@@ -105,4 +106,5 @@ enum abstract WsEventType(String) {
 	var GetTime;
 	var SetTime;
 	var SetLeader;
+	var ClearChat;
 }

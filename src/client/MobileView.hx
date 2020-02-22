@@ -1,25 +1,24 @@
 package client;
 
-import js.html.InputElement;
 import js.Browser.document;
 import client.Main.ge;
 
 class MobileView {
 
 	public static function init():Void {
-		final mvbtn:InputElement = cast ge("#mv_btn");
-		mvbtn.onclick = (e) -> {
-			final mobile_view = toggleFullScreen();
-			if (mobile_view) {
+		final mvbtn = ge("#mv_btn");
+		mvbtn.onclick = e -> {
+			final mobileView = toggleFullScreen();
+			if (mobileView) {
 				document.body.classList.add('mobile-view');
-				mvbtn.classList.add('label-success');
+				mvbtn.classList.add('active');
 				final vwrap = ge("#videowrap");
 				if (vwrap.children[0] == ge("currenttitle")) {
 					vwrap.appendChild(vwrap.children[0]);
 				}
 			} else {
 				document.body.classList.remove('mobile-view');
-				mvbtn.classList.remove('label-success');
+				mvbtn.classList.remove('active');
 				final vwrap = ge("videowrap");
 				if (vwrap.children[0] != ge("currenttitle")) {
 					vwrap.insertBefore(vwrap.children[1],vwrap.children[0]);

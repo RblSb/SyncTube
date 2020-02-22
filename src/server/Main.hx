@@ -21,6 +21,7 @@ class Main {
 	final wss:WSServer;
 	final config:Config;
 	final clients:Array<Client> = [];
+	final freeIds:Array<Int> = [];
 	final videoList:Array<VideoItem> = [];
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
@@ -72,8 +73,12 @@ class Main {
 
 	function onConnect(ws:WebSocket, req):Void {
 		final ip = req.connection.remoteAddress;
-		trace('Client connected ($ip)');
-		final client = new Client(ws, "Unknown", false);
+		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
+		final name = 'Guest ${id + 1}';
+		trace('$name connected ($ip)');
+		final isAdmin = req.connection.localAddress == ip;
+		final client = new Client(ws, id, name, 0);
+		if (isAdmin) client.group.set(Admin);
 		clients.push(client);
 		if (clients.length == 1)
 			if (videoTimer.isPaused()) videoTimer.play();
@@ -98,6 +103,7 @@ class Main {
 		});
 		ws.on("close", err -> {
 			trace('Client ${client.name} disconnected');
+			sortedPush(freeIds, client.id);
 			clients.remove(client);
 			sendClientList();
 			if (client.isLeader) {
@@ -105,6 +111,17 @@ class Main {
 			}
 			if (clients.length == 0) videoTimer.pause();
 		});
+	}
+
+	function sortedPush(ids:Array<Int>, id:Int):Void {
+		for (i in 0...ids.length) {
+			final n = ids[i];
+			if (id < n) {
+				ids.insert(i, id);
+				return;
+			}
+		}
+		ids.push(id);
 	}
 
 	function onMessage(client:Client, data:WsEvent):Void {
@@ -131,11 +148,13 @@ class Main {
 			case LoginError:
 			case Logout:
 				final oldName = client.name;
-				client.name = "Unknown";
+				final id = clients.indexOf(client) + 1;
+				client.name = 'Guest $id';
 				send(client, {
 					type: data.type,
 					logout: {
-						clientName: oldName,
+						oldClientName: oldName,
+						clientName: client.name,
 						clients: clientList()
 					}
 				});
@@ -150,7 +169,7 @@ class Main {
 				data.message.clientName = client.name;
 				final time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
 				messages.push({text: text, name: client.name, time: time});
-				if (messages.length > config.serverChatHistory) messages.pop();
+				if (messages.length > config.serverChatHistory) messages.shift();
 				broadcast(data);
 			case AddVideo:
 				videoList.push(data.addVideo.item);
@@ -202,7 +221,11 @@ class Main {
 				broadcastExcept(client, data);
 			case SetLeader:
 				clients.setLeader(data.setLeader.clientName);
-				sendClientList();
+				broadcast({
+					type: SetLeader, setLeader: {
+						clientName: data.setLeader.clientName
+					}
+				});
 				if (videoList.length == 0) return;
 				if (!clients.hasLeader()) {
 					if (videoTimer.isPaused()) videoTimer.play();
@@ -212,6 +235,8 @@ class Main {
 						}
 					});
 				}
+			case ClearChat:
+				if (client.isAdmin) broadcast(data);
 		}
 	}
 

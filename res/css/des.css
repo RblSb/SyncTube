@@ -176,6 +176,9 @@ src:url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.2/fonts/gl
 .glyphicon-chevron-down:before {
   content:"\e114"
 }
+.glyphicon-chevron-right::before {
+  content: "\e080";
+}
 .glyphicon-retweet:before {
   content:"\e115"
 }

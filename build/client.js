@@ -7,17 +7,32 @@ function $extend(from, fields) {
 	if( fields.toString !== Object.prototype.toString ) proto.toString = fields.toString;
 	return proto;
 }
-var Client = function(ws,name,isLeader) {
-	if(isLeader == null) {
-		isLeader = false;
-	}
-	this.ws = ws;
+var ClientGroup = $hxEnums["ClientGroup"] = { __ename__ : true, __constructs__ : ["User","Leader","Admin"]
+	,User: {_hx_index:0,__enum__:"ClientGroup",toString:$estr}
+	,Leader: {_hx_index:1,__enum__:"ClientGroup",toString:$estr}
+	,Admin: {_hx_index:2,__enum__:"ClientGroup",toString:$estr}
+};
+var Client = function(ws,id,name,group) {
 	this.name = name;
-	this.isLeader = isLeader;
+	var i = group;
+	if(group == null) {
+		i = 0;
+	}
+	this.group = i;
 };
 Client.__name__ = true;
 Client.fromData = function(data) {
-	return new Client(null,data.name,data.isLeader);
+	return new Client(null,null,data.name,data.group);
+};
+Client.prototype = {
+	setGroupFlag: function(type,flag) {
+		if(flag) {
+			this.group |= 1 << type._hx_index;
+		} else {
+			this.group &= -1 - (1 << type._hx_index);
+		}
+		return flag;
+	}
 };
 var ClientTools = function() { };
 ClientTools.__name__ = true;
@@ -27,13 +42,13 @@ ClientTools.setLeader = function(clients,name) {
 		var client = clients[_g];
 		++_g;
 		if(client.name == name) {
-			client.isLeader = true;
-		} else if(client.isLeader) {
-			client.isLeader = false;
+			client.setGroupFlag(ClientGroup.Leader,true);
+		} else if((client.group & 2) != 0) {
+			client.setGroupFlag(ClientGroup.Leader,false);
 		}
 	}
 };
-ClientTools.getByName = function(clients,name) {
+ClientTools.getByName = function(clients,name,def) {
 	var _g = 0;
 	while(_g < clients.length) {
 		var client = clients[_g];
@@ -42,7 +57,7 @@ ClientTools.getByName = function(clients,name) {
 			return client;
 		}
 	}
-	return null;
+	return def;
 };
 var EReg = function(r,opt) {
 	this.r = new RegExp(r,opt.split("u").join(""));
@@ -56,6 +71,13 @@ EReg.prototype = {
 		this.r.m = this.r.exec(s);
 		this.r.s = s;
 		return this.r.m != null;
+	}
+	,matched: function(n) {
+		if(this.r.m != null && n >= 0 && n < this.r.m.length) {
+			return this.r.m[n];
+		} else {
+			throw new js__$Boot_HaxeError("EReg::matched");
+		}
 	}
 };
 var HxOverrides = function() { };
@@ -249,16 +271,150 @@ StringTools.startsWith = function(s,start) {
 StringTools.replace = function(s,sub,by) {
 	return s.split(sub).join(by);
 };
+var client_Buttons = function() { };
+client_Buttons.__name__ = true;
+client_Buttons.init = function(main) {
+	client_Buttons.initChatInput(main);
+	var smilesBtn = window.document.querySelector("#smilesbtn");
+	smilesBtn.onclick = function(e) {
+		smilesBtn.classList.toggle("active");
+		var smilesWrap = window.document.querySelector("#smileswrap");
+		if(smilesBtn.classList.contains("active")) {
+			return smilesWrap.style.display = "block";
+		} else {
+			return smilesWrap.style.display = "none";
+		}
+	};
+	window.document.querySelector("#clearchatbtn").style.display = "inline-block";
+	window.document.querySelector("#clearchatbtn").onclick = function(e1) {
+		if((main.personal.group & 4) != 0) {
+			main.send({ type : "ClearChat"});
+		}
+		return;
+	};
+	var userList = window.document.querySelector("#userlist");
+	userList.onclick = function(e2) {
+		if((main.personal.group & 4) == 0) {
+			return;
+		}
+		var el = e2.target;
+		if(userList == el) {
+			return;
+		}
+		if(!el.classList.contains("userlist_item")) {
+			el = el.parentElement;
+		}
+		var name = "";
+		if(el.children.length == 1) {
+			name = el.lastElementChild.innerText;
+		}
+		main.send({ type : "SetLeader", setLeader : { clientName : name}});
+		return;
+	};
+	client_Buttons.split = new Split(["#chatwrap","#videowrap"],{ sizes : [40,60], onDragEnd : function() {
+		return window.dispatchEvent(new Event("resize"));
+	}, minSize : 185, snapOffset : 0});
+	var userlistToggle = window.document.querySelector("#userlisttoggle");
+	userlistToggle.onclick = function(e3) {
+		var style = window.document.querySelector("#userlist").style;
+		if(style.display == "none") {
+			userlistToggle.classList.add("glyphicon-chevron-down");
+			userlistToggle.classList.remove("glyphicon-chevron-right");
+			return style.display = "block";
+		} else {
+			userlistToggle.classList.add("glyphicon-chevron-right");
+			userlistToggle.classList.remove("glyphicon-chevron-down");
+			return style.display = "none";
+		}
+	};
+	window.document.querySelector("#usercount").onclick = userlistToggle.onclick;
+	var extendPlayer = window.document.querySelector("#extendplayer");
+	extendPlayer.onclick = function(e4) {
+		if(extendPlayer.classList.contains("active")) {
+			client_Buttons.split.setSizes([40,60]);
+			window.document.querySelector("#userlist").style.width = "90px";
+		} else {
+			client_Buttons.split.setSizes([20,80]);
+			window.document.querySelector("#userlist").style.width = "80px";
+		}
+		extendPlayer.classList.toggle("active");
+		return window.dispatchEvent(new Event("resize"));
+	};
+	window.document.querySelector("#showmediaurl").onclick = function(e5) {
+		window.document.querySelector("#showmediaurl").classList.toggle("collapsed");
+		window.document.querySelector("#showmediaurl").classList.toggle("active");
+		return window.document.querySelector("#addfromurl").classList.toggle("collapse");
+	};
+	window.onresize = client_Buttons.onVideoResize;
+	window.dispatchEvent(new Event("resize"));
+};
+client_Buttons.onVideoResize = function() {
+	var height = window.document.querySelector("#ytapiplayer").offsetHeight - window.document.querySelector("#chatline").offsetHeight;
+	window.document.querySelector("#messagebuffer").style.height = "" + height + "px";
+	window.document.querySelector("#userlist").style.height = "" + height + "px";
+};
+client_Buttons.initChatInput = function(main) {
+	var guestName = window.document.querySelector("#guestname");
+	guestName.onkeydown = function(e) {
+		if(guestName.value.length == 0) {
+			return;
+		}
+		if(e.keyCode == 13) {
+			main.send({ type : "Login", login : { clientName : guestName.value}});
+		}
+		return;
+	};
+	var chatLine = window.document.querySelector("#chatline");
+	chatLine.onkeydown = function(e1) {
+		switch(e1.keyCode) {
+		case 13:
+			if(chatLine.value.length == 0) {
+				return;
+			}
+			main.send({ type : "Message", message : { clientName : "", text : chatLine.value}});
+			client_Buttons.personalHistory.push(chatLine.value);
+			if(client_Buttons.personalHistory.length > 50) {
+				client_Buttons.personalHistory.shift();
+			}
+			client_Buttons.personalHistoryId = -1;
+			chatLine.value = "";
+			break;
+		case 38:
+			client_Buttons.personalHistoryId--;
+			if(client_Buttons.personalHistoryId == -2) {
+				client_Buttons.personalHistoryId = client_Buttons.personalHistory.length - 1;
+				if(client_Buttons.personalHistoryId == -1) {
+					return;
+				}
+			} else if(client_Buttons.personalHistoryId == -1) {
+				client_Buttons.personalHistoryId++;
+			}
+			chatLine.value = client_Buttons.personalHistory[client_Buttons.personalHistoryId];
+			break;
+		case 40:
+			if(client_Buttons.personalHistoryId == -1) {
+				return;
+			}
+			client_Buttons.personalHistoryId++;
+			if(client_Buttons.personalHistoryId > client_Buttons.personalHistory.length - 1) {
+				client_Buttons.personalHistoryId = -1;
+				chatLine.value = "";
+				return;
+			}
+			chatLine.value = client_Buttons.personalHistory[client_Buttons.personalHistoryId];
+			break;
+		}
+	};
+};
 var client_Main = function(host,port) {
 	if(port == null) {
 		port = 4201;
 	}
 	this.onTimeGet = new haxe_Timer(2000);
 	this.isConnected = false;
-	this.personalHistoryId = -1;
+	this.personal = new Client(null,null,"Unknown",0);
 	this.filters = [];
 	this.pageTitle = window.document.title;
-	this.personalHistory = [];
 	this.clients = [];
 	var _gthis = this;
 	this.player = new client_Player(this);
@@ -313,113 +469,41 @@ client_Main.prototype = {
 	}
 	,initListeners: function() {
 		var _gthis = this;
-		window.document.querySelector("#smilesbtn").onclick = function(e) {
-			var smilesWrap = window.document.querySelector("#smileswrap");
-			if(smilesWrap.style.display == "") {
-				return smilesWrap.style.display = "block";
-			} else {
-				return smilesWrap.style.display = "";
-			}
-		};
-		var guestName = window.document.querySelector("#guestname");
-		guestName.onkeydown = function(e1) {
-			if(guestName.value.length == 0) {
-				return;
-			}
-			if(e1.keyCode == 13) {
-				_gthis.send({ type : "Login", login : { clientName : guestName.value}});
-			}
-			return;
-		};
-		var chatLine = window.document.querySelector("#chatline");
-		chatLine.onkeydown = function(e2) {
-			switch(e2.keyCode) {
-			case 13:
-				if(chatLine.value.length == 0) {
-					return;
-				}
-				_gthis.send({ type : "Message", message : { clientName : "", text : chatLine.value}});
-				_gthis.personalHistory.push(chatLine.value);
-				if(_gthis.personalHistory.length > 50) {
-					_gthis.personalHistory.shift();
-				}
-				_gthis.personalHistoryId = -1;
-				chatLine.value = "";
-				break;
-			case 38:
-				_gthis.personalHistoryId--;
-				if(_gthis.personalHistoryId == -2) {
-					_gthis.personalHistoryId = _gthis.personalHistory.length - 1;
-					if(_gthis.personalHistoryId == -1) {
-						return;
-					}
-				} else if(_gthis.personalHistoryId == -1) {
-					_gthis.personalHistoryId++;
-				}
-				chatLine.value = _gthis.personalHistory[_gthis.personalHistoryId];
-				break;
-			case 40:
-				if(_gthis.personalHistoryId == -1) {
-					return;
-				}
-				_gthis.personalHistoryId++;
-				if(_gthis.personalHistoryId > _gthis.personalHistory.length - 1) {
-					_gthis.personalHistoryId = -1;
-					chatLine.value = "";
-					return;
-				}
-				chatLine.value = _gthis.personalHistory[_gthis.personalHistoryId];
-				break;
-			}
-		};
+		client_Buttons.init(this);
 		client_MobileView.init();
-		var leaderBtn = window.document.querySelector("#leader_btn");
-		leaderBtn.onclick = function(e3) {
-			if(_gthis.personal == null) {
-				return;
-			}
-			if(!_gthis.personal.isLeader) {
-				leaderBtn.classList.add("label-success");
-			} else {
-				leaderBtn.classList.remove("label-success");
-			}
-			_gthis.send({ type : "SetLeader", setLeader : { clientName : _gthis.personal.isLeader ? "" : _gthis.personal.name}});
+		window.document.querySelector("#leader_btn").onclick = function(e) {
+			_gthis.setLeaderButton((_gthis.personal.group & 2) == 0);
+			_gthis.send({ type : "SetLeader", setLeader : { clientName : (_gthis.personal.group & 2) != 0 ? "" : _gthis.personal.name}});
 			return;
 		};
-		window.document.querySelector("#showmediaurl").onclick = function(e4) {
-			window.document.querySelector("#showmediaurl").classList.toggle("collapsed");
-			window.document.querySelector("#showmediaurl").classList.toggle("active");
-			return window.document.querySelector("#addfromurl").classList.toggle("collapse");
-		};
-		window.document.querySelector("#queue_next").onclick = function(e5) {
+		window.document.querySelector("#queue_next").onclick = function(e1) {
 			_gthis.addVideoUrl();
 			return;
 		};
-		window.document.querySelector("#queue_end").onclick = function(e6) {
+		window.document.querySelector("#queue_end").onclick = function(e2) {
 			_gthis.addVideoUrl();
 			return;
 		};
-		window.document.querySelector("#mediaurl").onkeydown = function(e7) {
-			if(e7.keyCode == 13) {
+		window.document.querySelector("#mediaurl").onkeydown = function(e3) {
+			if(e3.keyCode == 13) {
 				_gthis.addVideoUrl();
 			}
 		};
-	}
-	,isLeader: function() {
-		if(this.personal != null) {
-			return this.personal.isLeader;
-		} else {
-			return false;
-		}
 	}
 	,addVideoUrl: function() {
 		var _gthis = this;
 		var mediaUrl = window.document.querySelector("#mediaurl");
 		var url = mediaUrl.value;
-		var name = this.personal == null ? "Unknown" : this.personal.name;
+		var pos = url.lastIndexOf("/") + 1;
+		var name = HxOverrides.substr(url,pos,null);
+		var matchName = new EReg("^(.+)\\.","");
+		if(matchName.match(name)) {
+			name = matchName.matched(1);
+		} else {
+			name = Lang.get("rawVideo");
+		}
 		this.getRemoteVideoDuration(mediaUrl.value,function(duration) {
-			var tmp = Lang.get("rawVideo");
-			_gthis.send({ type : "AddVideo", addVideo : { item : { url : url, title : tmp, author : name, duration : duration}}});
+			_gthis.send({ type : "AddVideo", addVideo : { item : { url : url, title : name, author : _gthis.personal.name, duration : duration}}});
 			return;
 		});
 		mediaUrl.value = "";
@@ -428,8 +512,11 @@ client_Main.prototype = {
 		var player = window.document.querySelector("#ytapiplayer");
 		var video = window.document.createElement("video");
 		video.src = src;
+		video.onerror = function(e) {
+			callback(0);
+			return;
+		};
 		video.onloadedmetadata = function() {
-			haxe_Log.trace(video.duration,{ fileName : "src/client/Main.hx", lineNumber : 185, className : "client.Main", methodName : "getRemoteVideoDuration"});
 			player.removeChild(video);
 			callback(video.duration);
 			return;
@@ -447,7 +534,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 201, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 149, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			if(this.player.isListEmpty()) {
@@ -455,43 +542,16 @@ client_Main.prototype = {
 			}
 			this.player.addVideoItem(data.addVideo.item);
 			break;
+		case "ClearChat":
+			window.document.querySelector("#messagebuffer").innerHTML = "";
+			break;
 		case "Connected":
-			this.setConfig(data.connected.config);
-			if(data.connected.isUnknownClient) {
-				this.updateClients(data.connected.clients);
-				window.document.querySelector("#guestlogin").style.display = "block";
-				window.document.querySelector("#chatline").style.display = "none";
-			} else {
-				this.onLogin(data.connected.clients,data.connected.clientName);
-			}
-			var guestName = window.document.querySelector("#guestname");
-			if(guestName.value.length > 0) {
-				this.send({ type : "Login", login : { clientName : guestName.value}});
-			}
-			var _g = 0;
-			var _g1 = data.connected.history;
-			while(_g < _g1.length) {
-				var message = _g1[_g];
-				++_g;
-				this.addMessage(message.name,message.text,message.time);
-			}
-			var list = data.connected.videoList;
-			if(list.length == 0) {
-				return;
-			}
-			this.player.setVideo(list[0]);
-			var _g2 = 0;
-			var _g3 = data.connected.videoList;
-			while(_g2 < _g3.length) {
-				var video = _g3[_g2];
-				++_g2;
-				this.player.addVideoItem(video);
-			}
+			this.onConnected(data);
 			break;
 		case "GetTime":
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
-			if(this.isLeader()) {
+			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
 				if(Math.abs(time - newTime) < 2) {
 					return;
 				}
@@ -517,22 +577,21 @@ client_Main.prototype = {
 			break;
 		case "Logout":
 			this.updateClients(data.logout.clients);
-			this.personal = null;
-			window.document.querySelector("#guestlogin").style.display = "block";
-			window.document.querySelector("#chatline").style.display = "none";
+			this.personal = new Client(null,null,data.logout.clientName,0);
+			this.showGuestLoginPanel();
 			break;
 		case "Message":
 			this.addMessage(data.message.clientName,data.message.text);
 			break;
 		case "Pause":
-			if(this.isLeader()) {
+			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
 				return;
 			}
 			this.player.pause();
 			this.player.setTime(data.pause.time);
 			break;
 		case "Play":
-			if(this.isLeader()) {
+			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
 				return;
 			}
 			this.player.setTime(data.play.time);
@@ -547,13 +606,8 @@ client_Main.prototype = {
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
 			this.updateUserList();
-			var leaderBtn = window.document.querySelector("#leader_btn");
-			if(this.isLeader()) {
-				leaderBtn.classList.add("label-success");
-			} else {
-				leaderBtn.classList.remove("label-success");
-			}
-			if(this.isLeader()) {
+			this.setLeaderButton((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0);
+			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
 				this.player.setTime(this.player.getTime(),false);
 			}
 			break;
@@ -567,15 +621,43 @@ client_Main.prototype = {
 			break;
 		case "UpdateClients":
 			this.updateClients(data.updateClients.clients);
-			if(this.personal != null) {
-				this.personal = ClientTools.getByName(this.clients,this.personal.name);
-			}
+			this.personal = ClientTools.getByName(this.clients,this.personal.name,this.personal);
 			break;
 		case "VideoLoaded":
 			this.player.setTime(0);
 			this.player.play();
 			break;
 		}
+	}
+	,onConnected: function(data) {
+		var connected = data.connected;
+		this.setConfig(connected.config);
+		if(connected.isUnknownClient) {
+			this.updateClients(connected.clients);
+			this.personal = ClientTools.getByName(this.clients,connected.clientName,this.personal);
+			this.showGuestLoginPanel();
+		} else {
+			this.onLogin(connected.clients,connected.clientName);
+		}
+		var guestName = window.document.querySelector("#guestname");
+		if(guestName.value.length > 0) {
+			this.send({ type : "Login", login : { clientName : guestName.value}});
+		}
+		var _g = 0;
+		var _g1 = connected.history;
+		while(_g < _g1.length) {
+			var message = _g1[_g];
+			++_g;
+			this.addMessage(message.name,message.text,message.time);
+		}
+		var list = connected.videoList;
+		if(list.length == 0) {
+			return;
+		}
+		this.player.setVideo(list[0]);
+		var _g2 = 0;
+		var _g3 = connected.videoList;
+		while(_g2 < _g3.length) this.player.addVideoItem(_g3[_g2++]);
 	}
 	,setConfig: function(config) {
 		this.config = config;
@@ -620,10 +702,18 @@ client_Main.prototype = {
 	}
 	,onLogin: function(data,clientName) {
 		this.updateClients(data);
-		this.personal = ClientTools.getByName(this.clients,clientName);
-		if(this.personal == null) {
+		var newPersonal = ClientTools.getByName(this.clients,clientName);
+		if(newPersonal == null) {
 			return;
 		}
+		this.personal = newPersonal;
+		this.hideGuestLoginPanel();
+	}
+	,showGuestLoginPanel: function() {
+		window.document.querySelector("#guestlogin").style.display = "block";
+		window.document.querySelector("#chatline").style.display = "none";
+	}
+	,hideGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
 		window.document.querySelector("#chatline").style.display = "block";
 	}
@@ -674,10 +764,11 @@ client_Main.prototype = {
 		while(_g < _g1.length) {
 			var client1 = _g1[_g];
 			++_g;
-			if(client1.isLeader) {
+			list_b += "<div class=\"userlist_item\">";
+			if((client1.group & 2) != 0) {
 				list_b += "<span class=\"glyphicon glyphicon-star-empty\"></span>";
 			}
-			list_b += Std.string("<span class=\"" + "userlist_item" + "\">" + client1.name + "</span></br>");
+			list_b += Std.string("<span class=\"" + ((client1.group & 4) != 0 ? "userlist_owner" : "") + "\">" + client1.name + "</span></div>");
 		}
 		window.document.querySelector("#userlist").innerHTML = list_b;
 	}
@@ -716,7 +807,7 @@ client_Main.prototype = {
 			while(msgBuf.children.length > 200) msgBuf.removeChild(msgBuf.firstChild);
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
-		if(this.personal != null && this.personal.name == name) {
+		if(this.personal.name == name) {
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
 		if(window.document.hidden && this.onBlinkTab == null) {
@@ -731,6 +822,14 @@ client_Main.prototype = {
 			this.onBlinkTab.run();
 		}
 	}
+	,setLeaderButton: function(flag) {
+		var leaderBtn = window.document.querySelector("#leader_btn");
+		if((this.personal.group & 2) != 0) {
+			leaderBtn.classList.add("label-success");
+		} else {
+			leaderBtn.classList.remove("label-success");
+		}
+	}
 	,escapeRegExp: function(regex) {
 		var _this_r = new RegExp("([.*+?^${}()|[\\]\\\\])","g".split("u").join(""));
 		return regex.replace(_this_r,"\\$1");
@@ -743,14 +842,14 @@ client_MobileView.init = function() {
 	mvbtn.onclick = function(e) {
 		if(client_MobileView.toggleFullScreen()) {
 			window.document.body.classList.add("mobile-view");
-			mvbtn.classList.add("label-success");
+			mvbtn.classList.add("active");
 			var vwrap = window.document.querySelector("#videowrap");
 			if(vwrap.children[0] == window.document.querySelector("currenttitle")) {
 				vwrap.appendChild(vwrap.children[0]);
 			}
 		} else {
 			window.document.body.classList.remove("mobile-view");
-			mvbtn.classList.remove("label-success");
+			mvbtn.classList.remove("active");
 			var vwrap1 = window.document.querySelector("videowrap");
 			if(vwrap1.children[0] != window.document.querySelector("currenttitle")) {
 				vwrap1.insertBefore(vwrap1.children[1],vwrap1.children[0]);
@@ -812,21 +911,21 @@ client_Player.prototype = {
 				_gthis.skipSetTime = false;
 				return;
 			}
-			if(!_gthis.main.isLeader()) {
+			if((_gthis.main.personal.group & 2) == 0) {
 				return;
 			}
 			_gthis.main.send({ type : "SetTime", setTime : { time : _gthis.video.currentTime}});
 			return;
 		};
 		this.video.onpause = function(e2) {
-			if(!_gthis.main.isLeader()) {
+			if((_gthis.main.personal.group & 2) == 0) {
 				return;
 			}
 			_gthis.main.send({ type : "Pause", pause : { time : _gthis.video.currentTime}});
 			return;
 		};
 		this.video.onplay = function(e3) {
-			if(!_gthis.main.isLeader()) {
+			if((_gthis.main.personal.group & 2) == 0) {
 				return;
 			}
 			_gthis.main.send({ type : "Play", play : { time : _gthis.video.currentTime}});
@@ -834,6 +933,7 @@ client_Player.prototype = {
 		};
 		this.player.innerHTML = "";
 		this.player.appendChild(this.video);
+		window.document.querySelector("#currenttitle").innerHTML = item.title;
 	}
 	,addVideoItem: function(item) {
 		var _gthis = this;
@@ -1377,5 +1477,7 @@ js_Boot.__toStr = ({ }).toString;
 Lang.ids = ["en","ru"];
 Lang.langs = new haxe_ds_StringMap();
 Lang.lang = HxOverrides.substr(window.navigator.language,0,2).toLowerCase();
+client_Buttons.personalHistory = [];
+client_Buttons.personalHistoryId = -1;
 client_Main.main();
 })(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);

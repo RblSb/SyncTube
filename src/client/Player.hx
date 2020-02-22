@@ -66,6 +66,7 @@ class Player {
 		}
 		player.innerHTML = "";
 		player.appendChild(video);
+		ge("#currenttitle").innerHTML = item.title;
 	}
 
 	public function addVideoItem(item:VideoItem):Void {
@@ -108,6 +109,7 @@ class Player {
 	public function removeVideo():Void {
 		player.removeChild(video);
 		video = null;
+		ge("#currenttitle").innerHTML = Lang.get("nothingPlaying");
 	}
 
 	public function removeItem(url:String):Void {

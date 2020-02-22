@@ -16,11 +16,13 @@ class ClientTools {
 		return false;
 	}
 
-	public static function getByName(clients:Array<Client>, name:String):Null<Client> {
+	public static function getByName(
+		clients:Array<Client>, name:String, ?def:Client
+	):Null<Client> {
 		for (client in clients) {
 			if (client.name == name) return client;
 		}
-		return null;
+		return def;
 	}
 
 }

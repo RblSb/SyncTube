@@ -287,18 +287,9 @@ li.ui-sortable-helper, li.ui-sortable-placeholder + li.queue_entry {
   cursor: pointer;
 }
 
-.userlist_siteadmin {
+.userlist_owner {
   color: #cc0000!important;
   font-weight: bold!important;
-}
-
-.userlist_owner {
-  color: #0000cc!important;
-  font-weight: bold!important;
-}
-
-.userlist_op {
-  color: #00aa00!important;
 }
 
 .userlist_guest {
