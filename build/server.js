@@ -292,6 +292,13 @@ Std.__name__ = true;
 Std.string = function(s) {
 	return js_Boot.__string_rec(s,"");
 };
+Std.random = function(x) {
+	if(x <= 0) {
+		return 0;
+	} else {
+		return Math.floor(Math.random() * x);
+	}
+};
 var StringTools = function() { };
 StringTools.__name__ = true;
 StringTools.startsWith = function(s,start) {
@@ -652,7 +659,7 @@ server_Main.prototype = {
 			client.group |= 4;
 		}
 		this.clients.push(client);
-		if(this.clients.length == 1) {
+		if(this.clients.length == 1 && this.videoList.length > 0) {
 			if(this.videoTimer.isPaused()) {
 				this.videoTimer.play();
 			}
@@ -682,6 +689,9 @@ server_Main.prototype = {
 				}
 			}
 			if(_gthis.clients.length == 0) {
+				if(_gthis.waitVideoStart != null) {
+					_gthis.waitVideoStart.stop();
+				}
 				_gthis.videoTimer.pause();
 			}
 			return;
@@ -702,16 +712,25 @@ server_Main.prototype = {
 	,onMessage: function(client,data) {
 		switch(data.type) {
 		case "AddVideo":
-			this.videoList.push(data.addVideo.item);
+			if(data.addVideo.atEnd) {
+				this.videoList.push(data.addVideo.item);
+			} else {
+				this.videoList.splice(1,0,data.addVideo.item);
+			}
 			this.broadcast(data);
 			if(this.videoList.length == 1) {
-				this.waitVideoStart = haxe_Timer.delay($bind(this,this.startVideoPlayback),3000);
+				this.restartWaitTimer();
 			}
 			break;
 		case "ClearChat":
 			if((client.group & 4) != 0) {
 				this.broadcast(data);
 			}
+			break;
+		case "ClearPlaylist":
+			this.videoTimer.stop();
+			this.videoList.length = 0;
+			this.broadcast(data);
 			break;
 		case "Connected":
 			break;
@@ -793,6 +812,9 @@ server_Main.prototype = {
 				return item.url == url;
 			}));
 			this.broadcast(data);
+			if(this.videoList.length > 0) {
+				this.restartWaitTimer();
+			}
 			break;
 		case "Rewind":
 			if(this.videoList.length == 0) {
@@ -828,8 +850,19 @@ server_Main.prototype = {
 			this.videoTimer.setTime(data.setTime.time);
 			this.broadcastExcept(client,data);
 			break;
+		case "ShufflePlaylist":
+			if(this.videoList.length == 0) {
+				return;
+			}
+			var first = this.videoList.shift();
+			server_Utils.shuffle(this.videoList);
+			this.videoList.unshift(first);
+			this.broadcast({ type : "UpdatePlaylist", updatePlaylist : { videoList : this.videoList}});
+			break;
 		case "UpdateClients":
 			this.sendClientList();
+			break;
+		case "UpdatePlaylist":
 			break;
 		case "VideoLoaded":
 			this.prepareVideoPlayback();
@@ -868,13 +901,19 @@ server_Main.prototype = {
 			client.ws.send(json,null);
 		}
 	}
+	,restartWaitTimer: function() {
+		if(this.waitVideoStart != null) {
+			this.waitVideoStart.stop();
+		}
+		this.waitVideoStart = haxe_Timer.delay($bind(this,this.startVideoPlayback),3000);
+	}
 	,prepareVideoPlayback: function() {
 		if(this.videoTimer.isStarted) {
 			return;
 		}
 		this.loadedClientsCount++;
 		if(this.loadedClientsCount == 1) {
-			this.waitVideoStart = haxe_Timer.delay($bind(this,this.startVideoPlayback),3000);
+			this.restartWaitTimer();
 		}
 		if(this.loadedClientsCount >= this.clients.length) {
 			this.startVideoPlayback();
@@ -914,6 +953,17 @@ server_Utils.getLocalIp = function() {
 		}
 	}
 	return "127.0.0.1";
+};
+server_Utils.shuffle = function(arr) {
+	var _g = 0;
+	var _g1 = arr.length;
+	while(_g < _g1) {
+		var i = _g++;
+		var n = Std.random(arr.length);
+		var a = arr[i];
+		arr[i] = arr[n];
+		arr[n] = a;
+	}
 };
 var server_VideoTimer = function() {
 	this.pauseStartTime = 0.0;

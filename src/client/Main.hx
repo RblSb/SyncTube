@@ -71,8 +71,7 @@ class Main {
 		Buttons.init(this);
 		MobileView.init();
 
-		final leaderBtn = ge("#leader_btn");
-		leaderBtn.onclick = (e) -> {
+		ge("#leader_btn").onclick = e -> {
 			// change button style before answer
 			setLeaderButton(!personal.isLeader);
 			final name = personal.isLeader ? "" : personal.name;
@@ -84,11 +83,10 @@ class Main {
 			});
 		}
 
-		// TODO next/end
-		ge("#queue_next").onclick = (e:MouseEvent) -> addVideoUrl();
-		ge("#queue_end").onclick = (e:MouseEvent) -> addVideoUrl();
+		ge("#queue_next").onclick = (e:MouseEvent) -> addVideoUrl(false);
+		ge("#queue_end").onclick = (e:MouseEvent) -> addVideoUrl(true);
 		ge("#mediaurl").onkeydown = function(e:KeyboardEvent) {
-			if (e.keyCode == 13) addVideoUrl();
+			if (e.keyCode == 13) addVideoUrl(true);
 		}
 	}
 
@@ -100,26 +98,55 @@ class Main {
 		return personal.isAdmin;
 	}
 
-	function addVideoUrl():Void {
+	function addVideoUrl(atEnd:Bool):Void {
 		final mediaUrl:InputElement = cast ge("#mediaurl");
 		final url = mediaUrl.value;
+		if (url.length == 0) return;
+		mediaUrl.value = "";
+		final url = ~/,(https?)/g.replace(url, "|$1");
+		final links = url.split("|");
+		// if videos added as next, we need to load it in reverse order
+		final link = (atEnd || player.isListEmpty()) ? links.shift() : links.pop();
+		addVideo(link, atEnd, () -> addVideoArray(links, atEnd));
+	}
+
+	function addVideoArray(links:Array<String>, atEnd:Bool):Void {
+		if (links.length == 0) return;
+		final link = atEnd ? links.shift() : links.pop();
+		addVideo(link, atEnd, () -> addVideoArray(links, atEnd));
+	}
+
+	function addVideo(url:String, atEnd:Bool, callback:()->Void):Void {
+		if (!url.startsWith("http")) url = '${Browser.location.protocol}//$url';
 		var name = url.substr(url.lastIndexOf('/') + 1);
 		final matchName = ~/^(.+)\./;
 		if (matchName.match(name)) name = matchName.matched(1);
 		else name = Lang.get("rawVideo");
 
-		getRemoteVideoDuration(mediaUrl.value, (duration:Float) -> {
+		getRemoteVideoDuration(url, (duration:Float) -> {
 			send({
 				type: AddVideo, addVideo: {
 					item: {
 						url: url,
 						title: name,
 						author: personal.name,
-						duration: duration
-					}
-				}});
+						duration: duration,
+					},
+					atEnd: atEnd
+			}});
+			callback();
 		});
-		mediaUrl.value = "";
+	}
+
+	public function refreshPlayer():Void {
+		player.refresh();
+	}
+
+	public function getPlaylistLinks():Array<String> {
+		final items = player.getItems();
+		return [
+			for (item in items) item.url
+		];
 	}
 
 	function getRemoteVideoDuration(src:String, callback:(duration:Float)->Void):Void {
@@ -131,15 +158,10 @@ class Main {
 			callback(0);
 		}
 		video.onloadedmetadata = () -> {
-			player.removeChild(video);
+			if (player.contains(video)) player.removeChild(video);
 			callback(video.duration);
 		}
-		prepend(player, video);
-	}
-
-	function prepend(parent:Element, child:Element):Void {
-		if (parent.firstChild == null) parent.appendChild(child);
-		else parent.insertBefore(child, parent.firstChild);
+		Utils.prepend(player, video);
 	}
 
 	function onMessage(e):Void {
@@ -150,6 +172,7 @@ class Main {
 		switch (data.type) {
 			case Connected:
 				onConnected(data);
+				onTimeGet.run();
 			case Login:
 				onLogin(data.login.clients, data.login.clientName);
 			case LoginError:
@@ -167,7 +190,7 @@ class Main {
 				addMessage(data.message.clientName, data.message.text);
 			case AddVideo:
 				if (player.isListEmpty()) player.setVideo(data.addVideo.item);
-				player.addVideoItem(data.addVideo.item);
+				player.addVideoItem(data.addVideo.item, data.addVideo.atEnd);
 			case VideoLoaded:
 				player.setTime(0);
 				player.play();
@@ -192,10 +215,10 @@ class Main {
 					player.setTime(time, false);
 					return;
 				}
-				if (Math.abs(time - newTime) < 2) return;
-				player.setTime(newTime);
 				if (!data.getTime.paused) player.play();
 				else player.pause();
+				if (Math.abs(time - newTime) < 2) return;
+				player.setTime(newTime);
 			case SetTime:
 				final newTime = data.setTime.time;
 				final time = player.getTime();
@@ -210,6 +233,12 @@ class Main {
 				if (isLeader()) player.setTime(player.getTime(), false);
 			case ClearChat:
 				ge("#messagebuffer").innerHTML = "";
+			case ClearPlaylist:
+				player.clearItems();
+				if (player.isListEmpty()) player.pause();
+			case ShufflePlaylist: // server-only
+			case UpdatePlaylist:
+				player.setItems(data.updatePlaylist.videoList);
 		}
 	}
 
@@ -233,12 +262,7 @@ class Main {
 		for (message in connected.history) {
 			addMessage(message.name, message.text, message.time);
 		}
-		final list = connected.videoList;
-		if (list.length == 0) return;
-		player.setVideo(list[0]);
-		for (video in connected.videoList) {
-			player.addVideoItem(video);
-		}
+		player.setItems(connected.videoList);
 	}
 
 	function setConfig(config:Config):Void {

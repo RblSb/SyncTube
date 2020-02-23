@@ -66,7 +66,8 @@ typedef WsEvent = {
 		clients:Array<ClientData>,
 	},
 	?addVideo:{
-		item:VideoItem
+		item:VideoItem,
+		atEnd:Bool
 	},
 	?removeVideo:{
 		url:String
@@ -89,6 +90,9 @@ typedef WsEvent = {
 	},
 	?setLeader:{
 		clientName:String
+	},
+	?updatePlaylist:{
+		videoList:Array<VideoItem>
 	}
 }
 
@@ -111,4 +115,7 @@ enum abstract WsEventType(String) {
 	var Rewind;
 	var SetLeader;
 	var ClearChat;
+	var ClearPlaylist;
+	var ShufflePlaylist;
+	var UpdatePlaylist;
 }

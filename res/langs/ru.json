@@ -54,6 +54,8 @@
 	"acceptableEmbedCodesAre": "Можно добавить видео с тегами",
 	"customEmbedsCannotBeSynchronized": "СИНХРОНИЗАЦИЯ БУДЕТ НЕДОСТУПНА",
 	"save": "Сохранить",
+	"clearPlaylistConfirm": "Вы уверены что хотите очистить плейлист?",
+	"shufflePlaylistConfirm": "Вы уверены что хотите перемешать плейлист?",
 
 	"yes": "Да",
 	"no": "Нет",

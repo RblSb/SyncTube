@@ -80,7 +80,7 @@ class Main {
 		final client = new Client(ws, id, name, 0);
 		if (isAdmin) client.group.set(Admin);
 		clients.push(client);
-		if (clients.length == 1)
+		if (clients.length == 1 && videoList.length > 0)
 			if (videoTimer.isPaused()) videoTimer.play();
 
 		send(client, {
@@ -109,7 +109,10 @@ class Main {
 			if (client.isLeader) {
 				if (videoTimer.isPaused()) videoTimer.play();
 			}
-			if (clients.length == 0) videoTimer.pause();
+			if (clients.length == 0) {
+				if (waitVideoStart != null) waitVideoStart.stop();
+				videoTimer.pause();
+			}
 		});
 	}
 
@@ -131,7 +134,8 @@ class Main {
 				sendClientList();
 			case Login:
 				final name = data.login.clientName;
-				if (name.length == 0 || name.length > config.maxLoginLength || clients.getByName(name) != null) {
+				if (name.length == 0 || name.length > config.maxLoginLength
+					|| clients.getByName(name) != null) {
 					send(client, {type: LoginError});
 					return;
 				}
@@ -172,12 +176,13 @@ class Main {
 				if (messages.length > config.serverChatHistory) messages.shift();
 				broadcast(data);
 			case AddVideo:
-				videoList.push(data.addVideo.item);
+				if (data.addVideo.atEnd) videoList.push(data.addVideo.item);
+				else videoList.insert(1, data.addVideo.item);
 				broadcast(data);
-				if (videoList.length == 1) {
-					waitVideoStart = Timer.delay(startVideoPlayback, 3000);
-				}
+				// Initial timer start if VideoLoaded is not happen
+				if (videoList.length == 1) restartWaitTimer();
 			case VideoLoaded:
+				// Called if client loads next video and can play it
 				prepareVideoPlayback();
 			case RemoveVideo:
 				if (videoList.length == 0) return;
@@ -187,6 +192,7 @@ class Main {
 					videoList.find(item -> item.url == url)
 				);
 				broadcast(data);
+				if (videoList.length > 0) restartWaitTimer();
 			case Pause:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
@@ -244,6 +250,19 @@ class Main {
 				}
 			case ClearChat:
 				if (client.isAdmin) broadcast(data);
+			case ClearPlaylist:
+				videoTimer.stop();
+				videoList.resize(0);
+				broadcast(data);
+			case ShufflePlaylist:
+				if (videoList.length == 0) return;
+				final first = videoList.shift();
+				Utils.shuffle(videoList);
+				videoList.unshift(first);
+				broadcast({type: UpdatePlaylist, updatePlaylist: {
+					videoList: videoList
+				}});
+			case UpdatePlaylist:
 		}
 	}
 
@@ -282,12 +301,15 @@ class Main {
 	var waitVideoStart:Timer;
 	var loadedClientsCount = 0;
 
+	function restartWaitTimer():Void {
+		if (waitVideoStart != null) waitVideoStart.stop();
+		waitVideoStart = Timer.delay(startVideoPlayback, 3000);
+	}
+
 	function prepareVideoPlayback():Void {
 		if (videoTimer.isStarted) return;
 		loadedClientsCount++;
-		if (loadedClientsCount == 1) {
-			waitVideoStart = Timer.delay(startVideoPlayback, 3000);
-		}
+		if (loadedClientsCount == 1) restartWaitTimer();
 		if (loadedClientsCount >= clients.length) startVideoPlayback();
 	}
 

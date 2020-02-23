@@ -54,9 +54,6 @@
 	padding-bottom: 0;
 	margin-bottom: 0;
 }
-.mobile-view #footer {
-	display: none;
-}
 
 @media (max-width:799px)  {
 	.navbar {

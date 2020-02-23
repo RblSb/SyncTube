@@ -8,7 +8,7 @@ class MobileView {
 	public static function init():Void {
 		final mvbtn = ge("#mv_btn");
 		mvbtn.onclick = e -> {
-			final mobileView = toggleFullScreen();
+			final mobileView = Utils.toggleFullScreen(document.documentElement);
 			if (mobileView) {
 				document.body.classList.add('mobile-view');
 				mvbtn.classList.add('active');
@@ -27,25 +27,4 @@ class MobileView {
 		}
 	}
 
-	static function toggleFullScreen():Bool {
-		var state = true;
-		final doc:Dynamic = document;
-		if (document.fullscreenElement == null &&
-			doc.mozFullScreenElement == null &&
-			doc.webkitFullscreenElement == null) {
-			if (document.documentElement.requestFullscreen != null) {
-				document.documentElement.requestFullscreen();
-			} else if (doc.documentElement.mozRequestFullScreen != null) {
-				doc.documentElement.mozRequestFullScreen();
-			} else if (doc.documentElement.webkitRequestFullscreen != null) {
-				doc.documentElement.webkitRequestFullscreen(untyped Element.ALLOW_KEYBOARD_INPUT);
-			} else state = false;
-		} else {
-			if (doc.cancelFullScreen != null) doc.cancelFullScreen();
-			else if (doc.mozCancelFullScreen != null) doc.mozCancelFullScreen();
-			else if (doc.webkitCancelFullScreen != null) doc.webkitCancelFullScreen();
-			state = false;
-		}
-		return state;
-	}
 }

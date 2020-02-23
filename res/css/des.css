@@ -185,6 +185,9 @@ src:url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.2/fonts/gl
 .glyphicon-link:before {
   content:"\e144"
 }
+.glyphicon-ok:before {
+  content:"\e013"
+}
 .glyphicon-sort:before {
   content:"\e150"
 }

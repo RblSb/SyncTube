@@ -1,7 +1,5 @@
 package client;
 
-import js.html.LIElement;
-import js.html.UListElement;
 import js.html.Element;
 import js.html.VideoElement;
 import js.Browser.document;
@@ -29,7 +27,7 @@ class Player {
 		video.id = "videoplayer";
 		video.src = item.url;
 		video.controls = true;
-		video.oncanplaythrough = (e) -> {
+		video.oncanplaythrough = e -> {
 			if (!isLoaded) main.send({type: VideoLoaded});
 			isLoaded = true;
 		}
@@ -46,7 +44,7 @@ class Player {
 				}
 			});
 		}
-		video.onpause = (e) -> {
+		video.onpause = e -> {
 			if (!main.isLeader()) return;
 			main.send({
 				type: Pause,
@@ -55,7 +53,7 @@ class Player {
 				}
 			});
 		}
-		video.onplay = (e) -> {
+		video.onplay = e -> {
 			if (!main.isLeader()) return;
 			main.send({
 				type: Play,
@@ -69,9 +67,9 @@ class Player {
 		ge("#currenttitle").innerHTML = item.title;
 	}
 
-	public function addVideoItem(item:VideoItem):Void {
+	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
 		items.push(item);
-		final itemEl:LIElement = cast nodeFromString(
+		final itemEl = nodeFromString(
 			'<li class="queue_entry pluid-0 queue_temp queue_active" title="${Lang.get("addedBy")}: ${item.author}">
 				<a class="qe_title" href="${item.url}" target="_blank">${item.title}</a>
 				<span class="qe_time">${duration(item.duration)}</span>
@@ -93,7 +91,7 @@ class Player {
 			</li>'
 		);
 		final deleteBtn = itemEl.querySelector("#btn-delete");
-		deleteBtn.onclick = (e) -> {
+		deleteBtn.onclick = e -> {
 			main.send({
 				type: RemoveVideo,
 				removeVideo: {
@@ -101,22 +99,22 @@ class Player {
 				}
 			});
 		}
-		videoItemsEl.appendChild(itemEl);
-		ge("#plcount").innerHTML = '${items.length} ${Lang.get("videos")}';
-		ge("#pllength").innerHTML = totalDuration();
+		if (atEnd) videoItemsEl.appendChild(itemEl);
+		else Utils.insertAtIndex(videoItemsEl, itemEl, 1);
+		updateCounters();
 	}
 
 	public function removeVideo():Void {
+		if (video == null) return;
 		player.removeChild(video);
 		video = null;
 		ge("#currenttitle").innerHTML = Lang.get("nothingPlaying");
 	}
 
 	public function removeItem(url:String):Void {
-		final list = ge("#queue");
-		for (child in list.children) {
+		for (child in videoItemsEl.children) {
 			if (child.querySelector(".qe_title").getAttribute("href") == url) {
-				list.removeChild(child);
+				videoItemsEl.removeChild(child);
 				break;
 			}
 		}
@@ -128,13 +126,44 @@ class Player {
 		if (video.src == url) {
 			if (items.length > 0) setVideo(items[0]);
 		}
+		updateCounters();
+	}
+
+	function updateCounters():Void {
 		ge("#plcount").innerHTML = '${items.length} ${Lang.get("videos")}';
 		ge("#pllength").innerHTML = totalDuration();
 	}
 
+	public function getItems():Array<VideoItem> {
+		return items;
+	}
+
+	public function setItems(list:Array<VideoItem>):Void {
+		clearItems();
+		if (list.length == 0) return;
+		if (video == null || video.src != list[0].url) {
+			setVideo(list[0]);
+		}
+		for (video in list) {
+			addVideoItem(video, true);
+		}
+	}
+
+	public function clearItems():Void {
+		items.resize(0);
+		videoItemsEl.innerHTML = "";
+		updateCounters();
+	}
+
+	public function refresh():Void {
+		if (items.length == 0) return;
+		removeVideo();
+		setVideo(items[0]);
+	}
+
 	function duration(time:Float):String {
 		final h = Std.int(time / 60 / 60);
-		final m = Std.int(time / 60);
+		final m = Std.int(time / 60) - h * 60;
 		final s = Std.int(time % 60);
 		var time = '$m:';
 		if (m < 10) time = '0$time';

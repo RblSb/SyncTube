@@ -27,4 +27,15 @@ class Utils {
 		}
 		return "127.0.0.1";
 	}
+
+	public static function shuffle<T>(arr:Array<T>):Void {
+		for (i in 0...arr.length) {
+			final n = Std.random(arr.length);
+			final a = arr[i];
+			final b = arr[n];
+			arr[i] = b;
+			arr[n] = a;
+		}
+	}
+
 }

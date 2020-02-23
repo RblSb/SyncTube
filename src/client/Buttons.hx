@@ -1,8 +1,8 @@
 package client;
 
+import haxe.Timer;
 import js.html.KeyboardEvent;
 import js.html.InputElement;
-import js.html.ButtonElement;
 import js.html.Element;
 import client.Main.ge;
 import js.Browser.window;
@@ -77,16 +77,48 @@ class Buttons {
 		extendPlayer.onclick = e -> {
 			if (extendPlayer.classList.contains("active")) {
 				split.setSizes([40, 60]);
-				ge('#userlist').style.width = "90px";
+				ge("#userlist").style.width = "90px";
 			} else {
 				split.setSizes([20, 80]);
-				ge('#userlist').style.width = "80px";
+				ge("#userlist").style.width = "80px";
 			}
 			extendPlayer.classList.toggle("active");
-			window.dispatchEvent(new Event('resize'));
+			window.dispatchEvent(new Event("resize"));
 		}
 
-		final showMediaUrl:ButtonElement = cast ge("#showmediaurl");
+		final mediaRefresh = ge("#mediarefresh");
+		mediaRefresh.onclick = e -> {
+			main.refreshPlayer();
+		}
+		final fullscreenBtn = ge("#fullscreenbtn");
+		fullscreenBtn.onclick = e -> {
+			final el = ge("#ytapiplayer");
+			Utils.toggleFullScreen(el);
+		}
+		final getPlaylist = ge("#getplaylist");
+		getPlaylist.onclick = e -> {
+			final text = main.getPlaylistLinks().join(",");
+			Utils.copyToClipboard(text);
+			final icon = getPlaylist.firstElementChild;
+			icon.classList.remove("glyphicon-link");
+			icon.classList.add("glyphicon-ok");
+			Timer.delay(() -> {
+				icon.classList.add("glyphicon-link");
+				icon.classList.remove("glyphicon-ok");
+			}, 2000);
+		}
+		final clearPlaylist = ge("#clearplaylist");
+		clearPlaylist.onclick = e -> {
+			if (!window.confirm(Lang.get("clearPlaylistConfirm"))) return;
+			main.send({type: ClearPlaylist});
+		}
+		final shufflePlaylist = ge("#shuffleplaylist");
+		shufflePlaylist.onclick = e -> {
+			if (!window.confirm(Lang.get("shufflePlaylistConfirm"))) return;
+			main.send({type: ShufflePlaylist});
+		}
+
+		final showMediaUrl = ge("#showmediaurl");
 		showMediaUrl.onclick = e -> {
 			ge("#showmediaurl").classList.toggle("collapsed");
 			ge("#showmediaurl").classList.toggle("active");
