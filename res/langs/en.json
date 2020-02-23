@@ -33,7 +33,6 @@
 	"searchVideo": "Search video",
 	"addVideoFromUrl": "Add video from URL",
 	"embedCustomFrame": "Embed a custom frame",
-	"managePlaylists": "Manage playlists",
 	"clearPlaylist": "Clear playlist",
 	"shufflePlaylist": "Shuffle playlist",
 	"playlistOpen": "Playlist open",
@@ -54,7 +53,6 @@
 	"pasteEmbedCodeAndClick": "Paste the embed code below and click",
 	"acceptableEmbedCodesAre": "Acceptable embed codes are",
 	"customEmbedsCannotBeSynchronized": "CUSTOM EMBEDS CANNOT BE SYNCHRONIZED",
-	"playlistName": "Playlist Name",
 	"save": "Save",
 
 	"yes": "Yes",

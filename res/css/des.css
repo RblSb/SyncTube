@@ -158,9 +158,6 @@ src:url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.2/fonts/gl
 .glyphicon-flag:before {
   content:"\e034"
 }
-.glyphicon-list:before {
-  content:"\e056"
-}
 .glyphicon-play:before {
   content:"\e072"
 }

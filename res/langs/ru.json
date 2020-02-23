@@ -33,7 +33,6 @@
 	"searchVideo": "Найти видео",
 	"addVideoFromUrl": "Добавить видео по ссылке",
 	"embedCustomFrame": "Добавить iframe",
-	"managePlaylists": "Менеджер плейлистов",
 	"clearPlaylist": "Очистить плейлист",
 	"shufflePlaylist": "Перемешать плейлист",
 	"playlistOpen": "Плейлист открыт",
@@ -54,7 +53,6 @@
 	"pasteEmbedCodeAndClick": "Вставьте код видео в поле ниже и нажмите",
 	"acceptableEmbedCodesAre": "Можно добавить видео с тегами",
 	"customEmbedsCannotBeSynchronized": "СИНХРОНИЗАЦИЯ БУДЕТ НЕДОСТУПНА",
-	"playlistName": "Название плейлиста",
 	"save": "Сохранить",
 
 	"yes": "Да",

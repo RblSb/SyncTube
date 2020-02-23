@@ -89,7 +89,6 @@
                 <button class="btn btn-sm btn-default collapsed" id="showsearch" title="${searchVideo}" data-toggle="collapse" data-target="#searchcontrol" aria-expanded="false"><span class="glyphicon glyphicon-search"></span></button>
                 <button class="btn btn-sm btn-default collapsed" id="showmediaurl" title="${addVideoFromUrl}" data-toggle="collapse" data-target="#addfromurl" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span></button>
                 <button class="btn btn-sm btn-default collapsed" id="showcustomembed" title="${embedCustomFrame}" data-toggle="collapse" data-target="#customembed" aria-expanded="false"><span class="glyphicon glyphicon-th-large"></span></button>
-                <button class="btn btn-sm btn-default collapsed" id="showplaylistmanager" title="${managePlaylists}" data-toggle="collapse" data-target="#playlistmanager" aria-expanded="false"><span class="glyphicon glyphicon-list"></span></button>
                 <button class="btn btn-sm btn-default" id="clearplaylist" title="${clearPlaylist}"><span class="glyphicon glyphicon-trash"></span></button>
                 <button class="btn btn-sm btn-default" id="shuffleplaylist" title="${shufflePlaylist}"><span class="glyphicon glyphicon-sort"></span></button>
                 <button class="btn btn-sm btn-danger" id="qlockbtn" title="${playlistLocked}"><span class="glyphicon glyphicon-lock"></span></button>
@@ -108,7 +107,6 @@
             <div class="col-lg-5 col-md-5" id="leftpane">
               <div class="row" id="leftpane-inner">
                 <div class="col-lg-12 col-md-12" id="smileswrap"></div>
-                <div class="col-lg-12 col-md-12" id="playlistmanagerwrap"></div>
               </div>
             </div>
             <div class="col-lg-7 col-md-7" id="rightpane">
@@ -157,19 +155,6 @@
                   ${acceptableEmbedCodesAre} <code>&lt;iframe&gt;</code> ${or} <code>&lt;object&gt;</code>.
                   <strong>${customEmbedsCannotBeSynchronized}.</strong>
                   <textarea class="input-block-level form-control" id="customembed-content" rows="3"></textarea>
-                </div>
-                <div class="plcontrol-collapse col-lg-12 col-md-12 collapse" id="playlistmanager" aria-expanded="false" style="height: 105px;">
-                  <div class="vertical-spacer"></div>
-                  <div class="input-group">
-                    <input class="form-control" id="userpl_name" type="text" placeholder="${playlistName}"><span class="input-group-btn">
-                      <button class="btn btn-default" id="userpl_save">${save}</button></span>
-                  </div>
-                  <div class="checkbox">
-                    <label>
-                      <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
-                    </label>
-                  </div>
-                  <ul class="videolist" id="userpl_list"></ul>
                 </div>
                 <div class="col-lg-12 col-md-12" id="queuefail">
                   <div class="vertical-spacer"></div>
