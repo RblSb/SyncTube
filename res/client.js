@@ -591,6 +591,11 @@ client_Main.prototype = {
 			name = Lang.get("rawVideo");
 		}
 		this.getRemoteVideoDuration(url,function(duration) {
+			if(duration == 0) {
+				var tmp = Lang.get("addVideoError");
+				_gthis.serverMessage(4,tmp);
+				return;
+			}
 			_gthis.send({ type : "AddVideo", addVideo : { item : { url : url, title : name, author : _gthis.personal.name, duration : duration}, atEnd : atEnd}});
 			callback();
 			return;
@@ -606,7 +611,7 @@ client_Main.prototype = {
 		while(_g1 < items.length) _g.push(items[_g1++].url);
 		return _g;
 	}
-	,replaceLocalIp: function(url) {
+	,tryLocalIp: function(url) {
 		if(this.host == this.globalIp) {
 			return url;
 		}
@@ -617,6 +622,9 @@ client_Main.prototype = {
 		var video = window.document.createElement("video");
 		video.src = src;
 		video.onerror = function(e) {
+			if(player.contains(video)) {
+				player.removeChild(video);
+			}
 			callback(0);
 			return;
 		};
@@ -633,7 +641,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 188, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 193, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			if(this.player.isListEmpty()) {
@@ -758,6 +766,8 @@ client_Main.prototype = {
 		if(guestName.value.length > 0) {
 			this.send({ type : "Login", login : { clientName : guestName.value}});
 		}
+		window.document.querySelector("#messagebuffer").innerHTML = "";
+		this.serverMessage(1);
 		var _g = 0;
 		var _g1 = connected.history;
 		while(_g < _g1.length) {
@@ -997,7 +1007,7 @@ client_Player.prototype = {
 		this.isLoaded = false;
 		this.video = window.document.createElement("video");
 		this.video.id = "videoplayer";
-		item.url = this.main.replaceLocalIp(item.url);
+		item.url = this.main.tryLocalIp(item.url);
 		this.video.src = item.url;
 		this.video.controls = true;
 		this.video.oncanplaythrough = function(e) {

@@ -6,6 +6,7 @@
 	"online": "online",
 	"nothingPlaying": "Nothing Playing",
 	"usernameError": "Username must be from 1 to $MAX characters and don't repeat another's.",
+	"addVideoError": "Failed to add video.",
 	"rawVideo": "Raw video",
 	"videos": "videos",
 	"addedBy": "Added by",

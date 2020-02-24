@@ -20,6 +20,7 @@ using Lambda;
 class Main {
 
 	final rootDir = '$__dirname/..';
+	final statePath:String;
 	final wss:WSServer;
 	final localIp:String;
 	var globalIp:String;
@@ -34,22 +35,31 @@ class Main {
 	static function main():Void new Main();
 
 	public function new(port = 4200, wsPort = 4201) {
+		statePath = '$rootDir/user/state.json';
 		config = getUserConfig();
+		loadState();
 		wss = new WSServer({port: wsPort});
 		wss.on("connection", onConnect);
 		function exit() {
-			// TODO save state
+			saveState();
 			process.exit();
 		}
 		process.on("exit", exit);
 		process.on("SIGINT", exit); // ctrl+c
 		process.on("SIGUSR1", exit); // kill pid
 		process.on("SIGUSR2", exit);
-		process.on("uncaughtException", (log) -> {
-			trace(log);
+		process.on("uncaughtException", err -> {
+			trace(err);
+			logError("uncaughtException", {
+				message: err.message,
+				stack: err.stack
+			});
+			exit();
 		});
 		process.on("unhandledRejection", (reason, promise) -> {
 			trace("Unhandled Rejection at:", reason);
+			logError("unhandledRejection", reason);
+			exit();
 		});
 		localIp = Utils.getLocalIp();
 		globalIp = localIp;
@@ -80,6 +90,38 @@ class Main {
 			Reflect.setField(config, field, Reflect.field(customConfig, field));
 		}
 		return config;
+	}
+
+	function saveState():Void {
+		final data:ServerState = {
+			videoList: videoList,
+			messages: messages,
+			timer: {
+				time: videoTimer.getTime(),
+				paused: videoTimer.isPaused()
+			}
+		}
+		final json = Json.stringify(data, "\t");
+		File.saveContent(statePath, json);
+	}
+
+	function loadState():Void {
+		if (!FileSystem.exists(statePath)) return;
+		final data:ServerState = Json.parse(File.getContent(statePath));
+		videoList.resize(0);
+		messages.resize(0);
+		for (item in data.videoList) videoList.push(item);
+		for (message in data.messages) messages.push(message);
+		videoTimer.start();
+		videoTimer.setTime(data.timer.time);
+		videoTimer.pause();
+	}
+
+	function logError(type:String, data:Dynamic):Void {
+		final crashesFolder = '$rootDir/user/crashes';
+		final name = new Date().toISOString() + "-" + type;
+		if (!FileSystem.exists(crashesFolder)) FileSystem.createDirectory(crashesFolder);
+		File.saveContent('$crashesFolder/$name.json', Json.stringify(data, "\t"));
 	}
 
 	function onConnect(ws:WebSocket, req:IncomingMessage):Void {
@@ -267,6 +309,7 @@ class Main {
 				}
 
 			case ClearChat:
+				messages.resize(0);
 				if (client.isAdmin) broadcast(data);
 
 			case ClearPlaylist:

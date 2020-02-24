@@ -136,6 +136,10 @@ class Main {
 		else name = Lang.get("rawVideo");
 
 		getRemoteVideoDuration(url, (duration:Float) -> {
+			if (duration == 0) {
+				serverMessage(4, Lang.get("addVideoError"));
+				return;
+			}
 			send({
 				type: AddVideo, addVideo: {
 					item: {
@@ -172,6 +176,7 @@ class Main {
 		video.src = src;
 		// TODO catch errors on AddVideo and getRemoteVideoDuration
 		video.onerror = e -> {
+			if (player.contains(video)) player.removeChild(video);
 			callback(0);
 		}
 		video.onloadedmetadata = () -> {
@@ -294,6 +299,8 @@ class Main {
 				clientName: guestName.value
 			}
 		});
+		ge("#messagebuffer").innerHTML = "";
+		serverMessage(1);
 		for (message in connected.history) {
 			addMessage(message.name, message.text, message.time);
 		}

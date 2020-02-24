@@ -647,22 +647,29 @@ var server_Main = function(port,wsPort) {
 	this.clients = [];
 	this.rootDir = "" + __dirname + "/..";
 	var _gthis = this;
+	this.statePath = "" + this.rootDir + "/user/state.json";
 	this.config = this.getUserConfig();
+	this.loadState();
 	this.wss = new js_npm_ws_Server({ port : wsPort});
 	this.wss.on("connection",$bind(this,this.onConnect));
 	var exit = function() {
+		_gthis.saveState();
 		process.exit();
 	};
 	process.on("exit",exit);
 	process.on("SIGINT",exit);
 	process.on("SIGUSR1",exit);
 	process.on("SIGUSR2",exit);
-	process.on("uncaughtException",function(log) {
-		haxe_Log.trace(log,{ fileName : "src/server/Main.hx", lineNumber : 49, className : "server.Main", methodName : "new"});
+	process.on("uncaughtException",function(err) {
+		haxe_Log.trace(err,{ fileName : "src/server/Main.hx", lineNumber : 52, className : "server.Main", methodName : "new"});
+		_gthis.logError("uncaughtException",{ message : err.message, stack : err.stack});
+		exit();
 		return;
 	});
 	process.on("unhandledRejection",function(reason,promise) {
-		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 52, className : "server.Main", methodName : "new", customParams : [reason]});
+		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 60, className : "server.Main", methodName : "new", customParams : [reason]});
+		_gthis.logError("unhandledRejection",reason);
+		exit();
 		return;
 	});
 	this.localIp = server_Utils.getLocalIp();
@@ -670,8 +677,8 @@ var server_Main = function(port,wsPort) {
 	this.port = port;
 	server_Utils.getGlobalIp(function(ip) {
 		_gthis.globalIp = ip;
-		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 60, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 61, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 70, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 71, className : "server.Main", methodName : "new"});
 		return;
 	});
 	var dir = "" + this.rootDir + "/res";
@@ -700,18 +707,47 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 79, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 89, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
 		return config;
+	}
+	,saveState: function() {
+		var json = JSON.stringify({ videoList : this.videoList, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
+		js_node_Fs.writeFileSync(this.statePath,json);
+	}
+	,loadState: function() {
+		if(!sys_FileSystem.exists(this.statePath)) {
+			return;
+		}
+		var data = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
+		this.videoList.length = 0;
+		this.messages.length = 0;
+		var _g = 0;
+		var _g1 = data.videoList;
+		while(_g < _g1.length) this.videoList.push(_g1[_g++]);
+		var _g2 = 0;
+		var _g3 = data.messages;
+		while(_g2 < _g3.length) this.messages.push(_g3[_g2++]);
+		this.videoTimer.start();
+		this.videoTimer.setTime(data.timer.time);
+		this.videoTimer.pause();
+	}
+	,logError: function(type,data) {
+		var crashesFolder = "" + this.rootDir + "/user/crashes";
+		var name = new Date().toISOString() + "-" + type;
+		if(!sys_FileSystem.exists(crashesFolder)) {
+			sys_FileSystem.createDirectory(crashesFolder);
+		}
+		js_node_Fs.writeFileSync("" + crashesFolder + "/" + name + ".json",JSON.stringify(data,null,"\t"));
 	}
 	,onConnect: function(ws,req) {
 		var _gthis = this;
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 89, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 131, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
 		if(req.connection.localAddress == ip) {
 			client.group |= 4;
@@ -737,7 +773,7 @@ server_Main.prototype = {
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 117, className : "server.Main", methodName : "onConnect"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 159, className : "server.Main", methodName : "onConnect"});
 			server_Utils.sortedPush(_gthis.freeIds,client.id);
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
@@ -774,6 +810,7 @@ server_Main.prototype = {
 			}
 			break;
 		case "ClearChat":
+			this.messages.length = 0;
 			if((client.group & 4) != 0) {
 				this.broadcast(data);
 			}
@@ -1085,6 +1122,27 @@ sys_FileSystem.exists = function(path) {
 		return true;
 	} catch( _ ) {
 		return false;
+	}
+};
+sys_FileSystem.createDirectory = function(path) {
+	try {
+		js_node_Fs.mkdirSync(path);
+	} catch( e ) {
+		var e1 = ((e) instanceof js__$Boot_HaxeError) ? e.val : e;
+		if(e1.code == "ENOENT") {
+			sys_FileSystem.createDirectory(js_node_Path.dirname(path));
+			js_node_Fs.mkdirSync(path);
+		} else {
+			var stat;
+			try {
+				stat = js_node_Fs.statSync(path);
+			} catch( _ ) {
+				throw e1;
+			}
+			if(!stat.isDirectory()) {
+				throw e1;
+			}
+		}
 	}
 };
 function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); else return o.iterator(); }
