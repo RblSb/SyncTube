@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Synchronized video viewing with chat and other features",
   "main": "build/server.js",
+  "scripts": {
+    "start": "node build/server.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RblSb/SyncTube.git"
