@@ -243,12 +243,14 @@ class Main {
 			case RemoveVideo:
 				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
-				if (videoList[0].url == url) videoTimer.stop();
+				if (videoList[0].url == url) {
+					videoTimer.stop();
+					if (videoList.length > 0) restartWaitTimer();
+				}
 				videoList.remove(
 					videoList.find(item -> item.url == url)
 				);
 				broadcast(data);
-				if (videoList.length > 0) restartWaitTimer();
 
 			case Pause:
 				if (videoList.length == 0) return;
