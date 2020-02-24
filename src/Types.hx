@@ -46,7 +46,8 @@ typedef WsEvent = {
 		clients:Array<ClientData>,
 		isUnknownClient:Bool,
 		clientName:String,
-		videoList:Array<VideoItem>
+		videoList:Array<VideoItem>,
+		globalIp:String
 	},
 	?login:{
 		clientName:String,

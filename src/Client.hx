@@ -1,9 +1,8 @@
 package;
 
 #if nodejs
+import js.node.http.IncomingMessage;
 import js.npm.ws.WebSocket;
-#elseif js
-import js.html.WebSocket;
 #end
 import haxe.EnumFlags;
 
@@ -23,15 +22,21 @@ class Client {
 	#if nodejs
 	public final ws:WebSocket;
 	public final id:Int;
+	public final req:IncomingMessage;
 	#end
 	public var name:String;
 	public var group:EnumFlags<ClientGroup>;
 	public var isLeader(get, set):Bool;
 	public var isAdmin(get, set):Bool;
 
-	public function new(?ws:WebSocket, ?id:Int, name:String, group:Int) {
+	#if nodejs
+	public function new(?ws:WebSocket, ?req:IncomingMessage, ?id:Int, name:String, group:Int) {
+	#else
+	public function new(name:String, group:Int) {
+	#end
 		#if nodejs
 		this.ws = ws;
+		this.req = req;
 		this.id = id;
 		#end
 		this.name = name;

@@ -10,8 +10,10 @@ import js.Node.process;
 import js.Node.__dirname;
 import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
+import js.node.http.IncomingMessage;
 import js.node.Http;
 import Types;
+using StringTools;
 using ClientTools;
 using Lambda;
 
@@ -19,6 +21,9 @@ class Main {
 
 	final rootDir = '$__dirname/..';
 	final wss:WSServer;
+	final localIp:String;
+	var globalIp:String;
+	final port:Int;
 	final config:Config;
 	final clients:Array<Client> = [];
 	final freeIds:Array<Int> = [];
@@ -33,25 +38,31 @@ class Main {
 		wss = new WSServer({port: wsPort});
 		wss.on("connection", onConnect);
 		function exit() {
+			// TODO save state
 			process.exit();
 		}
 		process.on("exit", exit);
 		process.on("SIGINT", exit); // ctrl+c
+		process.on("SIGUSR1", exit); // kill pid
+		process.on("SIGUSR2", exit);
 		process.on("uncaughtException", (log) -> {
 			trace(log);
 		});
 		process.on("unhandledRejection", (reason, promise) -> {
 			trace("Unhandled Rejection at:", reason);
 		});
+		localIp = Utils.getLocalIp();
+		globalIp = localIp;
+		this.port = port;
 
 		Utils.getGlobalIp(ip -> {
-			final local = Utils.getLocalIp();
-			trace('Local: http://$local:$port');
-			trace('Global: http://$ip:$port');
+			globalIp = ip;
+			trace('Local: http://$localIp:$port');
+			trace('Global: http://$globalIp:$port');
 		});
 
 		final dir = '$rootDir/res';
-		HttpServer.init(dir);
+		HttpServer.init(dir, '$rootDir/user/res');
 		Lang.init('$dir/langs');
 
 		Http.createServer((req, res) -> {
@@ -61,7 +72,7 @@ class Main {
 
 	function getUserConfig():Config {
 		final config:Config = Json.parse(File.getContent('$rootDir/default-config.json'));
-		final customPath = '$rootDir/config.json';
+		final customPath = '$rootDir/user/config.json';
 		if (!FileSystem.exists(customPath)) return config;
 		final customConfig:Config = Json.parse(File.getContent(customPath));
 		for (field in Reflect.fields(customConfig)) {
@@ -71,13 +82,13 @@ class Main {
 		return config;
 	}
 
-	function onConnect(ws:WebSocket, req):Void {
+	function onConnect(ws:WebSocket, req:IncomingMessage):Void {
 		final ip = req.connection.remoteAddress;
 		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
 		final name = 'Guest ${id + 1}';
 		trace('$name connected ($ip)');
 		final isAdmin = req.connection.localAddress == ip;
-		final client = new Client(ws, id, name, 0);
+		final client = new Client(ws, req, id, name, 0);
 		if (isAdmin) client.group.set(Admin);
 		clients.push(client);
 		if (clients.length == 1 && videoList.length > 0)
@@ -93,7 +104,8 @@ class Main {
 				clients: [
 					for (client in clients) client.getData()
 				],
-				videoList: videoList
+				videoList: videoList,
+				globalIp: globalIp
 			}
 		});
 		sendClientList();
@@ -103,7 +115,7 @@ class Main {
 		});
 		ws.on("close", err -> {
 			trace('Client ${client.name} disconnected');
-			sortedPush(freeIds, client.id);
+			Utils.sortedPush(freeIds, client.id);
 			clients.remove(client);
 			sendClientList();
 			if (client.isLeader) {
@@ -114,17 +126,6 @@ class Main {
 				videoTimer.pause();
 			}
 		});
-	}
-
-	function sortedPush(ids:Array<Int>, id:Int):Void {
-		for (i in 0...ids.length) {
-			final n = ids[i];
-			if (id < n) {
-				ids.insert(i, id);
-				return;
-			}
-		}
-		ids.push(id);
 	}
 
 	function onMessage(client:Client, data:WsEvent):Void {
@@ -149,6 +150,7 @@ class Main {
 					}
 				});
 				sendClientList();
+
 			case LoginError:
 			case Logout:
 				final oldName = client.name;
@@ -163,6 +165,7 @@ class Main {
 					}
 				});
 				sendClientList();
+
 			case Message:
 				var text = data.message.text;
 				if (text.length == 0) return;
@@ -175,15 +178,23 @@ class Main {
 				messages.push({text: text, name: client.name, time: time});
 				if (messages.length > config.serverChatHistory) messages.shift();
 				broadcast(data);
+
 			case AddVideo:
-				if (data.addVideo.atEnd) videoList.push(data.addVideo.item);
-				else videoList.insert(1, data.addVideo.item);
+				final item = data.addVideo.item;
+				final localOrigin = '$localIp:$port';
+				if (item.url.indexOf(localOrigin) != -1) {
+					item.url = item.url.replace(localOrigin, '$globalIp:$port');
+				}
+				if (data.addVideo.atEnd) videoList.push(item);
+				else videoList.insert(1, item);
 				broadcast(data);
 				// Initial timer start if VideoLoaded is not happen
 				if (videoList.length == 1) restartWaitTimer();
+
 			case VideoLoaded:
 				// Called if client loads next video and can play it
 				prepareVideoPlayback();
+
 			case RemoveVideo:
 				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
@@ -193,16 +204,19 @@ class Main {
 				);
 				broadcast(data);
 				if (videoList.length > 0) restartWaitTimer();
+
 			case Pause:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
 				videoTimer.pause();
 				broadcast(data);
+
 			case Play:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
 				videoTimer.play();
 				broadcast(data);
+
 			case GetTime:
 				if (videoList.length == 0) return;
 				if (videoTimer.getTime() > videoList[0].duration) {
@@ -220,11 +234,13 @@ class Main {
 					time: videoTimer.getTime(),
 					paused: videoTimer.isPaused()
 				}});
+
 			case SetTime:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
 				videoTimer.setTime(data.setTime.time);
 				broadcastExcept(client, data);
+
 			case Rewind:
 				if (videoList.length == 0) return;
 				// TODO permission
@@ -232,6 +248,7 @@ class Main {
 				if (data.rewind.time < 0) data.rewind.time = 0;
 				videoTimer.setTime(data.rewind.time);
 				broadcast(data);
+
 			case SetLeader:
 				clients.setLeader(data.setLeader.clientName);
 				broadcast({
@@ -248,12 +265,15 @@ class Main {
 						}
 					});
 				}
+
 			case ClearChat:
 				if (client.isAdmin) broadcast(data);
+
 			case ClearPlaylist:
 				videoTimer.stop();
 				videoList.resize(0);
 				broadcast(data);
+
 			case ShufflePlaylist:
 				if (videoList.length == 0) return;
 				final first = videoList.shift();
@@ -262,7 +282,7 @@ class Main {
 				broadcast({type: UpdatePlaylist, updatePlaylist: {
 					videoList: videoList
 				}});
-			case UpdatePlaylist:
+			case UpdatePlaylist: // client-only
 		}
 	}
 

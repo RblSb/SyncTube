@@ -20,6 +20,8 @@ class Main {
 
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
+	final host:String;
+	var globalIp = "";
 	var config:Null<Config>;
 	final filters:Array<{regex:EReg, replace:String}> = [];
 	var personal = new Client("Unknown", 0);
@@ -35,9 +37,13 @@ class Main {
 		player = new Player(this);
 		if (host == null) host = Browser.location.hostname;
 		if (host == "") host = "localhost";
+		this.host = host;
 
 		initListeners();
-		onTimeGet.run = () -> send({type: GetTime});
+		onTimeGet.run = () -> {
+			if (player.isListEmpty()) return;
+			send({type: GetTime});
+		}
 		document.onvisibilitychange = () -> {
 			if (!document.hidden && onBlinkTab != null) {
 				document.title = getPageTitle();
@@ -117,7 +123,13 @@ class Main {
 	}
 
 	function addVideo(url:String, atEnd:Bool, callback:()->Void):Void {
-		if (!url.startsWith("http")) url = '${Browser.location.protocol}//$url';
+		final protocol = Browser.location.protocol;
+		if (url.startsWith("/")) {
+			final host = Browser.location.hostname;
+			final port = Browser.location.port;
+			url = '$protocol//$host:$port$url';
+		}
+		if (!url.startsWith("http")) url = '$protocol//$url';
 		var name = url.substr(url.lastIndexOf('/') + 1);
 		final matchName = ~/^(.+)\./;
 		if (matchName.match(name)) name = matchName.matched(1);
@@ -149,6 +161,11 @@ class Main {
 		];
 	}
 
+	public function tryLocalIp(url:String):String {
+		if (host == globalIp) return url;
+		return url.replace(globalIp, host);
+	}
+
 	function getRemoteVideoDuration(src:String, callback:(duration:Float)->Void):Void {
 		final player:Element = ge("#ytapiplayer");
 		final video = document.createVideoElement();
@@ -173,38 +190,49 @@ class Main {
 			case Connected:
 				onConnected(data);
 				onTimeGet.run();
+
 			case Login:
 				onLogin(data.login.clients, data.login.clientName);
+
 			case LoginError:
 				final text = Lang.get("usernameError")
 					.replace("$MAX", '${config.maxLoginLength}');
 				serverMessage(4, text);
+
 			case Logout:
 				updateClients(data.logout.clients);
 				personal = new Client(data.logout.clientName, 0);
 				showGuestLoginPanel();
+
 			case UpdateClients:
 				updateClients(data.updateClients.clients);
 				personal = clients.getByName(personal.name, personal);
+
 			case Message:
 				addMessage(data.message.clientName, data.message.text);
+
 			case AddVideo:
 				if (player.isListEmpty()) player.setVideo(data.addVideo.item);
 				player.addVideoItem(data.addVideo.item, data.addVideo.atEnd);
+
 			case VideoLoaded:
 				player.setTime(0);
 				player.play();
+
 			case RemoveVideo:
 				player.removeItem(data.removeVideo.url);
 				if (player.isListEmpty()) player.pause();
+
 			case Pause:
 				if (isLeader()) return;
 				player.pause();
 				player.setTime(data.pause.time);
+
 			case Play:
 				if (isLeader()) return;
 				player.setTime(data.play.time);
 				player.play();
+
 			case GetTime:
 				final newTime = data.getTime.time;
 				final time = player.getTime();
@@ -219,23 +247,29 @@ class Main {
 				else player.pause();
 				if (Math.abs(time - newTime) < 2) return;
 				player.setTime(newTime);
+
 			case SetTime:
 				final newTime = data.setTime.time;
 				final time = player.getTime();
 				if (Math.abs(time - newTime) < 2) return;
 				player.setTime(newTime);
+
 			case Rewind:
 				player.setTime(data.rewind.time);
+
 			case SetLeader:
 				clients.setLeader(data.setLeader.clientName);
 				updateUserList();
 				setLeaderButton(isLeader());
 				if (isLeader()) player.setTime(player.getTime(), false);
+
 			case ClearChat:
 				ge("#messagebuffer").innerHTML = "";
+
 			case ClearPlaylist:
 				player.clearItems();
 				if (player.isListEmpty()) player.pause();
+
 			case ShufflePlaylist: // server-only
 			case UpdatePlaylist:
 				player.setItems(data.updatePlaylist.videoList);
@@ -244,6 +278,7 @@ class Main {
 
 	function onConnected(data:WsEvent):Void {
 		final connected = data.connected;
+		globalIp = connected.globalIp;
 		setConfig(connected.config);
 		if (connected.isUnknownClient) {
 			updateClients(connected.clients);

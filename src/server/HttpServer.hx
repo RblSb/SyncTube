@@ -1,12 +1,11 @@
 package server;
 
+import sys.FileSystem;
 import js.node.Buffer;
 import haxe.io.Path;
 import js.node.Fs;
-import sys.io.File;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
-import js.Node.__dirname;
 import js.node.Path as JsPath;
 using StringTools;
 
@@ -33,17 +32,30 @@ class HttpServer {
 	];
 
 	static var dir:String;
+	static var customDir:String;
+	static var hasCustomRes = false;
+	static var allowedLocalFiles:Map<String, Bool> = [];
 
-	public static function init(directory:String):Void {
-		dir = directory;
+	public static function init(dir:String, ?customDir:String):Void {
+		HttpServer.dir = dir;
+		if (customDir == null) return;
+		HttpServer.customDir = customDir;
+		hasCustomRes = FileSystem.exists(customDir);
 	}
 
 	public static function serveFiles(req:IncomingMessage, res:ServerResponse):Void {
-		var filePath = dir + req.url;
-		if (req.url == "/") filePath = '$dir/index.html';
+		var url = req.url;
+		if (url == "/") url = "/index.html";
+		var filePath = dir + url;
 
 		final extension = Path.extension(filePath).toLowerCase();
 		final contentType = getMimeType(extension);
+
+		if (req.connection.remoteAddress == req.connection.localAddress
+			|| allowedLocalFiles[url]) {
+			final isExists = serveLocalFile(res, url, extension, contentType);
+			if (isExists) return;
+		}
 
 		if (!isChildOf(dir, filePath)) {
 			res.statusCode = 500;
@@ -52,21 +64,14 @@ class HttpServer {
 			return;
 		}
 
-		// load client code from build folder
-		if (filePath == '$dir/client.js') {
-			filePath = '$__dirname/client.js';
+		if (hasCustomRes) {
+			final path = customDir + url;
+			if (Fs.existsSync(path)) filePath = path;
 		}
 
-		Fs.readFile(filePath, function(err:Dynamic, data:Buffer) {
+		Fs.readFile(filePath, (err:Dynamic, data:Buffer) -> {
 			if (err != null) {
-				if (err.code == "ENOENT") {
-					res.statusCode = 404;
-					var rel = JsPath.relative(dir, filePath);
-					res.end('File $rel not found.');
-				} else {
-					res.statusCode = 500;
-					res.end('Error getting the file: $err.');
-				}
+				readFileError(err, res, filePath);
 				return;
 			}
 			res.setHeader("Content-Type", contentType);
@@ -78,13 +83,40 @@ class HttpServer {
 		});
 	}
 
+	static function readFileError(err:Dynamic, res:ServerResponse, filePath:String):Void {
+		if (err.code == "ENOENT") {
+			res.statusCode = 404;
+			var rel = JsPath.relative(dir, filePath);
+			res.end('File $rel not found.');
+		} else {
+			res.statusCode = 500;
+			res.end('Error getting the file: $err.');
+		}
+	}
+
+	static function serveLocalFile(res:ServerResponse, filePath:String, ext:String, contentType:String):Bool {
+		if (ext != "mp4" && ext != "mp3" && ext != "wav") return false;
+		if (!Fs.existsSync(filePath)) return false;
+		allowedLocalFiles[filePath] = true;
+		Fs.readFile(filePath, (err:Dynamic, data:Buffer) -> {
+			if (err != null) {
+				readFileError(err, res, filePath);
+				return;
+			}
+			res.setHeader("Content-Type", contentType);
+			res.end(data);
+		});
+		return true;
+	}
+
 	static final matchLang = ~/^[A-z]+/;
+	static final matchVarString = ~/\${([A-z_]+)}/g;
 
 	static function localizeHtml(data:String, lang:String):String {
 		if (lang != null && matchLang.match(lang)) {
 			lang = matchLang.matched(0);
 		} else lang = "en";
-		data = ~/\${([A-z_]+)}/g.map(data, (regExp) -> {
+		data = matchVarString.map(data, (regExp) -> {
 			final key = regExp.matched(1);
 			return Lang.get(lang, key);
 		});
@@ -92,14 +124,13 @@ class HttpServer {
 	}
 
 	static function isChildOf(parent:String, child:String):Bool {
-		final path = JsPath;
-		final relative = path.relative(parent, child);
-		return relative.length > 0 && !relative.startsWith('..') && !path.isAbsolute(relative);
+		final rel = JsPath.relative(parent, child);
+		return rel.length > 0 && !rel.startsWith('..') && !JsPath.isAbsolute(rel);
 	}
 
 	static function getMimeType(ext:String):String {
-		var contentType = mimeTypes[ext];
-		if (contentType == null) contentType = "application/octet-stream";
+		final contentType = mimeTypes[ext];
+		if (contentType == null) return "application/octet-stream";
 		return contentType;
 	}
 

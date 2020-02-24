@@ -28,6 +28,17 @@ class Utils {
 		return "127.0.0.1";
 	}
 
+	public static function sortedPush(ids:Array<Int>, id:Int):Void {
+		for (i in 0...ids.length) {
+			final n = ids[i];
+			if (id < n) {
+				ids.insert(i, id);
+				return;
+			}
+		}
+		ids.push(id);
+	}
+
 	public static function shuffle<T>(arr:Array<T>):Void {
 		for (i in 0...arr.length) {
 			final n = Std.random(arr.length);

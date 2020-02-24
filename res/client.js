@@ -12,7 +12,7 @@ var ClientGroup = $hxEnums["ClientGroup"] = { __ename__ : true, __constructs__ :
 	,Leader: {_hx_index:1,__enum__:"ClientGroup",toString:$estr}
 	,Admin: {_hx_index:2,__enum__:"ClientGroup",toString:$estr}
 };
-var Client = function(ws,id,name,group) {
+var Client = function(name,group) {
 	this.name = name;
 	var i = group;
 	if(group == null) {
@@ -22,7 +22,7 @@ var Client = function(ws,id,name,group) {
 };
 Client.__name__ = true;
 Client.fromData = function(data) {
-	return new Client(null,null,data.name,data.group);
+	return new Client(data.name,data.group);
 };
 Client.prototype = {
 	setGroupFlag: function(type,flag) {
@@ -465,8 +465,9 @@ var client_Main = function(host,port) {
 	this.matchNumbers = new EReg("^-?[0-9]+$","");
 	this.onTimeGet = new haxe_Timer(2000);
 	this.isConnected = false;
-	this.personal = new Client(null,null,"Unknown",0);
+	this.personal = new Client("Unknown",0);
 	this.filters = [];
+	this.globalIp = "";
 	this.pageTitle = window.document.title;
 	this.clients = [];
 	var _gthis = this;
@@ -477,8 +478,12 @@ var client_Main = function(host,port) {
 	if(host == "") {
 		host = "localhost";
 	}
+	this.host = host;
 	this.initListeners();
 	this.onTimeGet.run = function() {
+		if(_gthis.player.isListEmpty()) {
+			return;
+		}
 		_gthis.send({ type : "GetTime"});
 		return;
 	};
@@ -570,8 +575,12 @@ client_Main.prototype = {
 	}
 	,addVideo: function(url,atEnd,callback) {
 		var _gthis = this;
+		var protocol = window.location.protocol;
+		if(StringTools.startsWith(url,"/")) {
+			url = "" + protocol + "//" + window.location.hostname + ":" + window.location.port + url;
+		}
 		if(!StringTools.startsWith(url,"http")) {
-			url = "" + window.location.protocol + "//" + url;
+			url = "" + protocol + "//" + url;
 		}
 		var pos = url.lastIndexOf("/") + 1;
 		var name = HxOverrides.substr(url,pos,null);
@@ -597,6 +606,12 @@ client_Main.prototype = {
 		while(_g1 < items.length) _g.push(items[_g1++].url);
 		return _g;
 	}
+	,replaceLocalIp: function(url) {
+		if(this.host == this.globalIp) {
+			return url;
+		}
+		return StringTools.replace(url,this.globalIp,this.host);
+	}
 	,getRemoteVideoDuration: function(src,callback) {
 		var player = window.document.querySelector("#ytapiplayer");
 		var video = window.document.createElement("video");
@@ -618,7 +633,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 171, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 188, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			if(this.player.isListEmpty()) {
@@ -668,7 +683,7 @@ client_Main.prototype = {
 			break;
 		case "Logout":
 			this.updateClients(data.logout.clients);
-			this.personal = new Client(null,null,data.logout.clientName,0);
+			this.personal = new Client(data.logout.clientName,0);
 			this.showGuestLoginPanel();
 			break;
 		case "Message":
@@ -730,6 +745,7 @@ client_Main.prototype = {
 	}
 	,onConnected: function(data) {
 		var connected = data.connected;
+		this.globalIp = connected.globalIp;
 		this.setConfig(connected.config);
 		if(connected.isUnknownClient) {
 			this.updateClients(connected.clients);
@@ -981,6 +997,7 @@ client_Player.prototype = {
 		this.isLoaded = false;
 		this.video = window.document.createElement("video");
 		this.video.id = "videoplayer";
+		item.url = this.main.replaceLocalIp(item.url);
 		this.video.src = item.url;
 		this.video.controls = true;
 		this.video.oncanplaythrough = function(e) {

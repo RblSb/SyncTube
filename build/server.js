@@ -12,8 +12,9 @@ var ClientGroup = $hxEnums["ClientGroup"] = { __ename__ : true, __constructs__ :
 	,Leader: {_hx_index:1,__enum__:"ClientGroup",toString:$estr}
 	,Admin: {_hx_index:2,__enum__:"ClientGroup",toString:$estr}
 };
-var Client = function(ws,id,name,group) {
+var Client = function(ws,req,id,name,group) {
 	this.ws = ws;
+	this.req = req;
 	this.id = id;
 	this.name = name;
 	var i = group;
@@ -308,6 +309,9 @@ StringTools.startsWith = function(s,start) {
 		return false;
 	}
 };
+StringTools.replace = function(s,sub,by) {
+	return s.split(sub).join(by);
+};
 var haxe_Log = function() { };
 haxe_Log.__name__ = true;
 haxe_Log.formatOutput = function(v,infos) {
@@ -514,36 +518,49 @@ var js_node_Path = require("path");
 var js_npm_ws_Server = require("ws").Server;
 var server_HttpServer = function() { };
 server_HttpServer.__name__ = true;
-server_HttpServer.init = function(directory) {
-	server_HttpServer.dir = directory;
-};
-server_HttpServer.serveFiles = function(req,res) {
-	var filePath = server_HttpServer.dir + req.url;
-	if(req.url == "/") {
-		filePath = "" + server_HttpServer.dir + "/index.html";
-	}
-	var extension = haxe_io_Path.extension(filePath).toLowerCase();
-	var contentType = server_HttpServer.getMimeType(extension);
-	if(!server_HttpServer.isChildOf(server_HttpServer.dir,filePath)) {
-		res.statusCode = 500;
-		var tmp = "Error getting the file: No access to " + js_node_Path.relative(server_HttpServer.dir,filePath) + ".";
-		res.end(tmp);
+server_HttpServer.init = function(dir,customDir) {
+	server_HttpServer.dir = dir;
+	if(customDir == null) {
 		return;
 	}
-	if(filePath == "" + server_HttpServer.dir + "/client.js") {
-		filePath = "" + __dirname + "/client.js";
+	server_HttpServer.customDir = customDir;
+	server_HttpServer.hasCustomRes = sys_FileSystem.exists(customDir);
+};
+server_HttpServer.serveFiles = function(req,res) {
+	var url = req.url;
+	if(url == "/") {
+		url = "/index.html";
+	}
+	var filePath = server_HttpServer.dir + url;
+	var extension = haxe_io_Path.extension(filePath).toLowerCase();
+	var contentType = server_HttpServer.getMimeType(extension);
+	var tmp;
+	if(req.connection.remoteAddress != req.connection.localAddress) {
+		var _this = server_HttpServer.allowedLocalFiles;
+		tmp = __map_reserved[url] != null ? _this.getReserved(url) : _this.h[url];
+	} else {
+		tmp = true;
+	}
+	if(tmp) {
+		if(server_HttpServer.serveLocalFile(res,url,extension,contentType)) {
+			return;
+		}
+	}
+	if(!server_HttpServer.isChildOf(server_HttpServer.dir,filePath)) {
+		res.statusCode = 500;
+		var tmp1 = "Error getting the file: No access to " + js_node_Path.relative(server_HttpServer.dir,filePath) + ".";
+		res.end(tmp1);
+		return;
+	}
+	if(server_HttpServer.hasCustomRes) {
+		var path = server_HttpServer.customDir + url;
+		if(js_node_Fs.existsSync(path)) {
+			filePath = path;
+		}
 	}
 	js_node_Fs.readFile(filePath,function(err,data) {
 		if(err != null) {
-			if(err.code == "ENOENT") {
-				res.statusCode = 404;
-				var tmp1 = "File " + js_node_Path.relative(server_HttpServer.dir,filePath) + " not found.";
-				res.end(tmp1);
-			} else {
-				res.statusCode = 500;
-				var tmp2 = "Error getting the file: " + Std.string(err) + ".";
-				res.end(tmp2);
-			}
+			server_HttpServer.readFileError(err,res,filePath);
 			return;
 		}
 		res.setHeader("Content-Type",contentType);
@@ -551,7 +568,41 @@ server_HttpServer.serveFiles = function(req,res) {
 			data = server_HttpServer.localizeHtml(data.toString(),req.headers["accept-language"]);
 		}
 		res.end(data);
+		return;
 	});
+};
+server_HttpServer.readFileError = function(err,res,filePath) {
+	if(err.code == "ENOENT") {
+		res.statusCode = 404;
+		res.end("File " + js_node_Path.relative(server_HttpServer.dir,filePath) + " not found.");
+	} else {
+		res.statusCode = 500;
+		res.end("Error getting the file: " + Std.string(err) + ".");
+	}
+};
+server_HttpServer.serveLocalFile = function(res,filePath,ext,contentType) {
+	if(ext != "mp4" && ext != "mp3" && ext != "wav") {
+		return false;
+	}
+	if(!js_node_Fs.existsSync(filePath)) {
+		return false;
+	}
+	var _this = server_HttpServer.allowedLocalFiles;
+	if(__map_reserved[filePath] != null) {
+		_this.setReserved(filePath,true);
+	} else {
+		_this.h[filePath] = true;
+	}
+	js_node_Fs.readFile(filePath,function(err,data) {
+		if(err != null) {
+			server_HttpServer.readFileError(err,res,filePath);
+			return;
+		}
+		res.setHeader("Content-Type",contentType);
+		res.end(data);
+		return;
+	});
+	return true;
 };
 server_HttpServer.localizeHtml = function(data,lang) {
 	if(lang != null && server_HttpServer.matchLang.match(lang)) {
@@ -559,16 +610,16 @@ server_HttpServer.localizeHtml = function(data,lang) {
 	} else {
 		lang = "en";
 	}
-	data = new EReg("\\${([A-z_]+)}","g").map(data,function(regExp) {
+	data = server_HttpServer.matchVarString.map(data,function(regExp) {
 		var key = regExp.matched(1);
 		return Lang.get(lang,key);
 	});
 	return data;
 };
 server_HttpServer.isChildOf = function(parent,child) {
-	var relative = js_node_Path.relative(parent,child);
-	if(relative.length > 0 && !StringTools.startsWith(relative,"..")) {
-		return !js_node_Path.isAbsolute(relative);
+	var rel = js_node_Path.relative(parent,child);
+	if(rel.length > 0 && !StringTools.startsWith(rel,"..")) {
+		return !js_node_Path.isAbsolute(rel);
 	} else {
 		return false;
 	}
@@ -577,7 +628,7 @@ server_HttpServer.getMimeType = function(ext) {
 	var _this = server_HttpServer.mimeTypes;
 	var contentType = __map_reserved[ext] != null ? _this.getReserved(ext) : _this.h[ext];
 	if(contentType == null) {
-		contentType = "application/octet-stream";
+		return "application/octet-stream";
 	}
 	return contentType;
 };
@@ -595,6 +646,7 @@ var server_Main = function(port,wsPort) {
 	this.freeIds = [];
 	this.clients = [];
 	this.rootDir = "" + __dirname + "/..";
+	var _gthis = this;
 	this.config = this.getUserConfig();
 	this.wss = new js_npm_ws_Server({ port : wsPort});
 	this.wss.on("connection",$bind(this,this.onConnect));
@@ -603,21 +655,27 @@ var server_Main = function(port,wsPort) {
 	};
 	process.on("exit",exit);
 	process.on("SIGINT",exit);
+	process.on("SIGUSR1",exit);
+	process.on("SIGUSR2",exit);
 	process.on("uncaughtException",function(log) {
-		haxe_Log.trace(log,{ fileName : "src/server/Main.hx", lineNumber : 41, className : "server.Main", methodName : "new"});
+		haxe_Log.trace(log,{ fileName : "src/server/Main.hx", lineNumber : 49, className : "server.Main", methodName : "new"});
 		return;
 	});
 	process.on("unhandledRejection",function(reason,promise) {
-		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 44, className : "server.Main", methodName : "new", customParams : [reason]});
+		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 52, className : "server.Main", methodName : "new", customParams : [reason]});
 		return;
 	});
+	this.localIp = server_Utils.getLocalIp();
+	this.globalIp = this.localIp;
+	this.port = port;
 	server_Utils.getGlobalIp(function(ip) {
-		haxe_Log.trace("Local: http://" + server_Utils.getLocalIp() + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 49, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + ip + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 50, className : "server.Main", methodName : "new"});
+		_gthis.globalIp = ip;
+		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 60, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 61, className : "server.Main", methodName : "new"});
 		return;
 	});
 	var dir = "" + this.rootDir + "/res";
-	server_HttpServer.init(dir);
+	server_HttpServer.init(dir,"" + this.rootDir + "/user/res");
 	Lang.init("" + dir + "/langs");
 	js_node_Http.createServer(function(req,res) {
 		server_HttpServer.serveFiles(req,res);
@@ -631,7 +689,7 @@ server_Main.main = function() {
 server_Main.prototype = {
 	getUserConfig: function() {
 		var config = JSON.parse(js_node_Fs.readFileSync("" + this.rootDir + "/default-config.json",{ encoding : "utf8"}));
-		var customPath = "" + this.rootDir + "/config.json";
+		var customPath = "" + this.rootDir + "/user/config.json";
 		if(!sys_FileSystem.exists(customPath)) {
 			return config;
 		}
@@ -642,7 +700,7 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 68, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 79, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
@@ -653,8 +711,8 @@ server_Main.prototype = {
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 78, className : "server.Main", methodName : "onConnect"});
-		var client = new Client(ws,id,name,0);
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 89, className : "server.Main", methodName : "onConnect"});
+		var client = new Client(ws,req,id,name,0);
 		if(req.connection.localAddress == ip) {
 			client.group |= 4;
 		}
@@ -671,7 +729,7 @@ server_Main.prototype = {
 		var _g1 = 0;
 		var _g2 = this.clients;
 		while(_g1 < _g2.length) _g.push(_g2[_g1++].getData());
-		this.send(client,{ type : "Connected", connected : { config : tmp, history : tmp1, isUnknownClient : true, clientName : client1, clients : _g, videoList : this.videoList}});
+		this.send(client,{ type : "Connected", connected : { config : tmp, history : tmp1, isUnknownClient : true, clientName : client1, clients : _g, videoList : this.videoList, globalIp : this.globalIp}});
 		this.sendClientList();
 		ws.on("message",function(data) {
 			var tmp2 = JSON.parse(data);
@@ -679,8 +737,8 @@ server_Main.prototype = {
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 105, className : "server.Main", methodName : "onConnect"});
-			_gthis.sortedPush(_gthis.freeIds,client.id);
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 117, className : "server.Main", methodName : "onConnect"});
+			server_Utils.sortedPush(_gthis.freeIds,client.id);
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
 			if((client.group & 2) != 0) {
@@ -697,25 +755,18 @@ server_Main.prototype = {
 			return;
 		});
 	}
-	,sortedPush: function(ids,id) {
-		var _g = 0;
-		var _g1 = ids.length;
-		while(_g < _g1) {
-			var i = _g++;
-			if(id < ids[i]) {
-				ids.splice(i,0,id);
-				return;
-			}
-		}
-		ids.push(id);
-	}
 	,onMessage: function(client,data) {
 		switch(data.type) {
 		case "AddVideo":
+			var item = data.addVideo.item;
+			var localOrigin = "" + this.localIp + ":" + this.port;
+			if(item.url.indexOf(localOrigin) != -1) {
+				item.url = StringTools.replace(item.url,localOrigin,"" + this.globalIp + ":" + this.port);
+			}
 			if(data.addVideo.atEnd) {
-				this.videoList.push(data.addVideo.item);
+				this.videoList.push(item);
 			} else {
-				this.videoList.splice(1,0,data.addVideo.item);
+				this.videoList.splice(1,0,item);
 			}
 			this.broadcast(data);
 			if(this.videoList.length == 1) {
@@ -808,8 +859,8 @@ server_Main.prototype = {
 			if(this.videoList[0].url == url) {
 				this.videoTimer.stop();
 			}
-			HxOverrides.remove(this.videoList,Lambda.find(this.videoList,function(item) {
-				return item.url == url;
+			HxOverrides.remove(this.videoList,Lambda.find(this.videoList,function(item1) {
+				return item1.url == url;
 			}));
 			this.broadcast(data);
 			if(this.videoList.length > 0) {
@@ -953,6 +1004,18 @@ server_Utils.getLocalIp = function() {
 		}
 	}
 	return "127.0.0.1";
+};
+server_Utils.sortedPush = function(ids,id) {
+	var _g = 0;
+	var _g1 = ids.length;
+	while(_g < _g1) {
+		var i = _g++;
+		if(id < ids[i]) {
+			ids.splice(i,0,id);
+			return;
+		}
+	}
+	ids.push(id);
 };
 server_Utils.shuffle = function(arr) {
 	var _g = 0;
@@ -1127,6 +1190,9 @@ server_HttpServer.mimeTypes = (function($this) {
 	$r = _g;
 	return $r;
 }(this));
+server_HttpServer.hasCustomRes = false;
+server_HttpServer.allowedLocalFiles = new haxe_ds_StringMap();
 server_HttpServer.matchLang = new EReg("^[A-z]+","");
+server_HttpServer.matchVarString = new EReg("\\${([A-z_]+)}","g");
 server_Main.main();
 })(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);

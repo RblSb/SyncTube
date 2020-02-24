@@ -1,3 +1,7 @@
 /node_modules
 /res/temp
-/config.json
+/user/config.json
+/user/state.json
+/user/res/
+/user/logs/
+/user/errors/

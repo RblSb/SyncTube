@@ -2,4 +2,4 @@
 --main client.Main
 -D analyzer-optimize
 --dce full
---js build/client.js
+--js res/client.js

@@ -25,6 +25,7 @@ class Player {
 		isLoaded = false;
 		video = document.createVideoElement();
 		video.id = "videoplayer";
+		item.url = main.tryLocalIp(item.url);
 		video.src = item.url;
 		video.controls = true;
 		video.oncanplaythrough = e -> {
