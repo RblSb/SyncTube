@@ -2,8 +2,8 @@ package client;
 
 import haxe.Timer;
 import js.html.MouseEvent;
-import js.html.ButtonElement;
 import js.html.KeyboardEvent;
+import js.html.Event;
 import js.html.Element;
 import haxe.Json;
 import js.html.InputElement;
@@ -33,11 +33,13 @@ class Main {
 
 	static function main():Void new Main();
 
-	public function new(?host:String, port = 4201) {
+	public function new(?host:String, ?port:String) {
 		player = new Player(this);
 		if (host == null) host = Browser.location.hostname;
 		if (host == "") host = "localhost";
 		this.host = host;
+		if (port == null) port = Browser.location.port;
+		if (port == "") port = "80";
 
 		initListeners();
 		onTimeGet.run = () -> {
@@ -56,7 +58,7 @@ class Main {
 		});
 	}
 
-	function openWebSocket(host:String, port:Int):Void {
+	function openWebSocket(host:String, port:String):Void {
 		ws = new WebSocket('ws://$host:$port');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
@@ -89,8 +91,8 @@ class Main {
 			});
 		}
 
-		ge("#queue_next").onclick = (e:MouseEvent) -> addVideoUrl(false);
-		ge("#queue_end").onclick = (e:MouseEvent) -> addVideoUrl(true);
+		ge("#queue_next").onclick = e -> addVideoUrl(false);
+		ge("#queue_end").onclick = e -> addVideoUrl(true);
 		ge("#mediaurl").onkeydown = function(e:KeyboardEvent) {
 			if (e.keyCode == 13) addVideoUrl(true);
 		}
@@ -361,6 +363,7 @@ class Main {
 	function hideGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "none";
 		ge("#chatline").style.display = "block";
+		js.Browser.window.dispatchEvent(new Event("resize"));
 	}
 
 	function updateClients(newClients:Array<ClientData>):Void {

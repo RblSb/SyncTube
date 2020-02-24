@@ -12,7 +12,7 @@ Even if some original features are not implemented yet, there is some new things
 - Updated Des theme
 
 ### Setup
-- Open `4200` and `4201` ports in your router settings
+- Open `4200` port in your router settings
 - `npm install ws`
 - Run `node build/server.js`
 - Open showed "Local" link for yourself and send "Global" link to friends

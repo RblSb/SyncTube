@@ -459,9 +459,6 @@ client_Buttons.initChatInput = function(main) {
 	};
 };
 var client_Main = function(host,port) {
-	if(port == null) {
-		port = 4201;
-	}
 	this.matchNumbers = new EReg("^-?[0-9]+$","");
 	this.onTimeGet = new haxe_Timer(2000);
 	this.isConnected = false;
@@ -479,6 +476,12 @@ var client_Main = function(host,port) {
 		host = "localhost";
 	}
 	this.host = host;
+	if(port == null) {
+		port = window.location.port;
+	}
+	if(port == "") {
+		port = "80";
+	}
 	this.initListeners();
 	this.onTimeGet.run = function() {
 		if(_gthis.player.isListEmpty()) {
@@ -641,7 +644,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 193, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 195, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			if(this.player.isListEmpty()) {
@@ -834,6 +837,7 @@ client_Main.prototype = {
 	,hideGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
 		window.document.querySelector("#chatline").style.display = "block";
+		window.dispatchEvent(new Event("resize"));
 	}
 	,updateClients: function(newClients) {
 		this.clients.length = 0;

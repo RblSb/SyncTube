@@ -34,14 +34,12 @@ class Main {
 
 	static function main():Void new Main();
 
-	public function new(port = 4200, wsPort = 4201) {
+	public function new(port = 4200, ?wsPort:Int) {
 		final envPort = (process.env : Dynamic).PORT;
 		if (envPort != null) port = envPort;
 		statePath = '$rootDir/user/state.json';
 		config = getUserConfig();
 		loadState();
-		wss = new WSServer({port: wsPort});
-		wss.on("connection", onConnect);
 		function exit() {
 			saveState();
 			process.exit();
@@ -77,9 +75,12 @@ class Main {
 		HttpServer.init(dir, '$rootDir/user/res');
 		Lang.init('$dir/langs');
 
-		Http.createServer((req, res) -> {
+		final server = Http.createServer((req, res) -> {
 			HttpServer.serveFiles(req, res);
-		}).listen(port);
+		});
+		server.listen(port);
+		wss = new WSServer({server: server, port: wsPort});
+		wss.on("connection", onConnect);
 	}
 
 	function getUserConfig():Config {
