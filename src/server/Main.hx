@@ -35,6 +35,8 @@ class Main {
 	static function main():Void new Main();
 
 	public function new(port = 4200, wsPort = 4201) {
+		final envPort = (process.env : Dynamic).PORT;
+		if (envPort != null) port = envPort;
 		statePath = '$rootDir/user/state.json';
 		config = getUserConfig();
 		loadState();

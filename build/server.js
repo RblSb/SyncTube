@@ -647,6 +647,10 @@ var server_Main = function(port,wsPort) {
 	this.clients = [];
 	this.rootDir = "" + __dirname + "/..";
 	var _gthis = this;
+	var envPort = process.env.PORT;
+	if(envPort != null) {
+		port = envPort;
+	}
 	this.statePath = "" + this.rootDir + "/user/state.json";
 	this.config = this.getUserConfig();
 	this.loadState();
@@ -661,13 +665,13 @@ var server_Main = function(port,wsPort) {
 	process.on("SIGUSR1",exit);
 	process.on("SIGUSR2",exit);
 	process.on("uncaughtException",function(err) {
-		haxe_Log.trace(err,{ fileName : "src/server/Main.hx", lineNumber : 52, className : "server.Main", methodName : "new"});
+		haxe_Log.trace(err,{ fileName : "src/server/Main.hx", lineNumber : 54, className : "server.Main", methodName : "new"});
 		_gthis.logError("uncaughtException",{ message : err.message, stack : err.stack});
 		exit();
 		return;
 	});
 	process.on("unhandledRejection",function(reason,promise) {
-		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 60, className : "server.Main", methodName : "new", customParams : [reason]});
+		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 62, className : "server.Main", methodName : "new", customParams : [reason]});
 		_gthis.logError("unhandledRejection",reason);
 		exit();
 		return;
@@ -677,8 +681,8 @@ var server_Main = function(port,wsPort) {
 	this.port = port;
 	server_Utils.getGlobalIp(function(ip) {
 		_gthis.globalIp = ip;
-		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 70, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 71, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 72, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 73, className : "server.Main", methodName : "new"});
 		return;
 	});
 	var dir = "" + this.rootDir + "/res";
@@ -687,7 +691,7 @@ var server_Main = function(port,wsPort) {
 	js_node_Http.createServer(function(req,res) {
 		server_HttpServer.serveFiles(req,res);
 		return;
-	}).listen(port);
+	}).listen(port,"0.0.0.0");
 };
 server_Main.__name__ = true;
 server_Main.main = function() {
@@ -707,7 +711,7 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 89, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 91, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
@@ -747,7 +751,7 @@ server_Main.prototype = {
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 131, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 133, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
 		if(req.connection.localAddress == ip) {
 			client.group |= 4;
@@ -773,7 +777,7 @@ server_Main.prototype = {
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 159, className : "server.Main", methodName : "onConnect"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 161, className : "server.Main", methodName : "onConnect"});
 			server_Utils.sortedPush(_gthis.freeIds,client.id);
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
