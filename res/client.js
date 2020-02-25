@@ -294,6 +294,7 @@ var client_Buttons = function() { };
 client_Buttons.__name__ = true;
 client_Buttons.init = function(main) {
 	client_Buttons.initChatInput(main);
+	client_Buttons.initNavBar(main);
 	var smilesBtn = window.document.querySelector("#smilesbtn");
 	smilesBtn.onclick = function(e) {
 		smilesBtn.classList.toggle("active");
@@ -304,7 +305,6 @@ client_Buttons.init = function(main) {
 			return smilesWrap.style.display = "none";
 		}
 	};
-	window.document.querySelector("#clearchatbtn").style.display = "inline-block";
 	window.document.querySelector("#clearchatbtn").onclick = function(e1) {
 		if((main.personal.group & 4) != 0) {
 			main.send({ type : "ClearChat"});
@@ -330,9 +330,6 @@ client_Buttons.init = function(main) {
 		main.send({ type : "SetLeader", setLeader : { clientName : name}});
 		return;
 	};
-	client_Buttons.split = new Split(["#chatwrap","#videowrap"],{ sizes : [40,60], onDragEnd : function() {
-		return window.dispatchEvent(new Event("resize"));
-	}, minSize : 185, snapOffset : 0});
 	var userlistToggle = window.document.querySelector("#userlisttoggle");
 	userlistToggle.onclick = function(e3) {
 		var style = window.document.querySelector("#userlist").style;
@@ -398,12 +395,102 @@ client_Buttons.init = function(main) {
 		return window.document.querySelector("#addfromurl").classList.toggle("collapse");
 	};
 	window.onresize = client_Buttons.onVideoResize;
+	client_Buttons.initSplit();
+};
+client_Buttons.initSplit = function(swapped) {
+	if(swapped == null) {
+		swapped = false;
+	}
+	if(client_Buttons.split != null) {
+		client_Buttons.split.destroy();
+	}
+	var divs = ["#chatwrap","#videowrap"];
+	var sizes = [40,60];
+	if(swapped) {
+		divs.reverse();
+		sizes.reverse();
+	}
+	client_Buttons.split = new Split(divs,{ sizes : sizes, onDragEnd : function() {
+		return window.dispatchEvent(new Event("resize"));
+	}, minSize : 185, snapOffset : 0});
 	window.dispatchEvent(new Event("resize"));
 };
 client_Buttons.onVideoResize = function() {
 	var height = window.document.querySelector("#ytapiplayer").offsetHeight - window.document.querySelector("#chatline").offsetHeight;
 	window.document.querySelector("#messagebuffer").style.height = "" + height + "px";
 	window.document.querySelector("#userlist").style.height = "" + height + "px";
+};
+client_Buttons.initNavBar = function(main) {
+	var classes = window.document.querySelectorAll(".dropdown-toggle");
+	var _g = 0;
+	while(_g < classes.length) {
+		var klass = [classes[_g]];
+		++_g;
+		klass[0].onclick = (function(klass1) {
+			return function(e) {
+				klass1[0].classList.toggle("focus");
+				client_Buttons.hideMenus();
+				var menu = klass1[0].parentElement.querySelector(".dropdown-menu");
+				if(menu.style.display == "") {
+					return menu.style.display = "block";
+				} else {
+					return menu.style.display = "";
+				}
+			};
+		})(klass);
+		klass[0].onmouseover = klass[0].onclick;
+	}
+	var classes1 = window.document.querySelectorAll(".dropdown");
+	var _g1 = 0;
+	while(_g1 < classes1.length) {
+		var klass2 = [classes1[_g1]];
+		++_g1;
+		klass2[0].onmouseleave = (function(klass3) {
+			return function(e1) {
+				var toggle = klass3[0].querySelector(".dropdown-toggle");
+				toggle.classList.remove("focus");
+				toggle.blur();
+				return klass3[0].querySelector(".dropdown-menu").style.display = "";
+			};
+		})(klass2);
+	}
+	var exitBtn = window.document.querySelector("#exitBtn");
+	exitBtn.onclick = function(e2) {
+		main.send({ type : "Logout"});
+		exitBtn.blur();
+		client_Buttons.hideMenus();
+		return;
+	};
+	var swapLayoutBtn = window.document.querySelector("#swapLayoutBtn");
+	swapLayoutBtn.onclick = function(e3) {
+		var p = window.document.querySelector("#main");
+		p.insertBefore(p.children.item(2),p.children.item(0));
+		p.insertBefore(p.children.item(2),p.children.item(1));
+		var p1 = window.document.querySelector("#controlsrow");
+		p1.insertBefore(p1.children.item(1),p1.children.item(0));
+		var p2 = window.document.querySelector("#playlistrow");
+		p2.insertBefore(p2.children.item(1),p2.children.item(0));
+		client_Buttons.initSplit(window.document.querySelector("#main").firstElementChild == window.document.querySelector("#videowrap"));
+		swapLayoutBtn.blur();
+		client_Buttons.hideMenus();
+		return;
+	};
+	var removeBtn = window.document.querySelector("#removeVideoBtn");
+	removeBtn.onclick = function(e4) {
+		if(main.toggleVideoElement()) {
+			removeBtn.innerText = Lang.get("removeVideo");
+		} else {
+			removeBtn.innerText = Lang.get("addVideo");
+		}
+		removeBtn.blur();
+		client_Buttons.hideMenus();
+		return;
+	};
+};
+client_Buttons.hideMenus = function() {
+	var menus = window.document.querySelectorAll(".dropdown-menu");
+	var _g = 0;
+	while(_g < menus.length) menus[_g++].style.display = "";
 };
 client_Buttons.initChatInput = function(main) {
 	var guestName = window.document.querySelector("#guestname");
@@ -604,6 +691,14 @@ client_Main.prototype = {
 			return;
 		});
 	}
+	,toggleVideoElement: function() {
+		if(this.player.hasVideo()) {
+			this.player.removeVideo();
+		} else if(!this.player.isListEmpty()) {
+			this.player.setVideo(this.player.getItems()[0]);
+		}
+		return this.player.hasVideo();
+	}
 	,refreshPlayer: function() {
 		this.player.refresh();
 	}
@@ -644,7 +739,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 195, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 203, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			if(this.player.isListEmpty()) {
@@ -833,10 +928,14 @@ client_Main.prototype = {
 	,showGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "block";
 		window.document.querySelector("#chatline").style.display = "none";
+		window.dispatchEvent(new Event("resize"));
 	}
 	,hideGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
 		window.document.querySelector("#chatline").style.display = "block";
+		if((this.personal.group & 4) != 0) {
+			window.document.querySelector("#clearchatbtn").style.display = "inline-block";
+		}
 		window.dispatchEvent(new Event("resize"));
 	}
 	,updateClients: function(newClients) {
@@ -1086,12 +1185,15 @@ client_Player.prototype = {
 		HxOverrides.remove(this.items,Lambda.find(this.items,function(item) {
 			return item.url == url;
 		}));
+		this.updateCounters();
+		if(this.video == null) {
+			return;
+		}
 		if(this.video.src == url) {
 			if(this.items.length > 0) {
 				this.setVideo(this.items[0]);
 			}
 		}
-		this.updateCounters();
 	}
 	,updateCounters: function() {
 		var tmp = "" + this.items.length + " ";
@@ -1156,6 +1258,9 @@ client_Player.prototype = {
 	}
 	,isListEmpty: function() {
 		return this.items.length == 0;
+	}
+	,hasVideo: function() {
+		return this.video != null;
 	}
 	,pause: function() {
 		if(this.video == null) {

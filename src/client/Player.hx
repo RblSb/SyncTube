@@ -123,11 +123,12 @@ class Player {
 		items.remove(
 			items.find(item -> item.url == url)
 		);
+		updateCounters();
 
+		if (video == null) return;
 		if (video.src == url) {
 			if (items.length > 0) setVideo(items[0]);
 		}
-		updateCounters();
 	}
 
 	function updateCounters():Void {
@@ -188,6 +189,10 @@ class Player {
 
 	public function isListEmpty():Bool {
 		return items.length == 0;
+	}
+
+	public function hasVideo():Bool {
+		return video != null;
 	}
 
 	public function pause():Void {

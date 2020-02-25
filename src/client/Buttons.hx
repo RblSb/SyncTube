@@ -6,6 +6,7 @@ import js.html.InputElement;
 import js.html.Element;
 import client.Main.ge;
 import js.Browser.window;
+import js.Browser.document;
 import js.html.Event;
 
 class Buttons {
@@ -16,6 +17,7 @@ class Buttons {
 
 	public static function init(main:Main):Void {
 		initChatInput(main);
+		initNavBar(main);
 
 		final smilesBtn = ge("#smilesbtn");
 		smilesBtn.onclick = e -> {
@@ -26,7 +28,6 @@ class Buttons {
 			else smilesWrap.style.display = "none";
 		}
 
-		ge("#clearchatbtn").style.display = "inline-block";
 		ge("#clearchatbtn").onclick = e -> {
 			if (main.isAdmin()) main.send({type: ClearChat});
 		}
@@ -48,15 +49,6 @@ class Buttons {
 				}
 			});
 		}
-
-		split = new Split(["#chatwrap", "#videowrap"], {
-			sizes: [40, 60],
-			onDragEnd: () -> {
-				window.dispatchEvent(new Event("resize"));
-			},
-			minSize: 185,
-			snapOffset: 0
-		});
 
 		final userlistToggle = ge("#userlisttoggle");
 		userlistToggle.onclick = e -> {
@@ -126,6 +118,25 @@ class Buttons {
 		}
 
 		window.onresize = onVideoResize;
+		initSplit();
+	}
+
+	static function initSplit(swapped = false):Void {
+		if (split != null) split.destroy();
+		final divs = ["#chatwrap", "#videowrap"];
+		final sizes = [40, 60];
+		if (swapped) {
+			divs.reverse();
+			sizes.reverse();
+		}
+		split = new Split(divs, {
+			sizes: sizes,
+			onDragEnd: () -> {
+				window.dispatchEvent(new Event("resize"));
+			},
+			minSize: 185,
+			snapOffset: 0
+		});
 		window.dispatchEvent(new Event("resize"));
 	}
 
@@ -136,6 +147,63 @@ class Buttons {
 		ge("#userlist").style.height = '${height}px';
 	}
 
+	static function initNavBar(main:Main):Void {
+		final classes:Array<Element> = cast document.querySelectorAll(".dropdown-toggle");
+		for (klass in classes) {
+			klass.onclick = e -> {
+				klass.classList.toggle("focus");
+				hideMenus();
+				final menu = klass.parentElement.querySelector(".dropdown-menu");
+				if (menu.style.display == "") menu.style.display = "block";
+				else menu.style.display = "";
+			}
+			klass.onmouseover = klass.onclick;
+		}
+		final classes:Array<Element> = cast document.querySelectorAll(".dropdown");
+		for (klass in classes) {
+			klass.onmouseleave = e -> {
+				final toggle:Element = cast klass.querySelector(".dropdown-toggle");
+				toggle.classList.remove("focus");
+				toggle.blur();
+				final menu = klass.querySelector(".dropdown-menu");
+				menu.style.display = "";
+			}
+		}
+
+		final exitBtn = ge("#exitBtn");
+		exitBtn.onclick = e -> {
+			main.send({type: Logout});
+			exitBtn.blur();
+			hideMenus();
+		}
+		final swapLayoutBtn = ge("#swapLayoutBtn");
+		swapLayoutBtn.onclick = e -> {
+			final p = ge("#main");
+			p.insertBefore(p.children.item(2), p.children.item(0));
+			p.insertBefore(p.children.item(2), p.children.item(1));
+			final p = ge("#controlsrow");
+			p.insertBefore(p.children.item(1), p.children.item(0));
+			final p = ge("#playlistrow");
+			p.insertBefore(p.children.item(1), p.children.item(0));
+			final swapped = ge("#main").firstElementChild == ge("#videowrap");
+			initSplit(swapped);
+			swapLayoutBtn.blur();
+			hideMenus();
+		}
+		final removeBtn = ge("#removeVideoBtn");
+		removeBtn.onclick = e -> {
+			final has = main.toggleVideoElement();
+			if (has) removeBtn.innerText = Lang.get("removeVideo");
+			else removeBtn.innerText = Lang.get("addVideo");
+			removeBtn.blur();
+			hideMenus();
+		}
+	}
+
+	static function hideMenus():Void {
+		final menus:Array<Element> = cast document.querySelectorAll(".dropdown-menu");
+		for (menu in menus) menu.style.display = "";
+	}
 
 	static function initChatInput(main:Main):Void {
 		final guestName:InputElement = cast ge("#guestname");

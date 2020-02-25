@@ -5,5 +5,6 @@
 	"search.exclude": {
 		"build": true,
 		"res/temp": true,
+		"res/client.js": true
 	}
 }

@@ -30,18 +30,18 @@
           <ul class="nav navbar-nav">
             <li class="dropdown"><a class="dropdown-toggle" href="#" data-toggle="dropdown">${account}<b class="caret"></b></a>
               <ul class="dropdown-menu">
-                <li><a href="#">${exportSettings}</a></li>
+                <!-- <li><a href="#">${exportSettings}</a></li>
                 <li><a href="#">${importSettings}</a></li>
-                <li class="divider"></li>
-                <li><a href="#">${exit}</a></li>
+                <li class="divider"></li> -->
+                <li><a id="exitBtn" href="#">${exit}</a></li>
               </ul>
             </li>
-            <li><a href="javascript:void(0)" onclick="javascript:showUserOptions()">${settings}</a></li>
-            <li><a id="showchansettings" href="javascript:void(0)" onclick="javascript:showChannelSettings()">${channel}</a></li>
+            <li><a href="javascript:void(0)">${settings}</a></li>
+            <!-- <li><a id="showchansettings" href="javascript:void(0)">${channel}</a></li> -->
             <li class="dropdown"><a class="dropdown-toggle" href="#" data-toggle="dropdown">${layout}<b class="caret"></b></a>
               <ul class="dropdown-menu">
-                <li><a href="#" onclick="javascript:chatOnly()">${chatOnly}</a></li>
-                <li><a href="#" onclick="javascript:removeVideo(event)">${removeVideo}</a></li>
+                <li><a href="#" id="swapLayoutBtn">${swapLayout}</a></li>
+                <li><a href="#" id="removeVideoBtn">${removeVideo}</a></li>
               </ul>
             </li>
           </ul>

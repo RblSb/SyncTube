@@ -156,6 +156,14 @@ class Main {
 		});
 	}
 
+	public function toggleVideoElement():Bool {
+		if (player.hasVideo()) player.removeVideo();
+		else if (!player.isListEmpty()) {
+			player.setVideo(player.getItems()[0]);
+		}
+		return player.hasVideo();
+	}
+
 	public function refreshPlayer():Void {
 		player.refresh();
 	}
@@ -358,12 +366,14 @@ class Main {
 	function showGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "block";
 		ge("#chatline").style.display = "none";
+		Browser.window.dispatchEvent(new Event("resize"));
 	}
 
 	function hideGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "none";
 		ge("#chatline").style.display = "block";
-		js.Browser.window.dispatchEvent(new Event("resize"));
+		if (isAdmin()) ge("#clearchatbtn").style.display = "inline-block";
+		Browser.window.dispatchEvent(new Event("resize"));
 	}
 
 	function updateClients(newClients:Array<ClientData>):Void {

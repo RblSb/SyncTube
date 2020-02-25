@@ -897,14 +897,14 @@ server_Main.prototype = {
 			var url = data.removeVideo.url;
 			if(this.videoList[0].url == url) {
 				this.videoTimer.stop();
+				if(this.videoList.length > 0) {
+					this.restartWaitTimer();
+				}
 			}
 			HxOverrides.remove(this.videoList,Lambda.find(this.videoList,function(item1) {
 				return item1.url == url;
 			}));
 			this.broadcast(data);
-			if(this.videoList.length > 0) {
-				this.restartWaitTimer();
-			}
 			break;
 		case "Rewind":
 			if(this.videoList.length == 0) {
