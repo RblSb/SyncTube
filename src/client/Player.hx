@@ -1,5 +1,6 @@
 package client;
 
+import haxe.Timer;
 import js.html.Element;
 import js.html.VideoElement;
 import js.Browser.document;
@@ -29,6 +30,16 @@ class Player {
 		item.url = main.tryLocalIp(item.url);
 		video.src = item.url;
 		video.controls = true;
+		final isTouch = untyped __js__("'ontouchstart' in window");
+		if (!isTouch) Timer.delay(() -> {
+			video.controls = false;
+			video.onmouseover = e -> {
+				video.controls = true;
+				video.onmouseover = null;
+				video.onmousemove = null;
+			}
+			video.onmousemove = video.onmouseover;
+		}, 3000);
 		video.oncanplaythrough = e -> {
 			if (!isLoaded) main.send({type: VideoLoaded});
 			isLoaded = true;

@@ -1169,32 +1169,44 @@ client_Player.prototype = {
 		item.url = this.main.tryLocalIp(item.url);
 		this.video.src = item.url;
 		this.video.controls = true;
-		this.video.oncanplaythrough = function(e) {
+		var isTouch = 'ontouchstart' in window;
+		if(!isTouch) {
+			haxe_Timer.delay(function() {
+				_gthis.video.controls = false;
+				_gthis.video.onmouseover = function(e) {
+					_gthis.video.controls = true;
+					_gthis.video.onmouseover = null;
+					return _gthis.video.onmousemove = null;
+				};
+				return _gthis.video.onmousemove = _gthis.video.onmouseover;
+			},3000);
+		}
+		this.video.oncanplaythrough = function(e1) {
 			if(!_gthis.isLoaded) {
 				_gthis.main.send({ type : "VideoLoaded"});
 			}
 			return _gthis.isLoaded = true;
 		};
-		this.video.onseeking = function(e1) {
+		this.video.onseeking = function(e2) {
 			if(_gthis.skipSetTime) {
 				_gthis.skipSetTime = false;
 				return;
 			}
-			if((_gthis.main.personal.group & 2) == 0) {
+			if((_gthis.main.personal.group & 1 << ClientGroup.Leader._hx_index) == 0) {
 				return;
 			}
 			_gthis.main.send({ type : "SetTime", setTime : { time : _gthis.video.currentTime}});
 			return;
 		};
-		this.video.onpause = function(e2) {
-			if((_gthis.main.personal.group & 2) == 0) {
+		this.video.onpause = function(e3) {
+			if((_gthis.main.personal.group & 1 << ClientGroup.Leader._hx_index) == 0) {
 				return;
 			}
 			_gthis.main.send({ type : "Pause", pause : { time : _gthis.video.currentTime}});
 			return;
 		};
-		this.video.onplay = function(e3) {
-			if((_gthis.main.personal.group & 2) == 0) {
+		this.video.onplay = function(e4) {
+			if((_gthis.main.personal.group & 1 << ClientGroup.Leader._hx_index) == 0) {
 				return;
 			}
 			_gthis.main.send({ type : "Play", play : { time : _gthis.video.currentTime}});
