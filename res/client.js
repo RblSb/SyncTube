@@ -280,6 +280,52 @@ Std.parseInt = function(x) {
 };
 var StringTools = function() { };
 StringTools.__name__ = true;
+StringTools.htmlEscape = function(s,quotes) {
+	var buf_b = "";
+	var _g_offset = 0;
+	var _g_s = s;
+	while(_g_offset < _g_s.length) {
+		var s1 = _g_s;
+		var index = _g_offset++;
+		var c = s1.charCodeAt(index);
+		if(c >= 55296 && c <= 56319) {
+			c = c - 55232 << 10 | s1.charCodeAt(index + 1) & 1023;
+		}
+		var c1 = c;
+		if(c1 >= 65536) {
+			++_g_offset;
+		}
+		var code = c1;
+		switch(code) {
+		case 34:
+			if(quotes) {
+				buf_b += "&quot;";
+			} else {
+				buf_b += String.fromCodePoint(code);
+			}
+			break;
+		case 38:
+			buf_b += "&amp;";
+			break;
+		case 39:
+			if(quotes) {
+				buf_b += "&#039;";
+			} else {
+				buf_b += String.fromCodePoint(code);
+			}
+			break;
+		case 60:
+			buf_b += "&lt;";
+			break;
+		case 62:
+			buf_b += "&gt;";
+			break;
+		default:
+			buf_b += String.fromCodePoint(code);
+		}
+	}
+	return buf_b;
+};
 StringTools.startsWith = function(s,start) {
 	if(s.length >= start.length) {
 		return s.lastIndexOf(start,0) == 0;
@@ -752,7 +798,7 @@ client_Main.prototype = {
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
 			break;
 		case "ClearChat":
-			window.document.querySelector("#messagebuffer").innerHTML = "";
+			this.clearChat();
 			break;
 		case "ClearPlaylist":
 			this.player.clearItems();
@@ -868,7 +914,7 @@ client_Main.prototype = {
 		if(guestName.value.length > 0) {
 			this.send({ type : "Login", login : { clientName : guestName.value}});
 		}
-		window.document.querySelector("#messagebuffer").innerHTML = "";
+		this.clearChat();
 		this.serverMessage(1);
 		var _g = 0;
 		var _g1 = connected.history;
@@ -907,7 +953,7 @@ client_Main.prototype = {
 			form.focus();
 			return;
 		};
-		smilesWrap.innerHTML = "";
+		smilesWrap.textContent = "";
 		var _g4 = 0;
 		var _g5 = config.emotes;
 		while(_g4 < _g5.length) {
@@ -963,19 +1009,19 @@ client_Main.prototype = {
 		switch(type) {
 		case 1:
 			div.className = "server-msg-reconnect";
-			div.innerHTML = Lang.get("msgConnected");
+			div.textContent = Lang.get("msgConnected");
 			break;
 		case 2:
 			div.className = "server-msg-disconnect";
-			div.innerHTML = Lang.get("msgDisconnected");
+			div.textContent = Lang.get("msgDisconnected");
 			break;
 		case 3:
 			div.className = "server-whisper";
-			div.innerHTML = time + text + " " + Lang.get("entered");
+			div.textContent = time + text + " " + Lang.get("entered");
 			break;
 		case 4:
 			div.className = "server-whisper";
-			div.innerHTML = time + text;
+			div.textContent = time + text;
 			break;
 		default:
 		}
@@ -983,7 +1029,7 @@ client_Main.prototype = {
 		msgBuf.scrollTop = msgBuf.scrollHeight;
 	}
 	,updateUserList: function() {
-		window.document.querySelector("#usercount").innerHTML = this.clients.length + " " + Lang.get("online");
+		window.document.querySelector("#usercount").textContent = this.clients.length + " " + Lang.get("online");
 		window.document.title = this.getPageTitle();
 		var list_b = "";
 		var _g = 0;
@@ -1002,6 +1048,9 @@ client_Main.prototype = {
 	,getPageTitle: function() {
 		return "" + this.pageTitle + " (" + this.clients.length + ")";
 	}
+	,clearChat: function() {
+		window.document.querySelector("#messagebuffer").textContent = "";
+	}
 	,addMessage: function(name,text,time) {
 		var _gthis = this;
 		var msgBuf = window.document.querySelector("#messagebuffer");
@@ -1012,10 +1061,10 @@ client_Main.prototype = {
 		if(time == null) {
 			time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
 		}
-		tstamp.innerHTML = time;
+		tstamp.textContent = time;
 		var nameDiv = window.document.createElement("strong");
 		nameDiv.className = "username";
-		nameDiv.innerHTML = name + ": ";
+		nameDiv.textContent = name + ": ";
 		var textDiv = window.document.createElement("span");
 		if(StringTools.startsWith(text,"/")) {
 			if(name == this.personal.name) {
@@ -1030,6 +1079,7 @@ client_Main.prototype = {
 				text = text.replace(filter.regex.r,filter.replace);
 			}
 		}
+		text = StringTools.htmlEscape(text);
 		textDiv.innerHTML = text;
 		var isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;
 		userDiv.appendChild(tstamp);
@@ -1150,14 +1200,14 @@ client_Player.prototype = {
 			_gthis.main.send({ type : "Play", play : { time : _gthis.video.currentTime}});
 			return;
 		};
-		this.player.innerHTML = "";
+		this.player.textContent = "";
 		this.player.appendChild(this.video);
-		window.document.querySelector("#currenttitle").innerHTML = item.title;
+		window.document.querySelector("#currenttitle").textContent = item.title;
 	}
 	,addVideoItem: function(item,atEnd) {
 		var _gthis = this;
 		this.items.push(item);
-		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0 queue_temp queue_active\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + item.url + "\" target=\"_blank\">" + item.title + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\" style=\"display: inline-block;\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("skip") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>" + Lang.get("makePermanent") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\" id=\"btn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
+		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0 queue_temp queue_active\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + item.url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\" style=\"display: inline-block;\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("skip") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>" + Lang.get("makePermanent") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\" id=\"btn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
 		itemEl.querySelector("#btn-delete").onclick = function(e) {
 			_gthis.main.send({ type : "RemoveVideo", removeVideo : { url : itemEl.querySelector(".qe_title").getAttribute("href")}});
 			return;
@@ -1175,7 +1225,7 @@ client_Player.prototype = {
 		}
 		this.player.removeChild(this.video);
 		this.video = null;
-		window.document.querySelector("#currenttitle").innerHTML = Lang.get("nothingPlaying");
+		window.document.querySelector("#currenttitle").textContent = Lang.get("nothingPlaying");
 	}
 	,removeItem: function(url) {
 		var _g = 0;
@@ -1204,8 +1254,8 @@ client_Player.prototype = {
 	,updateCounters: function() {
 		var tmp = "" + this.items.length + " ";
 		var tmp1 = Lang.get("videos");
-		window.document.querySelector("#plcount").innerHTML = tmp + tmp1;
-		window.document.querySelector("#pllength").innerHTML = this.totalDuration();
+		window.document.querySelector("#plcount").textContent = tmp + tmp1;
+		window.document.querySelector("#pllength").textContent = this.totalDuration();
 	}
 	,getItems: function() {
 		return this.items;
@@ -1223,7 +1273,7 @@ client_Player.prototype = {
 	}
 	,clearItems: function() {
 		this.items.length = 0;
-		this.videoItemsEl.innerHTML = "";
+		this.videoItemsEl.textContent = "";
 		this.updateCounters();
 	}
 	,refresh: function() {

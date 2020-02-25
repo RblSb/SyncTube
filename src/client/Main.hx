@@ -283,7 +283,7 @@ class Main {
 				if (isLeader()) player.setTime(player.getTime(), false);
 
 			case ClearChat:
-				ge("#messagebuffer").innerHTML = "";
+				clearChat();
 
 			case ClearPlaylist:
 				player.clearItems();
@@ -313,7 +313,7 @@ class Main {
 				clientName: guestName.value
 			}
 		});
-		ge("#messagebuffer").innerHTML = "";
+		clearChat();
 		serverMessage(1);
 		for (message in connected.history) {
 			addMessage(message.name, message.text, message.time);
@@ -349,7 +349,7 @@ class Main {
 			form.value += ' ${el.title}';
 			form.focus();
 		}
-		smilesWrap.innerHTML = "";
+		smilesWrap.textContent = "";
 		for (emote in config.emotes) {
 			final img = document.createImageElement();
 			img.className = "smile-preview";
@@ -402,16 +402,16 @@ class Main {
 		switch (type) {
 			case 1:
 				div.className = "server-msg-reconnect";
-				div.innerHTML = Lang.get("msgConnected");
+				div.textContent = Lang.get("msgConnected");
 			case 2:
 				div.className = "server-msg-disconnect";
-				div.innerHTML = Lang.get("msgDisconnected");
+				div.textContent = Lang.get("msgDisconnected");
 			case 3:
 				div.className = "server-whisper";
-				div.innerHTML = time + text + " " + Lang.get("entered");
+				div.textContent = time + text + " " + Lang.get("entered");
 			case 4:
 				div.className = "server-whisper";
-				div.innerHTML = time + text;
+				div.textContent = time + text;
 			default:
 		}
 		msgBuf.appendChild(div);
@@ -420,7 +420,7 @@ class Main {
 
 	function updateUserList():Void {
 		final userCount = ge("#usercount");
-		userCount.innerHTML = clients.length + " " + Lang.get("online");
+		userCount.textContent = clients.length + " " + Lang.get("online");
 		document.title = getPageTitle();
 
 		final list = new StringBuf();
@@ -438,6 +438,10 @@ class Main {
 		return '$pageTitle (${clients.length})';
 	}
 
+	function clearChat():Void {
+		ge("#messagebuffer").textContent = "";
+	}
+
 	function addMessage(name:String, text:String, ?time:String):Void {
 		final msgBuf = ge("#messagebuffer");
 		final userDiv = document.createDivElement();
@@ -446,11 +450,11 @@ class Main {
 		final tstamp = document.createSpanElement();
 		tstamp.className = "timestamp";
 		if (time == null) time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
-		tstamp.innerHTML = time;
+		tstamp.textContent = time;
 
 		final nameDiv = document.createElement("strong");
 		nameDiv.className = "username";
-		nameDiv.innerHTML = name + ": ";
+		nameDiv.textContent = name + ": ";
 
 		final textDiv = document.createSpanElement();
 		if (text.startsWith("/")) {
@@ -460,6 +464,7 @@ class Main {
 				text = filter.regex.replace(text, filter.replace);
 			}
 		}
+		text = text.htmlEscape();
 		textDiv.innerHTML = text;
 
 		final isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;

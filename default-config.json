@@ -10,8 +10,8 @@
 	],
 	"filters": [
 		{
-			"name": "image", "regex": "(http|https)(:\\/\\/.*\\.)(png|jpg|gif|jpeg)", "flags": "g",
-			"replace": "<a href='$1$2$3' target='_blank'><img src='$1$2$3' style='max-width:200px; max-height:200px' /></a>"
+			"name": "image", "regex": "(http|https)(:\\/\\/.*\\.)(png|jpg|gif|jpeg)([^ ,]*)", "flags": "g",
+			"replace": "<a href='$1$2$3' target='_blank'><img src='$1$2$3$4' style='max-width:200px; max-height:200px' /></a>"
 		}
 	]
 }

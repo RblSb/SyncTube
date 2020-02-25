@@ -637,6 +637,7 @@ var server_Main = function(port,wsPort) {
 		port = 4200;
 	}
 	this.loadedClientsCount = 0;
+	this.htmlChars = new EReg("[&^<>'\"]","");
 	this.messages = [];
 	this.videoTimer = new server_VideoTimer();
 	this.videoList = [];
@@ -797,6 +798,7 @@ server_Main.prototype = {
 		switch(data.type) {
 		case "AddVideo":
 			var item = data.addVideo.item;
+			item.author = client.name;
 			var localOrigin = "" + this.localIp + ":" + this.port;
 			if(item.url.indexOf(localOrigin) != -1) {
 				item.url = StringTools.replace(item.url,localOrigin,"" + this.globalIp + ":" + this.port);
@@ -837,11 +839,11 @@ server_Main.prototype = {
 			break;
 		case "Login":
 			var name = data.login.clientName;
-			if(name.length == 0 || name.length > this.config.maxLoginLength || ClientTools.getByName(this.clients,name) != null) {
+			if(this.badNickName(name) || name.length > this.config.maxLoginLength || ClientTools.getByName(this.clients,name) != null) {
 				this.send(client,{ type : "LoginError"});
 				return;
 			}
-			client.name = data.login.clientName;
+			client.name = name;
 			client.setGroupFlag(ClientGroup.User,true);
 			this.send(client,{ type : data.type, login : { isUnknownClient : true, clientName : client.name, clients : this.clientList()}});
 			this.sendClientList();
@@ -897,15 +899,16 @@ server_Main.prototype = {
 				return;
 			}
 			var url = data.removeVideo.url;
-			if(this.videoList[0].url == url) {
+			var isFirst = this.videoList[0].url == url;
+			if(isFirst) {
 				this.videoTimer.stop();
-				if(this.videoList.length > 0) {
-					this.restartWaitTimer();
-				}
 			}
 			HxOverrides.remove(this.videoList,Lambda.find(this.videoList,function(item1) {
 				return item1.url == url;
 			}));
+			if(isFirst && this.videoList.length > 0) {
+				this.restartWaitTimer();
+			}
 			this.broadcast(data);
 			break;
 		case "Rewind":
@@ -992,6 +995,15 @@ server_Main.prototype = {
 			}
 			client.ws.send(json,null);
 		}
+	}
+	,badNickName: function(name) {
+		if(name.length == 0) {
+			return true;
+		}
+		if(this.htmlChars.match(name)) {
+			return true;
+		}
+		return false;
 	}
 	,restartWaitTimer: function() {
 		if(this.waitVideoStart != null) {
@@ -1153,6 +1165,7 @@ function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); 
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;
 var __map_reserved = {};
+if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 String.__name__ = true;
 Array.__name__ = true;
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {

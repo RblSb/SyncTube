@@ -5,7 +5,7 @@
 	"joined": "joined",
 	"online": "online",
 	"nothingPlaying": "Nothing Playing",
-	"usernameError": "Username must be from 1 to $MAX characters and don't repeat another's.",
+	"usernameError": "Username must be from 1 to $MAX characters and don't repeat another's. Characters &^<>'\" are not allowed.",
 	"addVideoError": "Failed to add video.",
 	"rawVideo": "Raw video",
 	"videos": "videos",

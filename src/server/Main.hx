@@ -180,12 +180,12 @@ class Main {
 				sendClientList();
 			case Login:
 				final name = data.login.clientName;
-				if (name.length == 0 || name.length > config.maxLoginLength
+				if (badNickName(name) || name.length > config.maxLoginLength
 					|| clients.getByName(name) != null) {
 					send(client, {type: LoginError});
 					return;
 				}
-				client.name = data.login.clientName;
+				client.name = name;
 				client.isUser = true;
 				send(client, {
 					type: data.type,
@@ -228,6 +228,7 @@ class Main {
 
 			case AddVideo:
 				final item = data.addVideo.item;
+				item.author = client.name;
 				final localOrigin = '$localIp:$port';
 				if (item.url.indexOf(localOrigin) != -1) {
 					item.url = item.url.replace(localOrigin, '$globalIp:$port');
@@ -245,13 +246,12 @@ class Main {
 			case RemoveVideo:
 				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
-				if (videoList[0].url == url) {
-					videoTimer.stop();
-					if (videoList.length > 0) restartWaitTimer();
-				}
+				final isFirst = videoList[0].url == url;
+				if (isFirst) videoTimer.stop();
 				videoList.remove(
 					videoList.find(item -> item.url == url)
 				);
+				if (isFirst && videoList.length > 0) restartWaitTimer();
 				broadcast(data);
 
 			case Pause:
@@ -366,6 +366,14 @@ class Main {
 			if (client == skipped) continue;
 			client.ws.send(json, null);
 		}
+	}
+
+	final htmlChars = ~/[&^<>'"]/;
+
+	function badNickName(name:String):Bool {
+		if (name.length == 0) return true;
+		if (htmlChars.match(name)) return true;
+		return false;
 	}
 
 	var waitVideoStart:Timer;

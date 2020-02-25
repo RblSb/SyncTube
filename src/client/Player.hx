@@ -5,6 +5,7 @@ import js.html.VideoElement;
 import js.Browser.document;
 import client.Main.ge;
 import Types.VideoItem;
+using StringTools;
 using Lambda;
 
 class Player {
@@ -63,16 +64,16 @@ class Player {
 				}
 			});
 		}
-		player.innerHTML = "";
+		player.textContent = "";
 		player.appendChild(video);
-		ge("#currenttitle").innerHTML = item.title;
+		ge("#currenttitle").textContent = item.title;
 	}
 
 	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
 		items.push(item);
 		final itemEl = nodeFromString(
 			'<li class="queue_entry pluid-0 queue_temp queue_active" title="${Lang.get("addedBy")}: ${item.author}">
-				<a class="qe_title" href="${item.url}" target="_blank">${item.title}</a>
+				<a class="qe_title" href="${item.url}" target="_blank">${item.title.htmlEscape()}</a>
 				<span class="qe_time">${duration(item.duration)}</span>
 				<div class="qe_clear"></div>
 				<div class="btn-group" style="display: inline-block;">
@@ -109,7 +110,7 @@ class Player {
 		if (video == null) return;
 		player.removeChild(video);
 		video = null;
-		ge("#currenttitle").innerHTML = Lang.get("nothingPlaying");
+		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
 	}
 
 	public function removeItem(url:String):Void {
@@ -132,8 +133,8 @@ class Player {
 	}
 
 	function updateCounters():Void {
-		ge("#plcount").innerHTML = '${items.length} ${Lang.get("videos")}';
-		ge("#pllength").innerHTML = totalDuration();
+		ge("#plcount").textContent = '${items.length} ${Lang.get("videos")}';
+		ge("#pllength").textContent = totalDuration();
 	}
 
 	public function getItems():Array<VideoItem> {
@@ -153,7 +154,7 @@ class Player {
 
 	public function clearItems():Void {
 		items.resize(0);
-		videoItemsEl.innerHTML = "";
+		videoItemsEl.textContent = "";
 		updateCounters();
 	}
 
