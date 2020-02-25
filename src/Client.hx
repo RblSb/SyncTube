@@ -26,6 +26,7 @@ class Client {
 	#end
 	public var name:String;
 	public var group:EnumFlags<ClientGroup>;
+	public var isUser(get, set):Bool;
 	public var isLeader(get, set):Bool;
 	public var isAdmin(get, set):Bool;
 
@@ -41,6 +42,14 @@ class Client {
 		#end
 		this.name = name;
 		this.group = new EnumFlags(group);
+	}
+
+	inline function get_isUser():Bool {
+		return group.has(User);
+	}
+
+	inline function set_isUser(flag:Bool):Bool {
+		return setGroupFlag(User, flag);
 	}
 
 	inline function get_isLeader():Bool {

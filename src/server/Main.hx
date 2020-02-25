@@ -186,6 +186,7 @@ class Main {
 					return;
 				}
 				client.name = data.login.clientName;
+				client.isUser = true;
 				send(client, {
 					type: data.type,
 					login: {
@@ -201,6 +202,7 @@ class Main {
 				final oldName = client.name;
 				final id = clients.indexOf(client) + 1;
 				client.name = 'Guest $id';
+				client.isUser = false;
 				send(client, {
 					type: data.type,
 					logout: {

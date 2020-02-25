@@ -98,6 +98,10 @@ class Main {
 		}
 	}
 
+	public inline function isUser():Bool {
+		return personal.isUser;
+	}
+
 	public inline function isLeader():Bool {
 		return personal.isLeader;
 	}
@@ -366,12 +370,14 @@ class Main {
 	function showGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "block";
 		ge("#chatline").style.display = "none";
+		ge("#exitBtn").textContent = Lang.get("login");
 		Browser.window.dispatchEvent(new Event("resize"));
 	}
 
 	function hideGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "none";
 		ge("#chatline").style.display = "block";
+		ge("#exitBtn").textContent = Lang.get("exit");
 		if (isAdmin()) ge("#clearchatbtn").style.display = "inline-block";
 		Browser.window.dispatchEvent(new Event("resize"));
 	}

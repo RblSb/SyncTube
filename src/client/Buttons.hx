@@ -172,19 +172,20 @@ class Buttons {
 
 		final exitBtn = ge("#exitBtn");
 		exitBtn.onclick = e -> {
-			main.send({type: Logout});
+			if (main.isUser()) main.send({type: Logout});
+			else ge("#guestname").focus();
 			exitBtn.blur();
 			hideMenus();
 		}
 		final swapLayoutBtn = ge("#swapLayoutBtn");
 		swapLayoutBtn.onclick = e -> {
 			final p = ge("#main");
-			p.insertBefore(p.children.item(2), p.children.item(0));
-			p.insertBefore(p.children.item(2), p.children.item(1));
+			p.insertBefore(p.children[2], p.children[0]);
+			p.insertBefore(p.children[2], p.children[1]);
 			final p = ge("#controlsrow");
-			p.insertBefore(p.children.item(1), p.children.item(0));
+			p.insertBefore(p.children[1], p.children[0]);
 			final p = ge("#playlistrow");
-			p.insertBefore(p.children.item(1), p.children.item(0));
+			p.insertBefore(p.children[1], p.children[0]);
 			final swapped = ge("#main").firstElementChild == ge("#videowrap");
 			initSplit(swapped);
 			swapLayoutBtn.blur();

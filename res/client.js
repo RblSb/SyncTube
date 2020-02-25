@@ -456,7 +456,11 @@ client_Buttons.initNavBar = function(main) {
 	}
 	var exitBtn = window.document.querySelector("#exitBtn");
 	exitBtn.onclick = function(e2) {
-		main.send({ type : "Logout"});
+		if((main.personal.group & 1) != 0) {
+			main.send({ type : "Logout"});
+		} else {
+			window.document.querySelector("#guestname").focus();
+		}
 		exitBtn.blur();
 		client_Buttons.hideMenus();
 		return;
@@ -464,12 +468,12 @@ client_Buttons.initNavBar = function(main) {
 	var swapLayoutBtn = window.document.querySelector("#swapLayoutBtn");
 	swapLayoutBtn.onclick = function(e3) {
 		var p = window.document.querySelector("#main");
-		p.insertBefore(p.children.item(2),p.children.item(0));
-		p.insertBefore(p.children.item(2),p.children.item(1));
+		p.insertBefore(p.children[2],p.children[0]);
+		p.insertBefore(p.children[2],p.children[1]);
 		var p1 = window.document.querySelector("#controlsrow");
-		p1.insertBefore(p1.children.item(1),p1.children.item(0));
+		p1.insertBefore(p1.children[1],p1.children[0]);
 		var p2 = window.document.querySelector("#playlistrow");
-		p2.insertBefore(p2.children.item(1),p2.children.item(0));
+		p2.insertBefore(p2.children[1],p2.children[0]);
 		client_Buttons.initSplit(window.document.querySelector("#main").firstElementChild == window.document.querySelector("#videowrap"));
 		swapLayoutBtn.blur();
 		client_Buttons.hideMenus();
@@ -739,7 +743,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 203, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 207, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			if(this.player.isListEmpty()) {
@@ -928,11 +932,13 @@ client_Main.prototype = {
 	,showGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "block";
 		window.document.querySelector("#chatline").style.display = "none";
+		window.document.querySelector("#exitBtn").textContent = Lang.get("login");
 		window.dispatchEvent(new Event("resize"));
 	}
 	,hideGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
 		window.document.querySelector("#chatline").style.display = "block";
+		window.document.querySelector("#exitBtn").textContent = Lang.get("exit");
 		if((this.personal.group & 4) != 0) {
 			window.document.querySelector("#clearchatbtn").style.display = "inline-block";
 		}
@@ -1077,19 +1083,19 @@ client_MobileView.__name__ = true;
 client_MobileView.init = function() {
 	var mvbtn = window.document.querySelector("#mv_btn");
 	mvbtn.onclick = function(e) {
-		if(client_Utils.toggleFullScreen(window.document.documentElement)) {
+		var hasMobileView = client_Utils.toggleFullScreen(window.document.documentElement);
+		var vwrap = window.document.querySelector("#videowrap");
+		if(hasMobileView) {
 			window.document.body.classList.add("mobile-view");
 			mvbtn.classList.add("active");
-			var vwrap = window.document.querySelector("#videowrap");
-			if(vwrap.children[0] == window.document.querySelector("currenttitle")) {
+			if(vwrap.children[0].id == "currenttitle") {
 				vwrap.appendChild(vwrap.children[0]);
 			}
 		} else {
 			window.document.body.classList.remove("mobile-view");
 			mvbtn.classList.remove("active");
-			var vwrap1 = window.document.querySelector("videowrap");
-			if(vwrap1.children[0] != window.document.querySelector("currenttitle")) {
-				vwrap1.insertBefore(vwrap1.children[1],vwrap1.children[0]);
+			if(vwrap.children[0].id != "currenttitle") {
+				vwrap.insertBefore(vwrap.children[1],vwrap.children[0]);
 			}
 		}
 		return;

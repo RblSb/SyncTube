@@ -842,6 +842,7 @@ server_Main.prototype = {
 				return;
 			}
 			client.name = data.login.clientName;
+			client.setGroupFlag(ClientGroup.User,true);
 			this.send(client,{ type : data.type, login : { isUnknownClient : true, clientName : client.name, clients : this.clientList()}});
 			this.sendClientList();
 			break;
@@ -850,6 +851,7 @@ server_Main.prototype = {
 		case "Logout":
 			var oldName = client.name;
 			client.name = "Guest " + (this.clients.indexOf(client) + 1);
+			client.setGroupFlag(ClientGroup.User,false);
 			this.send(client,{ type : data.type, logout : { oldClientName : oldName, clientName : client.name, clients : this.clientList()}});
 			this.sendClientList();
 			break;
