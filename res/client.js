@@ -722,8 +722,7 @@ client_Main.prototype = {
 		if(!StringTools.startsWith(url,"http")) {
 			url = "" + protocol + "//" + url;
 		}
-		var pos = url.lastIndexOf("/") + 1;
-		var name = HxOverrides.substr(url,pos,null);
+		var name = HxOverrides.substr(url,url.lastIndexOf("/") + 1,null);
 		var matchName = new EReg("^(.+)\\.","");
 		if(matchName.match(name)) {
 			name = matchName.matched(1);
@@ -947,9 +946,8 @@ client_Main.prototype = {
 		}
 		var smilesWrap = window.document.querySelector("#smileswrap");
 		smilesWrap.onclick = function(e) {
-			var el = e.target;
 			var form = window.document.querySelector("#chatline");
-			form.value += " " + el.title;
+			form.value += " " + e.target.title;
 			form.focus();
 			return;
 		};

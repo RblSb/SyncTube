@@ -650,28 +650,27 @@ var server_Main = function(port,wsPort) {
 		port = envPort;
 	}
 	this.statePath = "" + this.rootDir + "/user/state.json";
-	this.config = this.getUserConfig();
-	this.loadState();
 	var exit = function() {
 		_gthis.saveState();
 		process.exit();
 	};
-	process.on("exit",exit);
 	process.on("SIGINT",exit);
 	process.on("SIGUSR1",exit);
 	process.on("SIGUSR2",exit);
+	process.on("SIGTERM",exit);
 	process.on("uncaughtException",function(err) {
-		haxe_Log.trace(err,{ fileName : "src/server/Main.hx", lineNumber : 52, className : "server.Main", methodName : "new"});
 		_gthis.logError("uncaughtException",{ message : err.message, stack : err.stack});
 		exit();
 		return;
 	});
 	process.on("unhandledRejection",function(reason,promise) {
-		haxe_Log.trace("Unhandled Rejection at:",{ fileName : "src/server/Main.hx", lineNumber : 60, className : "server.Main", methodName : "new", customParams : [reason]});
 		_gthis.logError("unhandledRejection",reason);
 		exit();
 		return;
 	});
+	this.initIntergationHandlers();
+	this.loadState();
+	this.config = this.getUserConfig();
 	this.localIp = server_Utils.getLocalIp();
 	this.globalIp = this.localIp;
 	this.port = port;
@@ -717,6 +716,7 @@ server_Main.prototype = {
 		return config;
 	}
 	,saveState: function() {
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 99, className : "server.Main", methodName : "saveState"});
 		var json = JSON.stringify({ videoList : this.videoList, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 	}
@@ -724,6 +724,7 @@ server_Main.prototype = {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 114, className : "server.Main", methodName : "loadState"});
 		var data = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		this.videoList.length = 0;
 		this.messages.length = 0;
@@ -738,6 +739,7 @@ server_Main.prototype = {
 		this.videoTimer.pause();
 	}
 	,logError: function(type,data) {
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 126, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.rootDir + "/user/crashes";
 		var name = new Date().toISOString() + "-" + type;
 		if(!sys_FileSystem.exists(crashesFolder)) {
@@ -745,12 +747,27 @@ server_Main.prototype = {
 		}
 		js_node_Fs.writeFileSync("" + crashesFolder + "/" + name + ".json",JSON.stringify(data,null,"\t"));
 	}
+	,initIntergationHandlers: function() {
+		var _gthis = this;
+		if(process.env["_"] != null && process.env["_"].indexOf("heroku") != -1 && process.env["APP_URL"] != null) {
+			new haxe_Timer(600000).run = function() {
+				if(_gthis.clients.length == 0) {
+					return;
+				}
+				var url = "http://" + process.env["APP_URL"];
+				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 140, className : "server.Main", methodName : "initIntergationHandlers"});
+				js_node_Http.get(url,function(r) {
+					return;
+				});
+			};
+		}
+	}
 	,onConnect: function(ws,req) {
 		var _gthis = this;
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 134, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 150, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
 		if(req.connection.localAddress == ip) {
 			client.group |= 4;
@@ -776,7 +793,7 @@ server_Main.prototype = {
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 162, className : "server.Main", methodName : "onConnect"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 178, className : "server.Main", methodName : "onConnect"});
 			server_Utils.sortedPush(_gthis.freeIds,client.id);
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
@@ -1165,7 +1182,6 @@ function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); 
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;
 var __map_reserved = {};
-if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 String.__name__ = true;
 Array.__name__ = true;
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {

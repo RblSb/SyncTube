@@ -38,18 +38,16 @@ class Main {
 		final envPort = (process.env : Dynamic).PORT;
 		if (envPort != null) port = envPort;
 		statePath = '$rootDir/user/state.json';
-		config = getUserConfig();
-		loadState();
 		function exit() {
 			saveState();
 			process.exit();
 		}
-		process.on("exit", exit);
+		// process.on("exit", exit);
 		process.on("SIGINT", exit); // ctrl+c
 		process.on("SIGUSR1", exit); // kill pid
 		process.on("SIGUSR2", exit);
+		process.on("SIGTERM", exit);
 		process.on("uncaughtException", err -> {
-			trace(err);
 			logError("uncaughtException", {
 				message: err.message,
 				stack: err.stack
@@ -57,10 +55,12 @@ class Main {
 			exit();
 		});
 		process.on("unhandledRejection", (reason, promise) -> {
-			trace("Unhandled Rejection at:", reason);
 			logError("unhandledRejection", reason);
 			exit();
 		});
+		initIntergationHandlers();
+		loadState();
+		config = getUserConfig();
 		localIp = Utils.getLocalIp();
 		globalIp = localIp;
 		this.port = port;
@@ -96,6 +96,7 @@ class Main {
 	}
 
 	function saveState():Void {
+		trace("Saving state...");
 		final data:ServerState = {
 			videoList: videoList,
 			messages: messages,
@@ -110,6 +111,7 @@ class Main {
 
 	function loadState():Void {
 		if (!FileSystem.exists(statePath)) return;
+		trace("Loading state...");
 		final data:ServerState = Json.parse(File.getContent(statePath));
 		videoList.resize(0);
 		messages.resize(0);
@@ -121,10 +123,24 @@ class Main {
 	}
 
 	function logError(type:String, data:Dynamic):Void {
+		trace(type, data);
 		final crashesFolder = '$rootDir/user/crashes';
 		final name = new Date().toISOString() + "-" + type;
 		if (!FileSystem.exists(crashesFolder)) FileSystem.createDirectory(crashesFolder);
 		File.saveContent('$crashesFolder/$name.json', Json.stringify(data, "\t"));
+	}
+
+	function initIntergationHandlers():Void {
+		// Prevent heroku idle when clients online (needs APP_URL env var)
+		if (process.env["_"] != null && process.env["_"].contains("heroku")
+			&& process.env["APP_URL"] != null) {
+			new Timer(10 * 60 * 1000).run = function() {
+				if (clients.length == 0) return;
+				final url = 'http://${process.env["APP_URL"]}';
+				trace('Ping $url');
+				Http.get(url, r -> {});
+			}
+		}
 	}
 
 	function onConnect(ws:WebSocket, req:IncomingMessage):Void {
