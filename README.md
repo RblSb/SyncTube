@@ -9,7 +9,7 @@ Even if some original features are not implemented yet, there is some new things
 - Way to play local videos for network users (without NAT loopback feature)
 - `/30`, `/-21`, etc to rewind video playback in seconds
 - Override every front-end file you want (`user/res` folder)
-- Updated Des theme
+- Reworked Modern theme
 
 ### Setup
 - Open `4200` port in your router settings
@@ -24,3 +24,8 @@ It's just works, but you can also check [user/ folder](/user/README.md) for serv
 - Install Haxe 4, VSCode and vshaxe extension.
 - `haxelib install all` to install extern libs.
 - Open project in VSCode and press `F5` for client+server build and run.
+
+### About
+- [Original idea](https://github.com/calzoneman/sync) and layout by Calvin Montgomery.
+- Original theme by Thomas Park.
+- Default emotes by [emlan](https://www.deviantart.com/emlan).

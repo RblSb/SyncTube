@@ -457,6 +457,8 @@ class Main {
 		nameDiv.textContent = name + ": ";
 
 		final textDiv = document.createSpanElement();
+		text = text.htmlEscape();
+
 		if (text.startsWith("/")) {
 			if (name == personal.name) handleCommands(text.substr(1));
 		} else {
@@ -464,7 +466,6 @@ class Main {
 				text = filter.regex.replace(text, filter.replace);
 			}
 		}
-		text = text.htmlEscape();
 		textDiv.innerHTML = text;
 
 		final isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;
