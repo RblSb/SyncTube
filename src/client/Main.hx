@@ -90,6 +90,18 @@ class Main {
 				}
 			});
 		}
+		final voteSkip = ge("#voteskip");
+		voteSkip.onclick = e -> {
+			if (player.isListEmpty()) return;
+			final items = player.getItems();
+			final pos = player.getItemPos();
+			send({
+				type: SkipVideo,
+				skipVideo: {
+					url: items[pos].url
+				}
+			});
+		}
 
 		ge("#queue_next").onclick = e -> addVideoUrl(false);
 		ge("#queue_end").onclick = e -> addVideoUrl(true);
@@ -112,23 +124,31 @@ class Main {
 
 	function addVideoUrl(atEnd:Bool):Void {
 		final mediaUrl:InputElement = cast ge("#mediaurl");
+		final checkbox:InputElement = cast ge("#addfromurl").querySelector(".add-temp");
+		final isTemp = checkbox.checked;
 		final url = mediaUrl.value;
 		if (url.length == 0) return;
 		mediaUrl.value = "";
 		final url = ~/,(https?)/g.replace(url, "|$1");
 		final links = url.split("|");
-		// if videos added as next, we need to load it in reverse order
-		final link = (atEnd || player.isListEmpty()) ? links.shift() : links.pop();
-		addVideo(link, atEnd, () -> addVideoArray(links, atEnd));
+		// if videos added as next, we need to load them in reverse order
+		if (!atEnd) {
+			// except first item when list empty
+			var first:Null<String> = null;
+			if (player.isListEmpty()) first = links.shift();
+			links.reverse();
+			if (player.isListEmpty()) links.unshift(first);
+		}
+		addVideoArray(links, atEnd, isTemp);
 	}
 
-	function addVideoArray(links:Array<String>, atEnd:Bool):Void {
+	function addVideoArray(links:Array<String>, atEnd:Bool, isTemp:Bool):Void {
 		if (links.length == 0) return;
-		final link = atEnd ? links.shift() : links.pop();
-		addVideo(link, atEnd, () -> addVideoArray(links, atEnd));
+		final link = links.shift();
+		addVideo(link, atEnd, isTemp, () -> addVideoArray(links, atEnd, isTemp));
 	}
 
-	function addVideo(url:String, atEnd:Bool, callback:()->Void):Void {
+	function addVideo(url:String, atEnd:Bool, isTemp:Bool, callback:()->Void):Void {
 		final protocol = Browser.location.protocol;
 		if (url.startsWith("/")) {
 			final host = Browser.location.hostname;
@@ -153,6 +173,7 @@ class Main {
 						title: name,
 						author: personal.name,
 						duration: duration,
+						isTemp: isTemp
 					},
 					atEnd: atEnd
 			}});
@@ -163,7 +184,7 @@ class Main {
 	public function toggleVideoElement():Bool {
 		if (player.hasVideo()) player.removeVideo();
 		else if (!player.isListEmpty()) {
-			player.setVideo(player.getItems()[0]);
+			player.setVideo(player.getItemPos());
 		}
 		return player.hasVideo();
 	}
@@ -231,8 +252,8 @@ class Main {
 				addMessage(data.message.clientName, data.message.text);
 
 			case AddVideo:
-				if (player.isListEmpty()) player.setVideo(data.addVideo.item);
 				player.addVideoItem(data.addVideo.item, data.addVideo.atEnd);
+				if (player.itemsLength() == 1) player.setVideo(0);
 
 			case VideoLoaded:
 				player.setTime(0);
@@ -240,6 +261,10 @@ class Main {
 
 			case RemoveVideo:
 				player.removeItem(data.removeVideo.url);
+				if (player.isListEmpty()) player.pause();
+
+			case SkipVideo:
+				player.skipItem(data.skipVideo.url);
 				if (player.isListEmpty()) player.pause();
 
 			case Pause:
@@ -318,7 +343,7 @@ class Main {
 		for (message in connected.history) {
 			addMessage(message.name, message.text, message.time);
 		}
-		player.setItems(connected.videoList);
+		player.setItems(connected.videoList, connected.itemPos);
 	}
 
 	function setConfig(config:Config):Void {

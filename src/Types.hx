@@ -35,7 +35,8 @@ typedef VideoItem = {
 	url:String,
 	title:String,
 	author:String,
-	duration:Float
+	duration:Float,
+	isTemp:Bool
 }
 
 typedef WsEvent = {
@@ -47,6 +48,7 @@ typedef WsEvent = {
 		isUnknownClient:Bool,
 		clientName:String,
 		videoList:Array<VideoItem>,
+		itemPos:Int,
 		globalIp:String
 	},
 	?login:{
@@ -71,6 +73,9 @@ typedef WsEvent = {
 		atEnd:Bool
 	},
 	?removeVideo:{
+		url:String
+	},
+	?skipVideo:{
 		url:String
 	},
 	?pause:{
@@ -108,6 +113,7 @@ enum abstract WsEventType(String) {
 	// var RemoveClient;
 	var AddVideo;
 	var RemoveVideo;
+	var SkipVideo;
 	var VideoLoaded;
 	var Pause;
 	var Play;

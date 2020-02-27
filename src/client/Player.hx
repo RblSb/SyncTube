@@ -1,10 +1,9 @@
 package client;
 
-import haxe.Timer;
 import js.html.Element;
-import js.html.VideoElement;
 import js.Browser.document;
 import client.Main.ge;
+import client.players.Raw;
 import Types.VideoItem;
 using StringTools;
 using Lambda;
@@ -14,76 +13,93 @@ class Player {
 	final main:Main;
 	final items:Array<VideoItem> = [];
 	final videoItemsEl = ge("#queue");
-	final player:Element = ge("#ytapiplayer");
+	final playerEl:Element = ge("#ytapiplayer");
+	var player:Null<IPlayer>;
+	var currentSrc = "";
+	var itemPos = 0;
 	var isLoaded = false;
 	var skipSetTime = false;
-	var video:VideoElement;
+	final matchYoutube = ~/v=([A-z0-9_-]+)/;
 
 	public function new(main:Main):Void {
 		this.main = main;
 	}
 
-	public function setVideo(item:VideoItem):Void {
+	function setPlayer(player:IPlayer):Void {
+		this.player = player;
+	}
+
+	function isYoutube(url:String):Bool {
+		if (!url.contains("youtube.com/")) return false;
+		if (!url.contains("youtu.be/")) return false;
+		if (!matchYoutube.match(url)) return false;
+		return true;
+	}
+
+	public function setVideo(i:Int):Void {
+		final item = items[i];
+		if (isYoutube(item.url)) {} // setPlayer(new Youtube(main, this));
+		else setPlayer(new Raw(main, this));
+
+		final childs = videoItemsEl.children;
+		if (childs[itemPos] != null) {
+			childs[itemPos].classList.remove("queue_active");
+		}
+		itemPos = i;
+		childs[itemPos].classList.add("queue_active");
+
+		currentSrc = item.url;
+		playerEl.textContent = "";
 		isLoaded = false;
-		video = document.createVideoElement();
-		video.id = "videoplayer";
-		item.url = main.tryLocalIp(item.url);
-		video.src = item.url;
-		video.controls = true;
-		final isTouch = untyped __js__("'ontouchstart' in window");
-		if (!isTouch) Timer.delay(() -> {
-			video.controls = false;
-			video.onmouseover = e -> {
-				video.controls = true;
-				video.onmouseover = null;
-				video.onmousemove = null;
-			}
-			video.onmousemove = video.onmouseover;
-		}, 3000);
-		video.oncanplaythrough = e -> {
-			if (!isLoaded) main.send({type: VideoLoaded});
-			isLoaded = true;
-		}
-		video.onseeking = e -> {
-			if (skipSetTime) {
-				skipSetTime = false;
-				return;
-			}
-			if (!main.isLeader()) return;
-			main.send({
-				type: SetTime,
-				setTime: {
-					time: video.currentTime
-				}
-			});
-		}
-		video.onpause = e -> {
-			if (!main.isLeader()) return;
-			main.send({
-				type: Pause,
-				pause: {
-					time: video.currentTime
-				}
-			});
-		}
-		video.onplay = e -> {
-			if (!main.isLeader()) return;
-			main.send({
-				type: Play,
-				play: {
-					time: video.currentTime
-				}
-			});
-		}
-		player.textContent = "";
-		player.appendChild(video);
+		player.loadVideo(item);
 		ge("#currenttitle").textContent = item.title;
 	}
 
+	public function removeVideo():Void {
+		currentSrc = "";
+		player.removeVideo();
+		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
+	}
+
+	public function onCanBePlayed():Void {
+		if (!isLoaded) main.send({type: VideoLoaded});
+		isLoaded = true;
+	}
+
+	public function onPlay():Void {
+		if (!main.isLeader()) return;
+		main.send({
+			type: Play, play: {
+				time: getTime()
+			}
+		});
+	}
+
+	public function onPause():Void {
+		if (!main.isLeader()) return;
+		main.send({
+			type: Pause, pause: {
+				time: getTime()
+			}
+		});
+	}
+
+	public function onSetTime():Void {
+		if (skipSetTime) {
+			skipSetTime = false;
+			return;
+		}
+		if (!main.isLeader()) return;
+		main.send({
+			type: SetTime, setTime: {
+				time: getTime()
+			}
+		});
+	}
+
 	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
-		items.push(item);
 		final itemEl = nodeFromString(
-			'<li class="queue_entry pluid-0 queue_temp queue_active" title="${Lang.get("addedBy")}: ${item.author}">
+			'<li class="queue_entry pluid-0" title="${Lang.get("addedBy")}: ${item.author}">
 				<a class="qe_title" href="${item.url}" target="_blank">${item.title.htmlEscape()}</a>
 				<span class="qe_time">${duration(item.duration)}</span>
 				<div class="qe_clear"></div>
@@ -103,6 +119,7 @@ class Player {
 				</div>
 			</li>'
 		);
+		if (item.isTemp) itemEl.classList.add("queue_temp");
 		final deleteBtn = itemEl.querySelector("#btn-delete");
 		deleteBtn.onclick = e -> {
 			main.send({
@@ -112,16 +129,11 @@ class Player {
 				}
 			});
 		}
+		if (atEnd) items.push(item);
+		else items.insert(itemPos + 1, item);
 		if (atEnd) videoItemsEl.appendChild(itemEl);
-		else Utils.insertAtIndex(videoItemsEl, itemEl, 1);
+		else Utils.insertAtIndex(videoItemsEl, itemEl, itemPos + 1);
 		updateCounters();
-	}
-
-	public function removeVideo():Void {
-		if (video == null) return;
-		player.removeChild(video);
-		video = null;
-		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
 	}
 
 	public function removeItem(url:String):Void {
@@ -132,15 +144,32 @@ class Player {
 			}
 		}
 
-		items.remove(
-			items.find(item -> item.url == url)
-		);
+		final item = items.find(item -> item.url == url);
+		if (item == null) return;
+		var index = items.indexOf(item);
+		items.remove(item);
 		updateCounters();
 
-		if (video == null) return;
-		if (video.src == url) {
-			if (items.length > 0) setVideo(items[0]);
+		if (index < itemPos) {
+			itemPos--;
+			return;
 		}
+		if (index != itemPos) return;
+		if (items.length == 0) return;
+		if (items[index] == null) index = 0;
+		setVideo(index);
+	}
+
+	public function skipItem(url:String):Void {
+		final item = items.find(item -> item.url == url);
+		if (item == null) return;
+		if (item.isTemp) {
+			removeItem(url);
+			return;
+		}
+		var index = items.indexOf(item) + 1;
+		if (index >= items.length) index = 0;
+		setVideo(index);
 	}
 
 	function updateCounters():Void {
@@ -152,15 +181,12 @@ class Player {
 		return items;
 	}
 
-	public function setItems(list:Array<VideoItem>):Void {
+	public function setItems(list:Array<VideoItem>, ?pos:Int):Void {
 		clearItems();
+		if (pos != null) itemPos = pos;
 		if (list.length == 0) return;
-		if (video == null || video.src != list[0].url) {
-			setVideo(list[0]);
-		}
-		for (video in list) {
-			addVideoItem(video, true);
-		}
+		for (video in list) addVideoItem(video, true);
+		if (currentSrc != items[itemPos].url) setVideo(itemPos);
 	}
 
 	public function clearItems():Void {
@@ -172,7 +198,7 @@ class Player {
 	public function refresh():Void {
 		if (items.length == 0) return;
 		removeVideo();
-		setVideo(items[0]);
+		setVideo(itemPos);
 	}
 
 	function duration(time:Float):String {
@@ -203,29 +229,37 @@ class Player {
 		return items.length == 0;
 	}
 
-	public function hasVideo():Bool {
-		return video != null;
+	public function itemsLength():Int {
+		return items.length;
 	}
 
-	public function pause():Void {
-		if (video == null) return;
-		video.pause();
+	public function getItemPos():Int {
+		return itemPos;
+	}
+
+	public function hasVideo():Bool {
+		return player != null;
 	}
 
 	public function play():Void {
-		if (video == null) return;
-		video.play();
+		if (player == null) return;
+		player.play();
 	}
 
-	public function setTime(time:Float, isLocal = true):Void {
-		if (video == null) return;
-		skipSetTime = isLocal;
-		video.currentTime = time;
+	public function pause():Void {
+		if (player == null) return;
+		player.pause();
 	}
 
 	public function getTime():Float {
-		if (video == null) return 0;
-		return video.currentTime;
+		if (player == null) return 0;
+		return player.getTime();
+	}
+
+	public function setTime(time:Float, isLocal = true):Void {
+		if (player == null) return;
+		skipSetTime = isLocal;
+		player.setTime(time);
 	}
 
 }

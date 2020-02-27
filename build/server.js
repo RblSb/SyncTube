@@ -176,6 +176,13 @@ HxOverrides.iter = function(a) {
 };
 var Lambda = function() { };
 Lambda.__name__ = true;
+Lambda.exists = function(it,f) {
+	var x = $getIterator(it);
+	while(x.hasNext()) if(f(x.next())) {
+		return true;
+	}
+	return false;
+};
 Lambda.find = function(it,f) {
 	var v = $getIterator(it);
 	while(v.hasNext()) {
@@ -638,6 +645,7 @@ var server_Main = function(port,wsPort) {
 	}
 	this.loadedClientsCount = 0;
 	this.htmlChars = new EReg("[&^<>'\"]","");
+	this.itemPos = 0;
 	this.messages = [];
 	this.videoTimer = new server_VideoTimer();
 	this.videoList = [];
@@ -676,8 +684,8 @@ var server_Main = function(port,wsPort) {
 	this.port = port;
 	server_Utils.getGlobalIp(function(ip) {
 		_gthis.globalIp = ip;
-		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 70, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 71, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 71, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 72, className : "server.Main", methodName : "new"});
 		return;
 	});
 	var dir = "" + this.rootDir + "/res";
@@ -709,28 +717,29 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 92, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 93, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
 		return config;
 	}
 	,saveState: function() {
-		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 99, className : "server.Main", methodName : "saveState"});
-		var json = JSON.stringify({ videoList : this.videoList, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 100, className : "server.Main", methodName : "saveState"});
+		var json = JSON.stringify({ videoList : this.videoList, itemPos : this.itemPos, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 	}
 	,loadState: function() {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
-		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 114, className : "server.Main", methodName : "loadState"});
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 116, className : "server.Main", methodName : "loadState"});
 		var data = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		this.videoList.length = 0;
 		this.messages.length = 0;
 		var _g = 0;
 		var _g1 = data.videoList;
 		while(_g < _g1.length) this.videoList.push(_g1[_g++]);
+		this.itemPos = data.itemPos;
 		var _g2 = 0;
 		var _g3 = data.messages;
 		while(_g2 < _g3.length) this.messages.push(_g3[_g2++]);
@@ -739,7 +748,7 @@ server_Main.prototype = {
 		this.videoTimer.pause();
 	}
 	,logError: function(type,data) {
-		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 126, className : "server.Main", methodName : "logError", customParams : [data]});
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 129, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.rootDir + "/user/crashes";
 		var name = new Date().toISOString() + "-" + type;
 		if(!sys_FileSystem.exists(crashesFolder)) {
@@ -755,7 +764,7 @@ server_Main.prototype = {
 					return;
 				}
 				var url = "http://" + process.env["APP_URL"];
-				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 140, className : "server.Main", methodName : "initIntergationHandlers"});
+				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 143, className : "server.Main", methodName : "initIntergationHandlers"});
 				js_node_Http.get(url,function(r) {
 					return;
 				});
@@ -767,7 +776,7 @@ server_Main.prototype = {
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 150, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 153, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
 		if(req.connection.localAddress == ip) {
 			client.group |= 4;
@@ -785,7 +794,7 @@ server_Main.prototype = {
 		var _g1 = 0;
 		var _g2 = this.clients;
 		while(_g1 < _g2.length) _g.push(_g2[_g1++].getData());
-		this.send(client,{ type : "Connected", connected : { config : tmp, history : tmp1, isUnknownClient : true, clientName : client1, clients : _g, videoList : this.videoList, globalIp : this.globalIp}});
+		this.send(client,{ type : "Connected", connected : { config : tmp, history : tmp1, isUnknownClient : true, clientName : client1, clients : _g, videoList : this.videoList, itemPos : this.itemPos, globalIp : this.globalIp}});
 		this.sendClientList();
 		ws.on("message",function(data) {
 			var tmp2 = JSON.parse(data);
@@ -793,7 +802,7 @@ server_Main.prototype = {
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 178, className : "server.Main", methodName : "onConnect"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 182, className : "server.Main", methodName : "onConnect"});
 			server_Utils.sortedPush(_gthis.freeIds,client.id);
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
@@ -815,15 +824,20 @@ server_Main.prototype = {
 		switch(data.type) {
 		case "AddVideo":
 			var item = data.addVideo.item;
+			var local = "" + this.localIp + ":" + this.port;
+			if(item.url.indexOf(local) != -1) {
+				item.url = StringTools.replace(item.url,local,"" + this.globalIp + ":" + this.port);
+			}
 			item.author = client.name;
-			var localOrigin = "" + this.localIp + ":" + this.port;
-			if(item.url.indexOf(localOrigin) != -1) {
-				item.url = StringTools.replace(item.url,localOrigin,"" + this.globalIp + ":" + this.port);
+			if(Lambda.exists(this.videoList,function(i) {
+				return i.url == item.url;
+			})) {
+				return;
 			}
 			if(data.addVideo.atEnd) {
 				this.videoList.push(item);
 			} else {
-				this.videoList.splice(1,0,item);
+				this.videoList.splice(this.itemPos + 1,0,item);
 			}
 			this.broadcast(data);
 			if(this.videoList.length == 1) {
@@ -839,6 +853,7 @@ server_Main.prototype = {
 		case "ClearPlaylist":
 			this.videoTimer.stop();
 			this.videoList.length = 0;
+			this.itemPos = 0;
 			this.broadcast(data);
 			break;
 		case "Connected":
@@ -847,9 +862,9 @@ server_Main.prototype = {
 			if(this.videoList.length == 0) {
 				return;
 			}
-			if(this.videoTimer.getTime() > this.videoList[0].duration) {
+			if(this.videoTimer.getTime() > this.videoList[this.itemPos].duration) {
 				this.videoTimer.stop();
-				this.onMessage(client,{ type : "RemoveVideo", removeVideo : { url : this.videoList[0].url}});
+				this.onMessage(client,{ type : "SkipVideo", skipVideo : { url : this.videoList[this.itemPos].url}});
 				return;
 			}
 			this.send(client,{ type : "GetTime", getTime : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}});
@@ -916,15 +931,26 @@ server_Main.prototype = {
 				return;
 			}
 			var url = data.removeVideo.url;
-			var isFirst = this.videoList[0].url == url;
-			if(isFirst) {
-				this.videoTimer.stop();
+			var item1 = Lambda.find(this.videoList,function(item2) {
+				return item2.url == url;
+			});
+			if(item1 == null) {
+				return;
 			}
-			HxOverrides.remove(this.videoList,Lambda.find(this.videoList,function(item1) {
-				return item1.url == url;
-			}));
-			if(isFirst && this.videoList.length > 0) {
-				this.restartWaitTimer();
+			var index = this.videoList.indexOf(item1);
+			var isCurrent = this.videoList[this.itemPos].url == url;
+			if(index < this.itemPos) {
+				this.itemPos--;
+			}
+			HxOverrides.remove(this.videoList,item1);
+			if(isCurrent) {
+				if(this.itemPos >= this.videoList.length) {
+					this.itemPos = 0;
+				}
+				this.videoTimer.stop();
+				if(this.videoList.length > 0) {
+					this.restartWaitTimer();
+				}
 			}
 			this.broadcast(data);
 			break;
@@ -966,10 +992,33 @@ server_Main.prototype = {
 			if(this.videoList.length == 0) {
 				return;
 			}
-			var first = this.videoList.shift();
+			var current = this.videoList[this.itemPos];
+			HxOverrides.remove(this.videoList,current);
 			server_Utils.shuffle(this.videoList);
-			this.videoList.unshift(first);
+			this.videoList.splice(this.itemPos,0,current);
 			this.broadcast({ type : "UpdatePlaylist", updatePlaylist : { videoList : this.videoList}});
+			break;
+		case "SkipVideo":
+			if(this.videoList.length == 0) {
+				return;
+			}
+			var item3 = this.videoList[this.itemPos];
+			if(item3.url != data.skipVideo.url) {
+				return;
+			}
+			if(!item3.isTemp) {
+				this.itemPos++;
+			} else {
+				HxOverrides.remove(this.videoList,item3);
+			}
+			if(this.itemPos >= this.videoList.length) {
+				this.itemPos = 0;
+			}
+			this.videoTimer.stop();
+			if(this.videoList.length > 0) {
+				this.restartWaitTimer();
+			}
+			this.broadcast(data);
 			break;
 		case "UpdateClients":
 			this.sendClientList();

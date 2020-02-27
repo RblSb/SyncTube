@@ -674,23 +674,30 @@ client_Main.prototype = {
 			_gthis.send({ type : "SetLeader", setLeader : { clientName : (_gthis.personal.group & 2) != 0 ? "" : _gthis.personal.name}});
 			return;
 		};
-		window.document.querySelector("#queue_next").onclick = function(e1) {
+		window.document.querySelector("#voteskip").onclick = function(e1) {
+			if(_gthis.player.isListEmpty()) {
+				return;
+			}
+			_gthis.send({ type : "SkipVideo", skipVideo : { url : _gthis.player.getItems()[_gthis.player.getItemPos()].url}});
+			return;
+		};
+		window.document.querySelector("#queue_next").onclick = function(e2) {
 			_gthis.addVideoUrl(false);
 			return;
 		};
-		window.document.querySelector("#queue_end").onclick = function(e2) {
+		window.document.querySelector("#queue_end").onclick = function(e3) {
 			_gthis.addVideoUrl(true);
 			return;
 		};
-		window.document.querySelector("#mediaurl").onkeydown = function(e3) {
-			if(e3.keyCode == 13) {
+		window.document.querySelector("#mediaurl").onkeydown = function(e4) {
+			if(e4.keyCode == 13) {
 				_gthis.addVideoUrl(true);
 			}
 		};
 	}
 	,addVideoUrl: function(atEnd) {
-		var _gthis = this;
 		var mediaUrl = window.document.querySelector("#mediaurl");
+		var isTemp = window.document.querySelector("#addfromurl").querySelector(".add-temp").checked;
 		var url = mediaUrl.value;
 		if(url.length == 0) {
 			return;
@@ -698,22 +705,29 @@ client_Main.prototype = {
 		mediaUrl.value = "";
 		var _this_r = new RegExp(",(https?)","g".split("u").join(""));
 		var links = url.replace(_this_r,"|$1").split("|");
-		this.addVideo(atEnd || this.player.isListEmpty() ? links.shift() : links.pop(),atEnd,function() {
-			_gthis.addVideoArray(links,atEnd);
-			return;
-		});
+		if(!atEnd) {
+			var first = null;
+			if(this.player.isListEmpty()) {
+				first = links.shift();
+			}
+			links.reverse();
+			if(this.player.isListEmpty()) {
+				links.unshift(first);
+			}
+		}
+		this.addVideoArray(links,atEnd,isTemp);
 	}
-	,addVideoArray: function(links,atEnd) {
+	,addVideoArray: function(links,atEnd,isTemp) {
 		var _gthis = this;
 		if(links.length == 0) {
 			return;
 		}
-		this.addVideo(atEnd ? links.shift() : links.pop(),atEnd,function() {
-			_gthis.addVideoArray(links,atEnd);
+		this.addVideo(links.shift(),atEnd,isTemp,function() {
+			_gthis.addVideoArray(links,atEnd,isTemp);
 			return;
 		});
 	}
-	,addVideo: function(url,atEnd,callback) {
+	,addVideo: function(url,atEnd,isTemp,callback) {
 		var _gthis = this;
 		var protocol = window.location.protocol;
 		if(StringTools.startsWith(url,"/")) {
@@ -722,7 +736,8 @@ client_Main.prototype = {
 		if(!StringTools.startsWith(url,"http")) {
 			url = "" + protocol + "//" + url;
 		}
-		var name = HxOverrides.substr(url,url.lastIndexOf("/") + 1,null);
+		var pos = url.lastIndexOf("/") + 1;
+		var name = HxOverrides.substr(url,pos,null);
 		var matchName = new EReg("^(.+)\\.","");
 		if(matchName.match(name)) {
 			name = matchName.matched(1);
@@ -735,7 +750,7 @@ client_Main.prototype = {
 				_gthis.serverMessage(4,tmp);
 				return;
 			}
-			_gthis.send({ type : "AddVideo", addVideo : { item : { url : url, title : name, author : _gthis.personal.name, duration : duration}, atEnd : atEnd}});
+			_gthis.send({ type : "AddVideo", addVideo : { item : { url : url, title : name, author : _gthis.personal.name, duration : duration, isTemp : isTemp}, atEnd : atEnd}});
 			callback();
 			return;
 		});
@@ -744,7 +759,7 @@ client_Main.prototype = {
 		if(this.player.hasVideo()) {
 			this.player.removeVideo();
 		} else if(!this.player.isListEmpty()) {
-			this.player.setVideo(this.player.getItems()[0]);
+			this.player.setVideo(this.player.getItemPos());
 		}
 		return this.player.hasVideo();
 	}
@@ -788,13 +803,13 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 207, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 228, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
-			if(this.player.isListEmpty()) {
-				this.player.setVideo(data.addVideo.item);
-			}
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
+			if(this.player.itemsLength() == 1) {
+				this.player.setVideo(0);
+			}
 			break;
 		case "ClearChat":
 			this.clearChat();
@@ -885,6 +900,12 @@ client_Main.prototype = {
 			break;
 		case "ShufflePlaylist":
 			break;
+		case "SkipVideo":
+			this.player.skipItem(data.skipVideo.url);
+			if(this.player.isListEmpty()) {
+				this.player.pause();
+			}
+			break;
 		case "UpdateClients":
 			this.updateClients(data.updateClients.clients);
 			this.personal = ClientTools.getByName(this.clients,this.personal.name,this.personal);
@@ -922,7 +943,7 @@ client_Main.prototype = {
 			++_g;
 			this.addMessage(message.name,message.text,message.time);
 		}
-		this.player.setItems(connected.videoList);
+		this.player.setItems(connected.videoList,connected.itemPos);
 	}
 	,setConfig: function(config) {
 		this.config = config;
@@ -946,8 +967,9 @@ client_Main.prototype = {
 		}
 		var smilesWrap = window.document.querySelector("#smileswrap");
 		smilesWrap.onclick = function(e) {
+			var el = e.target;
 			var form = window.document.querySelector("#chatline");
-			form.value += " " + e.target.title;
+			form.value += " " + el.title;
 			form.focus();
 			return;
 		};
@@ -1064,6 +1086,7 @@ client_Main.prototype = {
 		nameDiv.className = "username";
 		nameDiv.textContent = name + ": ";
 		var textDiv = window.document.createElement("span");
+		text = StringTools.htmlEscape(text);
 		if(StringTools.startsWith(text,"/")) {
 			if(name == this.personal.name) {
 				this.handleCommands(HxOverrides.substr(text,1,null));
@@ -1077,7 +1100,6 @@ client_Main.prototype = {
 				text = text.replace(filter.regex.r,filter.replace);
 			}
 		}
-		text = StringTools.htmlEscape(text);
 		textDiv.innerHTML = text;
 		var isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;
 		userDiv.appendChild(tstamp);
@@ -1150,92 +1172,104 @@ client_MobileView.init = function() {
 	};
 };
 var client_Player = function(main) {
+	this.matchYoutube = new EReg("v=([A-z0-9_-]+)","");
 	this.skipSetTime = false;
 	this.isLoaded = false;
-	this.player = window.document.querySelector("#ytapiplayer");
+	this.itemPos = 0;
+	this.currentSrc = "";
+	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.videoItemsEl = window.document.querySelector("#queue");
 	this.items = [];
 	this.main = main;
 };
 client_Player.__name__ = true;
 client_Player.prototype = {
-	setVideo: function(item) {
-		var _gthis = this;
-		this.isLoaded = false;
-		this.video = window.document.createElement("video");
-		this.video.id = "videoplayer";
-		item.url = this.main.tryLocalIp(item.url);
-		this.video.src = item.url;
-		this.video.controls = true;
-		var isTouch = 'ontouchstart' in window;
-		if(!isTouch) {
-			haxe_Timer.delay(function() {
-				_gthis.video.controls = false;
-				_gthis.video.onmouseover = function(e) {
-					_gthis.video.controls = true;
-					_gthis.video.onmouseover = null;
-					return _gthis.video.onmousemove = null;
-				};
-				return _gthis.video.onmousemove = _gthis.video.onmouseover;
-			},3000);
+	setPlayer: function(player) {
+		this.player = player;
+	}
+	,isYoutube: function(url) {
+		if(url.indexOf("youtube.com/") == -1) {
+			return false;
 		}
-		this.video.oncanplaythrough = function(e1) {
-			if(!_gthis.isLoaded) {
-				_gthis.main.send({ type : "VideoLoaded"});
-			}
-			return _gthis.isLoaded = true;
-		};
-		this.video.onseeking = function(e2) {
-			if(_gthis.skipSetTime) {
-				_gthis.skipSetTime = false;
-				return;
-			}
-			if((_gthis.main.personal.group & 1 << ClientGroup.Leader._hx_index) == 0) {
-				return;
-			}
-			_gthis.main.send({ type : "SetTime", setTime : { time : _gthis.video.currentTime}});
-			return;
-		};
-		this.video.onpause = function(e3) {
-			if((_gthis.main.personal.group & 1 << ClientGroup.Leader._hx_index) == 0) {
-				return;
-			}
-			_gthis.main.send({ type : "Pause", pause : { time : _gthis.video.currentTime}});
-			return;
-		};
-		this.video.onplay = function(e4) {
-			if((_gthis.main.personal.group & 1 << ClientGroup.Leader._hx_index) == 0) {
-				return;
-			}
-			_gthis.main.send({ type : "Play", play : { time : _gthis.video.currentTime}});
-			return;
-		};
-		this.player.textContent = "";
-		this.player.appendChild(this.video);
+		if(url.indexOf("youtu.be/") == -1) {
+			return false;
+		}
+		if(!this.matchYoutube.match(url)) {
+			return false;
+		}
+		return true;
+	}
+	,setVideo: function(i) {
+		var item = this.items[i];
+		if(!this.isYoutube(item.url)) {
+			this.setPlayer(new client_players_Raw(this.main,this));
+		}
+		var childs = this.videoItemsEl.children;
+		if(childs[this.itemPos] != null) {
+			childs[this.itemPos].classList.remove("queue_active");
+		}
+		this.itemPos = i;
+		childs[this.itemPos].classList.add("queue_active");
+		this.currentSrc = item.url;
+		this.playerEl.textContent = "";
+		this.isLoaded = false;
+		this.player.loadVideo(item);
 		window.document.querySelector("#currenttitle").textContent = item.title;
+	}
+	,removeVideo: function() {
+		this.currentSrc = "";
+		this.player.removeVideo();
+		window.document.querySelector("#currenttitle").textContent = Lang.get("nothingPlaying");
+	}
+	,onCanBePlayed: function() {
+		if(!this.isLoaded) {
+			this.main.send({ type : "VideoLoaded"});
+		}
+		this.isLoaded = true;
+	}
+	,onPlay: function() {
+		if((this.main.personal.group & 2) == 0) {
+			return;
+		}
+		this.main.send({ type : "Play", play : { time : this.getTime()}});
+	}
+	,onPause: function() {
+		if((this.main.personal.group & 2) == 0) {
+			return;
+		}
+		this.main.send({ type : "Pause", pause : { time : this.getTime()}});
+	}
+	,onSetTime: function() {
+		if(this.skipSetTime) {
+			this.skipSetTime = false;
+			return;
+		}
+		if((this.main.personal.group & 2) == 0) {
+			return;
+		}
+		this.main.send({ type : "SetTime", setTime : { time : this.getTime()}});
 	}
 	,addVideoItem: function(item,atEnd) {
 		var _gthis = this;
-		this.items.push(item);
-		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0 queue_temp queue_active\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + item.url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\" style=\"display: inline-block;\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("skip") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>" + Lang.get("makePermanent") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\" id=\"btn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
+		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + item.url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\" style=\"display: inline-block;\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("skip") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>" + Lang.get("makePermanent") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\" id=\"btn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
+		if(item.isTemp) {
+			itemEl.classList.add("queue_temp");
+		}
 		itemEl.querySelector("#btn-delete").onclick = function(e) {
 			_gthis.main.send({ type : "RemoveVideo", removeVideo : { url : itemEl.querySelector(".qe_title").getAttribute("href")}});
 			return;
 		};
 		if(atEnd) {
+			this.items.push(item);
+		} else {
+			this.items.splice(this.itemPos + 1,0,item);
+		}
+		if(atEnd) {
 			this.videoItemsEl.appendChild(itemEl);
 		} else {
-			client_Utils.insertAtIndex(this.videoItemsEl,itemEl,1);
+			client_Utils.insertAtIndex(this.videoItemsEl,itemEl,this.itemPos + 1);
 		}
 		this.updateCounters();
-	}
-	,removeVideo: function() {
-		if(this.video == null) {
-			return;
-		}
-		this.player.removeChild(this.video);
-		this.video = null;
-		window.document.querySelector("#currenttitle").textContent = Lang.get("nothingPlaying");
 	}
 	,removeItem: function(url) {
 		var _g = 0;
@@ -1248,18 +1282,46 @@ client_Player.prototype = {
 				break;
 			}
 		}
-		HxOverrides.remove(this.items,Lambda.find(this.items,function(item) {
-			return item.url == url;
-		}));
-		this.updateCounters();
-		if(this.video == null) {
+		var item = Lambda.find(this.items,function(item1) {
+			return item1.url == url;
+		});
+		if(item == null) {
 			return;
 		}
-		if(this.video.src == url) {
-			if(this.items.length > 0) {
-				this.setVideo(this.items[0]);
-			}
+		var index = this.items.indexOf(item);
+		HxOverrides.remove(this.items,item);
+		this.updateCounters();
+		if(index < this.itemPos) {
+			this.itemPos--;
+			return;
 		}
+		if(index != this.itemPos) {
+			return;
+		}
+		if(this.items.length == 0) {
+			return;
+		}
+		if(this.items[index] == null) {
+			index = 0;
+		}
+		this.setVideo(index);
+	}
+	,skipItem: function(url) {
+		var item = Lambda.find(this.items,function(item1) {
+			return item1.url == url;
+		});
+		if(item == null) {
+			return;
+		}
+		if(item.isTemp) {
+			this.removeItem(url);
+			return;
+		}
+		var index = this.items.indexOf(item) + 1;
+		if(index >= this.items.length) {
+			index = 0;
+		}
+		this.setVideo(index);
 	}
 	,updateCounters: function() {
 		var tmp = "" + this.items.length + " ";
@@ -1270,16 +1332,19 @@ client_Player.prototype = {
 	,getItems: function() {
 		return this.items;
 	}
-	,setItems: function(list) {
+	,setItems: function(list,pos) {
 		this.clearItems();
+		if(pos != null) {
+			this.itemPos = pos;
+		}
 		if(list.length == 0) {
 			return;
 		}
-		if(this.video == null || this.video.src != list[0].url) {
-			this.setVideo(list[0]);
-		}
 		var _g = 0;
 		while(_g < list.length) this.addVideoItem(list[_g++],true);
+		if(this.currentSrc != this.items[this.itemPos].url) {
+			this.setVideo(this.itemPos);
+		}
 	}
 	,clearItems: function() {
 		this.items.length = 0;
@@ -1291,7 +1356,7 @@ client_Player.prototype = {
 			return;
 		}
 		this.removeVideo();
-		this.setVideo(this.items[0]);
+		this.setVideo(this.itemPos);
 	}
 	,duration: function(time) {
 		var h = time / 60 / 60 | 0;
@@ -1325,36 +1390,42 @@ client_Player.prototype = {
 	,isListEmpty: function() {
 		return this.items.length == 0;
 	}
-	,hasVideo: function() {
-		return this.video != null;
+	,itemsLength: function() {
+		return this.items.length;
 	}
-	,pause: function() {
-		if(this.video == null) {
-			return;
-		}
-		this.video.pause();
+	,getItemPos: function() {
+		return this.itemPos;
+	}
+	,hasVideo: function() {
+		return this.player != null;
 	}
 	,play: function() {
-		if(this.video == null) {
+		if(this.player == null) {
 			return;
 		}
-		this.video.play();
+		this.player.play();
+	}
+	,pause: function() {
+		if(this.player == null) {
+			return;
+		}
+		this.player.pause();
+	}
+	,getTime: function() {
+		if(this.player == null) {
+			return 0;
+		}
+		return this.player.getTime();
 	}
 	,setTime: function(time,isLocal) {
 		if(isLocal == null) {
 			isLocal = true;
 		}
-		if(this.video == null) {
+		if(this.player == null) {
 			return;
 		}
 		this.skipSetTime = isLocal;
-		this.video.currentTime = time;
-	}
-	,getTime: function() {
-		if(this.video == null) {
-			return 0;
-		}
-		return this.video.currentTime;
+		this.player.setTime(time);
 	}
 };
 var client_Utils = function() { };
@@ -1412,6 +1483,71 @@ client_Utils.copyToClipboard = function(text) {
 		textarea.select();
 		window.document.execCommand("copy");
 		window.document.body.removeChild(textarea);
+	}
+};
+var client_players_Raw = function(main,player) {
+	this.playerEl = window.document.querySelector("#ytapiplayer");
+	this.main = main;
+	this.player = player;
+};
+client_players_Raw.__name__ = true;
+client_players_Raw.prototype = {
+	loadVideo: function(item) {
+		var _gthis = this;
+		this.video = window.document.createElement("video");
+		this.video.id = "videoplayer";
+		var url = this.main.tryLocalIp(item.url);
+		this.video.src = url;
+		this.video.controls = true;
+		var isTouch = 'ontouchstart' in window;
+		if(!isTouch) {
+			haxe_Timer.delay(function() {
+				_gthis.video.controls = false;
+				_gthis.video.onmouseover = function(e) {
+					_gthis.video.controls = true;
+					_gthis.video.onmouseover = null;
+					return _gthis.video.onmousemove = null;
+				};
+				return _gthis.video.onmousemove = _gthis.video.onmouseover;
+			},3000);
+		}
+		this.video.oncanplaythrough = ($_=this.player,$bind($_,$_.onCanBePlayed));
+		this.video.onseeking = ($_=this.player,$bind($_,$_.onSetTime));
+		this.video.onplay = ($_=this.player,$bind($_,$_.onPlay));
+		this.video.onpause = ($_=this.player,$bind($_,$_.onPause));
+		this.playerEl.appendChild(this.video);
+		this.video.pause();
+	}
+	,removeVideo: function() {
+		if(this.video == null) {
+			return;
+		}
+		this.playerEl.removeChild(this.video);
+		this.video = null;
+	}
+	,play: function() {
+		if(this.video == null) {
+			return;
+		}
+		this.video.play();
+	}
+	,pause: function() {
+		if(this.video == null) {
+			return;
+		}
+		this.video.pause();
+	}
+	,getTime: function() {
+		if(this.video == null) {
+			return 0;
+		}
+		return this.video.currentTime;
+	}
+	,setTime: function(time) {
+		if(this.video == null) {
+			return;
+		}
+		this.video.currentTime = time;
 	}
 };
 var haxe_Log = function() { };

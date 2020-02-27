@@ -31,6 +31,7 @@ class Main {
 	final videoList:Array<VideoItem> = [];
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
+	var itemPos = 0;
 
 	static function main():Void new Main();
 
@@ -99,6 +100,7 @@ class Main {
 		trace("Saving state...");
 		final data:ServerState = {
 			videoList: videoList,
+			itemPos: itemPos,
 			messages: messages,
 			timer: {
 				time: videoTimer.getTime(),
@@ -116,6 +118,7 @@ class Main {
 		videoList.resize(0);
 		messages.resize(0);
 		for (item in data.videoList) videoList.push(item);
+		itemPos = data.itemPos;
 		for (message in data.messages) messages.push(message);
 		videoTimer.start();
 		videoTimer.setTime(data.timer.time);
@@ -166,6 +169,7 @@ class Main {
 					for (client in clients) client.getData()
 				],
 				videoList: videoList,
+				itemPos: itemPos,
 				globalIp: globalIp
 			}
 		});
@@ -244,13 +248,17 @@ class Main {
 
 			case AddVideo:
 				final item = data.addVideo.item;
+				final local = '$localIp:$port';
+				if (item.url.contains(local)) {
+					item.url = item.url.replace(local, '$globalIp:$port');
+				}
 				item.author = client.name;
-				final localOrigin = '$localIp:$port';
-				if (item.url.indexOf(localOrigin) != -1) {
-					item.url = item.url.replace(localOrigin, '$globalIp:$port');
+				if (videoList.exists(i -> i.url == item.url)) {
+					// TODO send server message
+					return;
 				}
 				if (data.addVideo.atEnd) videoList.push(item);
-				else videoList.insert(1, item);
+				else videoList.insert(itemPos + 1, item);
 				broadcast(data);
 				// Initial timer start if VideoLoaded is not happen
 				if (videoList.length == 1) restartWaitTimer();
@@ -262,12 +270,30 @@ class Main {
 			case RemoveVideo:
 				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
-				final isFirst = videoList[0].url == url;
-				if (isFirst) videoTimer.stop();
-				videoList.remove(
-					videoList.find(item -> item.url == url)
-				);
-				if (isFirst && videoList.length > 0) restartWaitTimer();
+				final item = videoList.find(item -> item.url == url);
+				if (item == null) return;
+				final index = videoList.indexOf(item);
+				final isCurrent = videoList[itemPos].url == url;
+				if (index < itemPos) itemPos--;
+				videoList.remove(item);
+				if (isCurrent) {
+					if (itemPos >= videoList.length) itemPos = 0;
+					videoTimer.stop();
+					if (videoList.length > 0) restartWaitTimer();
+				}
+				broadcast(data);
+
+			case SkipVideo:
+				if (videoList.length == 0) return;
+				final item = videoList[itemPos];
+				if (item.url != data.skipVideo.url) return;
+
+				if (!item.isTemp) itemPos++;
+				else videoList.remove(item);
+				if (itemPos >= videoList.length) itemPos = 0;
+
+				videoTimer.stop();
+				if (videoList.length > 0) restartWaitTimer();
 				broadcast(data);
 
 			case Pause:
@@ -284,12 +310,12 @@ class Main {
 
 			case GetTime:
 				if (videoList.length == 0) return;
-				if (videoTimer.getTime() > videoList[0].duration) {
+				if (videoTimer.getTime() > videoList[itemPos].duration) {
 					videoTimer.stop();
 					onMessage(client, {
-						type: RemoveVideo,
-						removeVideo: {
-							url: videoList[0].url
+						type: SkipVideo,
+						skipVideo: {
+							url: videoList[itemPos].url
 						}
 					});
 					return;
@@ -338,14 +364,18 @@ class Main {
 			case ClearPlaylist:
 				videoTimer.stop();
 				videoList.resize(0);
+				itemPos = 0;
 				broadcast(data);
 
 			case ShufflePlaylist:
 				if (videoList.length == 0) return;
-				final first = videoList.shift();
+				final current = videoList[itemPos];
+				videoList.remove(current);
 				Utils.shuffle(videoList);
-				videoList.unshift(first);
-				broadcast({type: UpdatePlaylist, updatePlaylist: {
+				videoList.insert(itemPos, current);
+				broadcast({
+					type: UpdatePlaylist,
+					updatePlaylist: {
 					videoList: videoList
 				}});
 			case UpdatePlaylist: // client-only
