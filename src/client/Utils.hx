@@ -16,6 +16,15 @@ class Utils {
 		else parent.insertBefore(child, parent.children[i]);
 	}
 
+	public static function getIndex(parent:Element, child:Element):Int {
+		var i = 0;
+		for (el in parent.children) {
+			if (el == child) break;
+			i++;
+		}
+		return i;
+	}
+
 	public static function toggleFullScreen(el:Element):Bool {
 		var state = true;
 		final doc:Dynamic = document;

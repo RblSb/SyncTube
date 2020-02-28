@@ -183,16 +183,6 @@ Lambda.exists = function(it,f) {
 	}
 	return false;
 };
-Lambda.find = function(it,f) {
-	var v = $getIterator(it);
-	while(v.hasNext()) {
-		var v1 = v.next();
-		if(f(v1)) {
-			return v1;
-		}
-	}
-	return null;
-};
 var haxe_ds_StringMap = function() {
 	this.h = { };
 };
@@ -318,6 +308,59 @@ StringTools.startsWith = function(s,start) {
 };
 StringTools.replace = function(s,sub,by) {
 	return s.split(sub).join(by);
+};
+var _$VideoList_VideoList_$Impl_$ = {};
+_$VideoList_VideoList_$Impl_$.__name__ = true;
+_$VideoList_VideoList_$Impl_$._new = function() {
+	return [];
+};
+_$VideoList_VideoList_$Impl_$.findIndex = function(this1,f) {
+	var i = 0;
+	var _g = 0;
+	while(_g < this1.length) {
+		if(f(this1[_g++])) {
+			return i;
+		}
+		++i;
+	}
+	return -1;
+};
+_$VideoList_VideoList_$Impl_$.addItem = function(this1,item,atEnd,itemPos) {
+	if(atEnd) {
+		this1.push(item);
+	} else {
+		this1.splice(itemPos + 1,0,item);
+	}
+};
+_$VideoList_VideoList_$Impl_$.setNextItem = function(this1,pos,itemPos) {
+	var next = this1[pos];
+	HxOverrides.remove(this1,next);
+	this1.splice(itemPos + 1,0,next);
+};
+_$VideoList_VideoList_$Impl_$.toggleItemType = function(this1,pos) {
+	this1[pos].isTemp = !this1[pos].isTemp;
+};
+_$VideoList_VideoList_$Impl_$.removeItem = function(this1,index,itemPos) {
+	if(index < itemPos) {
+		--itemPos;
+	}
+	HxOverrides.remove(this1,this1[index]);
+	if(itemPos >= this1.length) {
+		itemPos = 0;
+	}
+	return itemPos;
+};
+_$VideoList_VideoList_$Impl_$.skipItem = function(this1,itemPos) {
+	var item = this1[itemPos];
+	if(!item.isTemp) {
+		++itemPos;
+	} else {
+		HxOverrides.remove(this1,item);
+	}
+	if(itemPos >= this1.length) {
+		itemPos = 0;
+	}
+	return itemPos;
 };
 var haxe_Log = function() { };
 haxe_Log.__name__ = true;
@@ -648,7 +691,7 @@ var server_Main = function(port,wsPort) {
 	this.itemPos = 0;
 	this.messages = [];
 	this.videoTimer = new server_VideoTimer();
-	this.videoList = [];
+	this.videoList = _$VideoList_VideoList_$Impl_$._new();
 	this.freeIds = [];
 	this.clients = [];
 	this.rootDir = "" + __dirname + "/..";
@@ -834,11 +877,7 @@ server_Main.prototype = {
 			})) {
 				return;
 			}
-			if(data.addVideo.atEnd) {
-				this.videoList.push(item);
-			} else {
-				this.videoList.splice(this.itemPos + 1,0,item);
-			}
+			_$VideoList_VideoList_$Impl_$.addItem(this.videoList,item,data.addVideo.atEnd,this.itemPos);
 			this.broadcast(data);
 			if(this.videoList.length == 1) {
 				this.restartWaitTimer();
@@ -926,31 +965,26 @@ server_Main.prototype = {
 			this.videoTimer.play();
 			this.broadcast(data);
 			break;
+		case "PlayItem":
+			this.itemPos = data.playItem.pos;
+			this.restartWaitTimer();
+			this.broadcast(data);
+			break;
 		case "RemoveVideo":
 			if(this.videoList.length == 0) {
 				return;
 			}
 			var url = data.removeVideo.url;
-			var item1 = Lambda.find(this.videoList,function(item2) {
-				return item2.url == url;
+			var index = _$VideoList_VideoList_$Impl_$.findIndex(this.videoList,function(item1) {
+				return item1.url == url;
 			});
-			if(item1 == null) {
+			if(index == -1) {
 				return;
 			}
-			var index = this.videoList.indexOf(item1);
 			var isCurrent = this.videoList[this.itemPos].url == url;
-			if(index < this.itemPos) {
-				this.itemPos--;
-			}
-			HxOverrides.remove(this.videoList,item1);
-			if(isCurrent) {
-				if(this.itemPos >= this.videoList.length) {
-					this.itemPos = 0;
-				}
-				this.videoTimer.stop();
-				if(this.videoList.length > 0) {
-					this.restartWaitTimer();
-				}
+			this.itemPos = _$VideoList_VideoList_$Impl_$.removeItem(this.videoList,index,this.itemPos);
+			if(isCurrent && this.videoList.length > 0) {
+				this.restartWaitTimer();
 			}
 			this.broadcast(data);
 			break;
@@ -978,6 +1012,14 @@ server_Main.prototype = {
 				this.broadcast({ type : "Play", play : { time : this.videoTimer.getTime()}});
 			}
 			break;
+		case "SetNextItem":
+			var pos = data.setNextItem.pos;
+			if(pos == this.itemPos || pos == this.itemPos + 1) {
+				return;
+			}
+			_$VideoList_VideoList_$Impl_$.setNextItem(this.videoList,pos,this.itemPos);
+			this.broadcast(data);
+			break;
 		case "SetTime":
 			if(this.videoList.length == 0) {
 				return;
@@ -1002,22 +1044,17 @@ server_Main.prototype = {
 			if(this.videoList.length == 0) {
 				return;
 			}
-			var item3 = this.videoList[this.itemPos];
-			if(item3.url != data.skipVideo.url) {
+			if(this.videoList[this.itemPos].url != data.skipVideo.url) {
 				return;
 			}
-			if(!item3.isTemp) {
-				this.itemPos++;
-			} else {
-				HxOverrides.remove(this.videoList,item3);
-			}
-			if(this.itemPos >= this.videoList.length) {
-				this.itemPos = 0;
-			}
-			this.videoTimer.stop();
+			this.itemPos = _$VideoList_VideoList_$Impl_$.skipItem(this.videoList,this.itemPos);
 			if(this.videoList.length > 0) {
 				this.restartWaitTimer();
 			}
+			this.broadcast(data);
+			break;
+		case "ToggleItemType":
+			_$VideoList_VideoList_$Impl_$.toggleItemType(this.videoList,data.toggleItemType.pos);
 			this.broadcast(data);
 			break;
 		case "UpdateClients":
@@ -1072,6 +1109,7 @@ server_Main.prototype = {
 		return false;
 	}
 	,restartWaitTimer: function() {
+		this.videoTimer.stop();
 		if(this.waitVideoStart != null) {
 			this.waitVideoStart.stop();
 		}

@@ -97,6 +97,15 @@ typedef WsEvent = {
 	?setLeader:{
 		clientName:String
 	},
+	?playItem:{
+		pos:Int
+	},
+	?setNextItem:{
+		pos:Int
+	},
+	?toggleItemType:{
+		pos:Int
+	},
 	?updatePlaylist:{
 		videoList:Array<VideoItem>
 	}
@@ -121,6 +130,9 @@ enum abstract WsEventType(String) {
 	var SetTime;
 	var Rewind;
 	var SetLeader;
+	var PlayItem;
+	var SetNextItem;
+	var ToggleItemType;
 	var ClearChat;
 	var ClearPlaylist;
 	var ShufflePlaylist;

@@ -118,16 +118,6 @@ Lambda.exists = function(it,f) {
 	}
 	return false;
 };
-Lambda.find = function(it,f) {
-	var v = $getIterator(it);
-	while(v.hasNext()) {
-		var v1 = v.next();
-		if(f(v1)) {
-			return v1;
-		}
-	}
-	return null;
-};
 var haxe_ds_StringMap = function() {
 	this.h = { };
 };
@@ -335,6 +325,59 @@ StringTools.startsWith = function(s,start) {
 };
 StringTools.replace = function(s,sub,by) {
 	return s.split(sub).join(by);
+};
+var _$VideoList_VideoList_$Impl_$ = {};
+_$VideoList_VideoList_$Impl_$.__name__ = true;
+_$VideoList_VideoList_$Impl_$._new = function() {
+	return [];
+};
+_$VideoList_VideoList_$Impl_$.findIndex = function(this1,f) {
+	var i = 0;
+	var _g = 0;
+	while(_g < this1.length) {
+		if(f(this1[_g++])) {
+			return i;
+		}
+		++i;
+	}
+	return -1;
+};
+_$VideoList_VideoList_$Impl_$.addItem = function(this1,item,atEnd,itemPos) {
+	if(atEnd) {
+		this1.push(item);
+	} else {
+		this1.splice(itemPos + 1,0,item);
+	}
+};
+_$VideoList_VideoList_$Impl_$.setNextItem = function(this1,pos,itemPos) {
+	var next = this1[pos];
+	HxOverrides.remove(this1,next);
+	this1.splice(itemPos + 1,0,next);
+};
+_$VideoList_VideoList_$Impl_$.toggleItemType = function(this1,pos) {
+	this1[pos].isTemp = !this1[pos].isTemp;
+};
+_$VideoList_VideoList_$Impl_$.removeItem = function(this1,index,itemPos) {
+	if(index < itemPos) {
+		--itemPos;
+	}
+	HxOverrides.remove(this1,this1[index]);
+	if(itemPos >= this1.length) {
+		itemPos = 0;
+	}
+	return itemPos;
+};
+_$VideoList_VideoList_$Impl_$.skipItem = function(this1,itemPos) {
+	var item = this1[itemPos];
+	if(!item.isTemp) {
+		++itemPos;
+	} else {
+		HxOverrides.remove(this1,item);
+	}
+	if(itemPos >= this1.length) {
+		itemPos = 0;
+	}
+	return itemPos;
 };
 var client_Buttons = function() { };
 client_Buttons.__name__ = true;
@@ -767,10 +810,10 @@ client_Main.prototype = {
 		this.player.refresh();
 	}
 	,getPlaylistLinks: function() {
-		var items = this.player.getItems();
 		var _g = [];
 		var _g1 = 0;
-		while(_g1 < items.length) _g.push(items[_g1++].url);
+		var _g2 = this.player.getItems();
+		while(_g1 < _g2.length) _g.push(_g2[_g1++].url);
 		return _g;
 	}
 	,tryLocalIp: function(url) {
@@ -873,6 +916,9 @@ client_Main.prototype = {
 			this.player.setTime(data.play.time);
 			this.player.play();
 			break;
+		case "PlayItem":
+			this.player.setVideo(data.playItem.pos);
+			break;
 		case "RemoveVideo":
 			this.player.removeItem(data.removeVideo.url);
 			if(this.player.isListEmpty()) {
@@ -890,6 +936,9 @@ client_Main.prototype = {
 				this.player.setTime(this.player.getTime(),false);
 			}
 			break;
+		case "SetNextItem":
+			this.player.setNextItem(data.setNextItem.pos);
+			break;
 		case "SetTime":
 			var newTime1 = data.setTime.time;
 			var time1 = this.player.getTime();
@@ -905,6 +954,9 @@ client_Main.prototype = {
 			if(this.player.isListEmpty()) {
 				this.player.pause();
 			}
+			break;
+		case "ToggleItemType":
+			this.player.toggleItemType(data.toggleItemType.pos);
 			break;
 		case "UpdateClients":
 			this.updateClients(data.updateClients.clients);
@@ -1179,12 +1231,44 @@ var client_Player = function(main) {
 	this.currentSrc = "";
 	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.videoItemsEl = window.document.querySelector("#queue");
-	this.items = [];
+	this.items = _$VideoList_VideoList_$Impl_$._new();
 	this.main = main;
+	this.initItemButtons();
 };
 client_Player.__name__ = true;
 client_Player.prototype = {
-	setPlayer: function(player) {
+	initItemButtons: function() {
+		var _gthis = this;
+		window.document.querySelector("#queue").onclick = function(e) {
+			var btn = e.target;
+			var item = btn.parentElement.parentElement;
+			var i = client_Utils.getIndex(item.parentElement,item);
+			if(btn.classList.contains("qbtn-play")) {
+				_gthis.main.send({ type : "PlayItem", playItem : { pos : i}});
+			}
+			if(btn.classList.contains("qbtn-next")) {
+				_gthis.main.send({ type : "SetNextItem", setNextItem : { pos : i}});
+			}
+			if(btn.classList.contains("qbtn-tmp")) {
+				_gthis.main.send({ type : "ToggleItemType", toggleItemType : { pos : i}});
+			}
+			if(btn.classList.contains("qbtn-delete")) {
+				_gthis.main.send({ type : "RemoveVideo", removeVideo : { url : item.querySelector(".qe_title").getAttribute("href")}});
+			}
+			return;
+		};
+	}
+	,setNextItem: function(pos) {
+		_$VideoList_VideoList_$Impl_$.setNextItem(this.items,pos,this.itemPos);
+		var next = this.videoItemsEl.children[pos];
+		this.videoItemsEl.removeChild(next);
+		client_Utils.insertAtIndex(this.videoItemsEl,next,this.itemPos + 1);
+	}
+	,toggleItemType: function(pos) {
+		_$VideoList_VideoList_$Impl_$.toggleItemType(this.items,pos);
+		this.setItemElementType(this.videoItemsEl.children[pos],this.items[pos].isTemp);
+	}
+	,setPlayer: function(player) {
 		this.player = player;
 	}
 	,isYoutube: function(url) {
@@ -1250,20 +1334,9 @@ client_Player.prototype = {
 		this.main.send({ type : "SetTime", setTime : { time : this.getTime()}});
 	}
 	,addVideoItem: function(item,atEnd) {
-		var _gthis = this;
-		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + item.url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\" style=\"display: inline-block;\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("skip") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>" + Lang.get("makePermanent") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\" id=\"btn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
-		if(item.isTemp) {
-			itemEl.classList.add("queue_temp");
-		}
-		itemEl.querySelector("#btn-delete").onclick = function(e) {
-			_gthis.main.send({ type : "RemoveVideo", removeVideo : { url : itemEl.querySelector(".qe_title").getAttribute("href")}});
-			return;
-		};
-		if(atEnd) {
-			this.items.push(item);
-		} else {
-			this.items.splice(this.itemPos + 1,0,item);
-		}
+		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + item.url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\" style=\"display: inline-block;\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("setNext") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
+		_$VideoList_VideoList_$Impl_$.addItem(this.items,item,atEnd,this.itemPos);
+		this.setItemElementType(itemEl,item.isTemp);
 		if(atEnd) {
 			this.videoItemsEl.appendChild(itemEl);
 		} else {
@@ -1271,7 +1344,31 @@ client_Player.prototype = {
 		}
 		this.updateCounters();
 	}
+	,setItemElementType: function(item,isTemp) {
+		var text = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
+		item.querySelector(".qbtn-tmp").innerHTML = "<span class=\"glyphicon glyphicon-flag\"></span>" + text;
+		if(isTemp) {
+			item.classList.add("queue_temp");
+		} else {
+			item.classList.remove("queue_temp");
+		}
+	}
 	,removeItem: function(url) {
+		this.removeElementItem(url);
+		var index = _$VideoList_VideoList_$Impl_$.findIndex(this.items,function(item) {
+			return item.url == url;
+		});
+		if(index == -1) {
+			return;
+		}
+		var isCurrent = this.items[this.itemPos].url == url;
+		this.itemPos = _$VideoList_VideoList_$Impl_$.removeItem(this.items,index,this.itemPos);
+		this.updateCounters();
+		if(isCurrent && this.items.length > 0) {
+			this.setVideo(this.itemPos);
+		}
+	}
+	,removeElementItem: function(url) {
 		var _g = 0;
 		var _g1 = this.videoItemsEl.children;
 		while(_g < _g1.length) {
@@ -1282,44 +1379,20 @@ client_Player.prototype = {
 				break;
 			}
 		}
-		var item = Lambda.find(this.items,function(item1) {
-			return item1.url == url;
-		});
-		if(item == null) {
-			return;
-		}
-		var index = this.items.indexOf(item);
-		HxOverrides.remove(this.items,item);
-		this.updateCounters();
-		if(index < this.itemPos) {
-			this.itemPos--;
-			return;
-		}
-		if(index != this.itemPos) {
-			return;
-		}
-		if(this.items.length == 0) {
-			return;
-		}
-		if(this.items[index] == null) {
-			index = 0;
-		}
-		this.setVideo(index);
 	}
 	,skipItem: function(url) {
-		var item = Lambda.find(this.items,function(item1) {
-			return item1.url == url;
+		var index = _$VideoList_VideoList_$Impl_$.findIndex(this.items,function(item) {
+			return item.url == url;
 		});
-		if(item == null) {
+		if(index == -1) {
 			return;
 		}
-		if(item.isTemp) {
-			this.removeItem(url);
-			return;
+		if(this.items[index].isTemp) {
+			this.removeElementItem(url);
 		}
-		var index = this.items.indexOf(item) + 1;
-		if(index >= this.items.length) {
-			index = 0;
+		index = _$VideoList_VideoList_$Impl_$.skipItem(this.items,index);
+		if(this.items.length == 0) {
+			return;
 		}
 		this.setVideo(index);
 	}
@@ -1443,6 +1516,18 @@ client_Utils.insertAtIndex = function(parent,child,i) {
 	} else {
 		parent.insertBefore(child,parent.children[i]);
 	}
+};
+client_Utils.getIndex = function(parent,child) {
+	var i = 0;
+	var _g = 0;
+	var _g1 = parent.children;
+	while(_g < _g1.length) {
+		if(_g1[_g++] == child) {
+			break;
+		}
+		++i;
+	}
+	return i;
 };
 client_Utils.toggleFullScreen = function(el) {
 	var state = true;

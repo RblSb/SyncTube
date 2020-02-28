@@ -11,7 +11,7 @@ using Lambda;
 class Player {
 
 	final main:Main;
-	final items:Array<VideoItem> = [];
+	final items = new VideoList();
 	final videoItemsEl = ge("#queue");
 	final playerEl:Element = ge("#ytapiplayer");
 	var player:Null<IPlayer>;
@@ -23,6 +23,58 @@ class Player {
 
 	public function new(main:Main):Void {
 		this.main = main;
+		initItemButtons();
+	}
+
+	function initItemButtons():Void {
+		final queue = ge("#queue");
+		queue.onclick = e -> {
+			final btn:Element = cast e.target;
+			final item = btn.parentElement.parentElement;
+			final i = Utils.getIndex(item.parentElement, item);
+			if (btn.classList.contains("qbtn-play")) {
+				main.send({
+					type: PlayItem, playItem: {
+						pos: i
+					}
+				});
+			}
+			if (btn.classList.contains("qbtn-next")) {
+				main.send({
+					type: SetNextItem, setNextItem: {
+						pos: i
+					}
+				});
+			}
+			if (btn.classList.contains("qbtn-tmp")) {
+				main.send({
+					type: ToggleItemType, toggleItemType: {
+						pos: i
+					}
+				});
+			}
+			if (btn.classList.contains("qbtn-delete")) {
+				main.send({
+					type: RemoveVideo, removeVideo: {
+						url: item.querySelector(".qe_title").getAttribute("href")
+					}
+				});
+			}
+		}
+	}
+
+	public function setNextItem(pos:Int):Void {
+		items.setNextItem(pos, itemPos);
+
+		final next = videoItemsEl.children[pos];
+		videoItemsEl.removeChild(next);
+		Utils.insertAtIndex(videoItemsEl, next, itemPos + 1);
+	}
+
+	public function toggleItemType(pos:Int):Void {
+		items.toggleItemType(pos);
+		final el = videoItemsEl.children[pos];
+		setItemElementType(el, items[pos].isTemp);
 	}
 
 	function setPlayer(player:IPlayer):Void {
@@ -108,67 +160,60 @@ class Player {
 						<span class="glyphicon glyphicon-play"></span>${Lang.get("play")}
 					</button>
 					<button class="btn btn-xs btn-default qbtn-next">
-						<span class="glyphicon glyphicon-share-alt"></span>${Lang.get("skip")}
+						<span class="glyphicon glyphicon-share-alt"></span>${Lang.get("setNext")}
 					</button>
 					<button class="btn btn-xs btn-default qbtn-tmp">
-						<span class="glyphicon glyphicon-flag"></span>${Lang.get("makePermanent")}
+						<span class="glyphicon glyphicon-flag"></span>
 					</button>
-					<button class="btn btn-xs btn-default qbtn-delete" id="btn-delete">
+					<button class="btn btn-xs btn-default qbtn-delete">
 						<span class="glyphicon glyphicon-trash"></span>${Lang.get("delete")}
 					</button>
 				</div>
 			</li>'
 		);
-		if (item.isTemp) itemEl.classList.add("queue_temp");
-		final deleteBtn = itemEl.querySelector("#btn-delete");
-		deleteBtn.onclick = e -> {
-			main.send({
-				type: RemoveVideo,
-				removeVideo: {
-					url: itemEl.querySelector(".qe_title").getAttribute("href")
-				}
-			});
-		}
-		if (atEnd) items.push(item);
-		else items.insert(itemPos + 1, item);
+		items.addItem(item, atEnd, itemPos);
+		setItemElementType(itemEl, item.isTemp);
 		if (atEnd) videoItemsEl.appendChild(itemEl);
 		else Utils.insertAtIndex(videoItemsEl, itemEl, itemPos + 1);
 		updateCounters();
 	}
 
+	function setItemElementType(item:Element, isTemp:Bool):Void {
+		final text = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
+		item.querySelector(".qbtn-tmp").innerHTML = '<span class="glyphicon glyphicon-flag"></span>$text';
+		if (isTemp) item.classList.add("queue_temp");
+		else item.classList.remove("queue_temp");
+	}
+
 	public function removeItem(url:String):Void {
+		removeElementItem(url);
+		var index = items.findIndex(item -> item.url == url);
+		if (index == -1) return;
+
+		final isCurrent = items[itemPos].url == url;
+		itemPos = items.removeItem(index, itemPos);
+		updateCounters();
+
+		if (isCurrent && items.length > 0) {
+			setVideo(itemPos);
+		}
+	}
+
+	function removeElementItem(url:String):Void {
 		for (child in videoItemsEl.children) {
 			if (child.querySelector(".qe_title").getAttribute("href") == url) {
 				videoItemsEl.removeChild(child);
 				break;
 			}
 		}
-
-		final item = items.find(item -> item.url == url);
-		if (item == null) return;
-		var index = items.indexOf(item);
-		items.remove(item);
-		updateCounters();
-
-		if (index < itemPos) {
-			itemPos--;
-			return;
-		}
-		if (index != itemPos) return;
-		if (items.length == 0) return;
-		if (items[index] == null) index = 0;
-		setVideo(index);
 	}
 
 	public function skipItem(url:String):Void {
-		final item = items.find(item -> item.url == url);
-		if (item == null) return;
-		if (item.isTemp) {
-			removeItem(url);
-			return;
-		}
-		var index = items.indexOf(item) + 1;
-		if (index >= items.length) index = 0;
+		var index = items.findIndex(item -> item.url == url);
+		if (index == -1) return;
+		if (items[index].isTemp) removeElementItem(url);
+		index = items.skipItem(index);
+		if (items.length == 0) return;
 		setVideo(index);
 	}
 
@@ -177,7 +222,7 @@ class Player {
 		ge("#pllength").textContent = totalDuration();
 	}
 
-	public function getItems():Array<VideoItem> {
+	public function getItems():VideoList {
 		return items;
 	}
 

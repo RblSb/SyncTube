@@ -28,7 +28,7 @@ class Main {
 	final config:Config;
 	final clients:Array<Client> = [];
 	final freeIds:Array<Int> = [];
-	final videoList:Array<VideoItem> = [];
+	final videoList = new VideoList();
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
 	var itemPos = 0;
@@ -257,8 +257,7 @@ class Main {
 					// TODO send server message
 					return;
 				}
-				if (data.addVideo.atEnd) videoList.push(item);
-				else videoList.insert(itemPos + 1, item);
+				videoList.addItem(item, data.addVideo.atEnd, itemPos);
 				broadcast(data);
 				// Initial timer start if VideoLoaded is not happen
 				if (videoList.length == 1) restartWaitTimer();
@@ -270,16 +269,13 @@ class Main {
 			case RemoveVideo:
 				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
-				final item = videoList.find(item -> item.url == url);
-				if (item == null) return;
-				final index = videoList.indexOf(item);
+				var index = videoList.findIndex(item -> item.url == url);
+				if (index == -1) return;
+
 				final isCurrent = videoList[itemPos].url == url;
-				if (index < itemPos) itemPos--;
-				videoList.remove(item);
-				if (isCurrent) {
-					if (itemPos >= videoList.length) itemPos = 0;
-					videoTimer.stop();
-					if (videoList.length > 0) restartWaitTimer();
+				itemPos = videoList.removeItem(index, itemPos);
+				if (isCurrent && videoList.length > 0) {
+					restartWaitTimer();
 				}
 				broadcast(data);
 
@@ -287,12 +283,7 @@ class Main {
 				if (videoList.length == 0) return;
 				final item = videoList[itemPos];
 				if (item.url != data.skipVideo.url) return;
-
-				if (!item.isTemp) itemPos++;
-				else videoList.remove(item);
-				if (itemPos >= videoList.length) itemPos = 0;
-
-				videoTimer.stop();
+				itemPos = videoList.skipItem(itemPos);
 				if (videoList.length > 0) restartWaitTimer();
 				broadcast(data);
 
@@ -356,6 +347,22 @@ class Main {
 						}
 					});
 				}
+
+			case PlayItem:
+				itemPos = data.playItem.pos;
+				restartWaitTimer();
+				broadcast(data);
+
+			case SetNextItem:
+				final pos = data.setNextItem.pos;
+				if (pos == itemPos || pos == itemPos + 1) return;
+				videoList.setNextItem(pos, itemPos);
+				broadcast(data);
+
+			case ToggleItemType:
+				final pos = data.toggleItemType.pos;
+				videoList.toggleItemType(pos);
+				broadcast(data);
 
 			case ClearChat:
 				messages.resize(0);
@@ -426,6 +433,7 @@ class Main {
 	var loadedClientsCount = 0;
 
 	function restartWaitTimer():Void {
+		videoTimer.stop();
 		if (waitVideoStart != null) waitVideoStart.stop();
 		waitVideoStart = Timer.delay(startVideoPlayback, 3000);
 	}

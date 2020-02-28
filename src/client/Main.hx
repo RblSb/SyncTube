@@ -307,6 +307,15 @@ class Main {
 				setLeaderButton(isLeader());
 				if (isLeader()) player.setTime(player.getTime(), false);
 
+			case PlayItem:
+				player.setVideo(data.playItem.pos);
+
+			case SetNextItem:
+				player.setNextItem(data.setNextItem.pos);
+
+			case ToggleItemType:
+				player.toggleItemType(data.toggleItemType.pos);
+
 			case ClearChat:
 				clearChat();
 
