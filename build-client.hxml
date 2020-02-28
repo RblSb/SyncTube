@@ -1,3 +1,4 @@
+-lib youtubeIFramePlayer
 -cp src
 --main client.Main
 -D analyzer-optimize

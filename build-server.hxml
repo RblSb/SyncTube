@@ -1,5 +1,7 @@
 -lib hxnodejs
 -lib hxnodejs-ws
+# Client libs for completion
+-lib youtubeIFramePlayer
 -cp src
 --main server.Main
 -D analyzer-optimize

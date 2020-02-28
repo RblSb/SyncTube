@@ -161,7 +161,7 @@ class Main {
 		if (matchName.match(name)) name = matchName.matched(1);
 		else name = Lang.get("rawVideo");
 
-		getRemoteVideoDuration(url, (duration:Float) -> {
+		player.getRemoteDuration(url, (duration:Float) -> {
 			if (duration == 0) {
 				serverMessage(4, Lang.get("addVideoError"));
 				return;
@@ -203,22 +203,6 @@ class Main {
 	public function tryLocalIp(url:String):String {
 		if (host == globalIp) return url;
 		return url.replace(globalIp, host);
-	}
-
-	function getRemoteVideoDuration(src:String, callback:(duration:Float)->Void):Void {
-		final player:Element = ge("#ytapiplayer");
-		final video = document.createVideoElement();
-		video.src = src;
-		// TODO catch errors on AddVideo and getRemoteVideoDuration
-		video.onerror = e -> {
-			if (player.contains(video)) player.removeChild(video);
-			callback(0);
-		}
-		video.onloadedmetadata = () -> {
-			if (player.contains(video)) player.removeChild(video);
-			callback(video.duration);
-		}
-		Utils.prepend(player, video);
 	}
 
 	function onMessage(e):Void {

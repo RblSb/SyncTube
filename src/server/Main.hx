@@ -248,11 +248,11 @@ class Main {
 
 			case AddVideo:
 				final item = data.addVideo.item;
+				item.author = client.name;
 				final local = '$localIp:$port';
 				if (item.url.contains(local)) {
 					item.url = item.url.replace(local, '$globalIp:$port');
 				}
-				item.author = client.name;
 				if (videoList.exists(i -> i.url == item.url)) {
 					// TODO send server message
 					return;
@@ -290,12 +290,14 @@ class Main {
 			case Pause:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
+				videoTimer.setTime(data.pause.time);
 				videoTimer.pause();
 				broadcast(data);
 
 			case Play:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
+				videoTimer.setTime(data.play.time);
 				videoTimer.play();
 				broadcast(data);
 

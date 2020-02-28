@@ -11,12 +11,27 @@ class Raw implements IPlayer {
 
 	final main:Main;
 	final player:Player;
-	var video:VideoElement;
 	final playerEl:Element = ge("#ytapiplayer");
+	var video:VideoElement;
 
 	public function new(main:Main, player:Player) {
 		this.main = main;
 		this.player = player;
+	}
+
+	public function getRemoteDuration(src:String, callback:(duration:Float)->Void):Void {
+		final video = document.createVideoElement();
+		video.src = src;
+		// TODO catch errors on AddVideo and getRemoteVideoDuration
+		video.onerror = e -> {
+			if (playerEl.contains(video)) playerEl.removeChild(video);
+			callback(0);
+		}
+		video.onloadedmetadata = () -> {
+			if (playerEl.contains(video)) playerEl.removeChild(video);
+			callback(video.duration);
+		}
+		Utils.prepend(playerEl, video);
 	}
 
 	public function loadVideo(item:VideoItem):Void {

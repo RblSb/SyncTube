@@ -867,11 +867,11 @@ server_Main.prototype = {
 		switch(data.type) {
 		case "AddVideo":
 			var item = data.addVideo.item;
+			item.author = client.name;
 			var local = "" + this.localIp + ":" + this.port;
 			if(item.url.indexOf(local) != -1) {
 				item.url = StringTools.replace(item.url,local,"" + this.globalIp + ":" + this.port);
 			}
-			item.author = client.name;
 			if(Lambda.exists(this.videoList,function(i) {
 				return i.url == item.url;
 			})) {
@@ -952,6 +952,7 @@ server_Main.prototype = {
 			if((client.group & 2) == 0) {
 				return;
 			}
+			this.videoTimer.setTime(data.pause.time);
 			this.videoTimer.pause();
 			this.broadcast(data);
 			break;
@@ -962,6 +963,7 @@ server_Main.prototype = {
 			if((client.group & 2) == 0) {
 				return;
 			}
+			this.videoTimer.setTime(data.play.time);
 			this.videoTimer.play();
 			this.broadcast(data);
 			break;

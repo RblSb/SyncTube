@@ -3,6 +3,7 @@ package client;
 import Types.VideoItem;
 
 interface IPlayer {
+	function getRemoteDuration(url:String, callback:(duration:Float)->Void):Void;
 	function loadVideo(item:VideoItem):Void;
 	function removeVideo():Void;
 	function play():Void;

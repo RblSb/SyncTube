@@ -4,9 +4,9 @@ import js.html.Element;
 import js.Browser.document;
 import client.Main.ge;
 import client.players.Raw;
+import client.players.Youtube;
 import Types.VideoItem;
 using StringTools;
-using Lambda;
 
 class Player {
 
@@ -19,7 +19,6 @@ class Player {
 	var itemPos = 0;
 	var isLoaded = false;
 	var skipSetTime = false;
-	final matchYoutube = ~/v=([A-z0-9_-]+)/;
 
 	public function new(main:Main):Void {
 		this.main = main;
@@ -81,17 +80,21 @@ class Player {
 		this.player = player;
 	}
 
-	function isYoutube(url:String):Bool {
-		if (!url.contains("youtube.com/")) return false;
-		if (!url.contains("youtu.be/")) return false;
-		if (!matchYoutube.match(url)) return false;
-		return true;
+	public function getRemoteDuration(url:String, callback:(duration:Float)->Void):Void {
+		if (Youtube.isYoutube(url)) {
+			new Youtube(main, this).getRemoteDuration(url, callback);
+		} else {
+			new Raw(main, this).getRemoteDuration(url, callback);
+		}
 	}
 
 	public function setVideo(i:Int):Void {
 		final item = items[i];
-		if (isYoutube(item.url)) {} // setPlayer(new Youtube(main, this));
-		else setPlayer(new Raw(main, this));
+		if (Youtube.isYoutube(item.url)) {
+			setPlayer(new Youtube(main, this));
+		} else {
+			setPlayer(new Raw(main, this));
+		}
 
 		final childs = videoItemsEl.children;
 		if (childs[itemPos] != null) {
