@@ -5,6 +5,7 @@ import js.Browser.document;
 import client.Main.ge;
 import client.players.Raw;
 import client.players.Youtube;
+import Types.VideoData;
 import Types.VideoItem;
 using StringTools;
 
@@ -80,11 +81,12 @@ class Player {
 		this.player = player;
 	}
 
-	public function getRemoteDuration(url:String, callback:(duration:Float)->Void):Void {
+	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
+		// TODO P2 reuse player objects
 		if (Youtube.isYoutube(url)) {
-			new Youtube(main, this).getRemoteDuration(url, callback);
+			new Youtube(main, this).getVideoData(url, callback);
 		} else {
-			new Raw(main, this).getRemoteDuration(url, callback);
+			new Raw(main, this).getVideoData(url, callback);
 		}
 	}
 

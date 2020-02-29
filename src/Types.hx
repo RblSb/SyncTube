@@ -2,6 +2,11 @@ package;
 
 import Client.ClientData;
 
+typedef VideoData = {
+	duration:Float,
+	?title:String
+}
+
 typedef Config = {
 	channelName:String,
 	maxLoginLength:Int,

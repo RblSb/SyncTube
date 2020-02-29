@@ -5,6 +5,7 @@ import js.html.Element;
 import js.html.VideoElement;
 import js.Browser.document;
 import client.Main.ge;
+import Types.VideoData;
 import Types.VideoItem;
 
 class Raw implements IPlayer {
@@ -19,17 +20,24 @@ class Raw implements IPlayer {
 		this.player = player;
 	}
 
-	public function getRemoteDuration(src:String, callback:(duration:Float)->Void):Void {
+	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
+		var title = url.substr(url.lastIndexOf('/') + 1);
+		final matchName = ~/^(.+)\./;
+		if (matchName.match(title)) title = matchName.matched(1);
+		else title = Lang.get("rawVideo");
+
 		final video = document.createVideoElement();
-		video.src = src;
-		// TODO catch errors on AddVideo and getRemoteVideoDuration
+		video.src = url;
 		video.onerror = e -> {
 			if (playerEl.contains(video)) playerEl.removeChild(video);
-			callback(0);
+			callback({duration: 0});
 		}
 		video.onloadedmetadata = () -> {
 			if (playerEl.contains(video)) playerEl.removeChild(video);
-			callback(video.duration);
+			callback({
+				duration: video.duration,
+				title: title
+			});
 		}
 		Utils.prepend(playerEl, video);
 	}

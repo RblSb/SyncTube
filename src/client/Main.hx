@@ -12,7 +12,9 @@ import js.Browser;
 import js.Browser.document;
 import js.lib.Date;
 import Client.ClientData;
-import Types;
+import Types.VideoData;
+import Types.Config;
+import Types.WsEvent;
 using StringTools;
 using ClientTools;
 
@@ -156,23 +158,20 @@ class Main {
 			url = '$protocol//$host:$port$url';
 		}
 		if (!url.startsWith("http")) url = '$protocol//$url';
-		var name = url.substr(url.lastIndexOf('/') + 1);
-		final matchName = ~/^(.+)\./;
-		if (matchName.match(name)) name = matchName.matched(1);
-		else name = Lang.get("rawVideo");
 
-		player.getRemoteDuration(url, (duration:Float) -> {
-			if (duration == 0) {
+		player.getVideoData(url, (data:VideoData) -> {
+			if (data.duration == 0) {
 				serverMessage(4, Lang.get("addVideoError"));
 				return;
 			}
+			if (data.title == null) data.title = Lang.get("rawVideo");
 			send({
 				type: AddVideo, addVideo: {
 					item: {
 						url: url,
-						title: name,
+						title: data.title,
 						author: personal.name,
-						duration: duration,
+						duration: data.duration,
 						isTemp: isTemp
 					},
 					atEnd: atEnd

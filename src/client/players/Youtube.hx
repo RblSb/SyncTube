@@ -1,10 +1,13 @@
 package client.players;
 
+import haxe.Json;
+import haxe.Http;
 import js.html.Element;
 import js.Browser.document;
 import client.Main.ge;
 import js.youtube.Youtube as YtInit;
 import js.youtube.YoutubePlayer;
+import Types.VideoData;
 import Types.VideoItem;
 using StringTools;
 
@@ -13,6 +16,9 @@ class Youtube implements IPlayer {
 	static final matchId = ~/v=([A-z0-9_-]+)/;
 	static final matchShort = ~/youtu.be\/([A-z0-9_-]+)/;
 	static final matchEmbed = ~/embed\/([A-z0-9_-]+)/;
+	static final apiUrl = "https://www.googleapis.com/youtube/v3/videos";
+	static final urlTitleDuration = "?part=snippet,contentDetails&fields=items(snippet/title,contentDetails/duration)";
+	static final apiKey = "AIzaSyDTk1OPRI9cDkAK_BKsBcv10DQCHse-QaA";
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
@@ -26,17 +32,10 @@ class Youtube implements IPlayer {
 	}
 
 	public static function isYoutube(url:String):Bool {
-		if (url.contains("youtu.be/")) {
-			return matchShort.match(url);
-		}
-		if (url.contains("youtube.com/embed/")) {
-			return matchEmbed.match(url);
-		}
-		if (!url.contains("youtube.com/")) return false;
-		return matchId.match(url);
+		return extractVideoId(url) != "";
 	}
 
-	function extractVideoId(url:String):String {
+	static function extractVideoId(url:String):String {
 		if (url.contains("youtu.be/")) {
 			matchShort.match(url);
 			return matchShort.matched(1);
@@ -45,13 +44,54 @@ class Youtube implements IPlayer {
 			matchEmbed.match(url);
 			return matchEmbed.matched(1);
 		}
-		matchId.match(url);
+		if (!matchId.match(url)) return "";
 		return matchId.matched(1);
 	}
 
-	public function getRemoteDuration(url:String, callback:(duration:Float)->Void):Void {
+	final matchHours = ~/([0-9]+)H/;
+	final matchMinutes = ~/([0-9]+)M/;
+	final matchSeconds = ~/([0-9]+)S/;
+
+	function convertTime(duration:String):Float {
+		var total = 0;
+		final hours = matchHours.match(duration);
+		final minutes = matchMinutes.match(duration);
+		final seconds = matchSeconds.match(duration);
+		if (hours) total += Std.parseInt(matchHours.matched(1)) * 3600;
+		if (minutes) total += Std.parseInt(matchMinutes.matched(1)) * 60;
+		if (seconds) total += Std.parseInt(matchSeconds.matched(1));
+		return total;
+	}
+
+	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
+		final id = extractVideoId(url);
+		final url = '$apiUrl$urlTitleDuration&id=$id&key=$apiKey';
+		final http = new Http(url);
+		http.onData = data -> {
+			final json = Json.parse(data);
+			if (json.error != null) {
+				getRemoteDataFallback(url, callback);
+				return;
+			}
+			final item = json.items[0];
+			if (item == null) {
+				callback({duration: 0});
+				return;
+			}
+			final title:String = item.snippet.title;
+			final duration:String = item.contentDetails.duration;
+			callback({
+				duration: convertTime(duration),
+				title: title
+			});
+		}
+		http.onError = msg -> getRemoteDataFallback(url, callback);
+		http.request();
+	}
+
+	function getRemoteDataFallback(url:String, callback:(data:VideoData)->Void):Void {
 		if (!YtInit.isLoadedAPI) {
-			YtInit.init(() -> getRemoteDuration(url, callback));
+			YtInit.init(() -> getRemoteDataFallback(url, callback));
 			return;
 		}
 		final video = document.createDivElement();
@@ -67,12 +107,15 @@ class Youtube implements IPlayer {
 			events: {
 				onReady: e -> {
 					if (playerEl.contains(video)) playerEl.removeChild(video);
-					callback(youtube.getDuration());
+					callback({
+						duration: youtube.getDuration()
+					});
 				},
 				onError: e -> {
+					// TODO message error codes
 					trace('Error ${e.data}');
 					if (playerEl.contains(video)) playerEl.removeChild(video);
-					callback(0);
+					callback({duration: 0});
 				}
 			}
 		});
