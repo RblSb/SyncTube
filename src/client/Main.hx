@@ -314,6 +314,9 @@ class Main {
 			case ShufflePlaylist: // server-only
 			case UpdatePlaylist:
 				player.setItems(data.updatePlaylist.videoList);
+
+			case TogglePlaylistLock:
+				setPlaylistLock(data.togglePlaylistLock.isOpen);
 		}
 	}
 
@@ -335,6 +338,7 @@ class Main {
 		} else {
 			guestLogin(guestName.value);
 		}
+		setPlaylistLock(connected.isPlaylistOpen);
 		clearChat();
 		serverMessage(1);
 		for (message in connected.history) {
@@ -560,7 +564,27 @@ class Main {
 		final leaderBtn = ge("#leader_btn");
 		if (isLeader()) {
 			leaderBtn.classList.add("label-success");
-		} else leaderBtn.classList.remove("label-success");
+		} else {
+			leaderBtn.classList.remove("label-success");
+		}
+	}
+
+	function setPlaylistLock(isOpen:Bool):Void {
+		final lockPlaylist = ge("#lockplaylist");
+		final icon = lockPlaylist.firstElementChild;
+		if (isOpen) {
+			lockPlaylist.title = Lang.get("playlistOpen");
+			lockPlaylist.classList.add("btn-success");
+			lockPlaylist.classList.remove("btn-danger");
+			icon.classList.add("glyphicon-ok");
+			icon.classList.remove("glyphicon-lock");
+		} else {
+			lockPlaylist.title = Lang.get("playlistLocked");
+			lockPlaylist.classList.add("btn-danger");
+			lockPlaylist.classList.remove("btn-success");
+			icon.classList.add("glyphicon-lock");
+			icon.classList.remove("glyphicon-ok");
+		}
 	}
 
 	function escapeRegExp(regex:String):String {

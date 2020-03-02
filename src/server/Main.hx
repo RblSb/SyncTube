@@ -34,6 +34,7 @@ class Main {
 	final videoList = new VideoList();
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
+	var isPlaylistOpen = true;
 	var itemPos = 0;
 
 	static function main():Void new Main();
@@ -131,6 +132,7 @@ class Main {
 		trace("Saving state...");
 		final data:ServerState = {
 			videoList: videoList,
+			isPlaylistOpen: isPlaylistOpen,
 			itemPos: itemPos,
 			messages: messages,
 			timer: {
@@ -149,6 +151,7 @@ class Main {
 		videoList.resize(0);
 		messages.resize(0);
 		for (item in data.videoList) videoList.push(item);
+		isPlaylistOpen = data.isPlaylistOpen;
 		itemPos = data.itemPos;
 		for (message in data.messages) messages.push(message);
 		videoTimer.start();
@@ -212,6 +215,7 @@ class Main {
 					for (client in clients) client.getData()
 				],
 				videoList: videoList,
+				isPlaylistOpen: isPlaylistOpen,
 				itemPos: itemPos,
 				globalIp: globalIp
 			}
@@ -307,6 +311,7 @@ class Main {
 				broadcast(data);
 
 			case AddVideo:
+				if (!client.isAdmin && !isPlaylistOpen) return;
 				final item = data.addVideo.item;
 				item.author = client.name;
 				final local = '$localIp:$port';
@@ -448,6 +453,16 @@ class Main {
 					videoList: videoList
 				}});
 			case UpdatePlaylist: // client-only
+
+			case TogglePlaylistLock:
+				if (!client.isAdmin) return;
+				isPlaylistOpen = !isPlaylistOpen;
+				broadcast({
+					type: TogglePlaylistLock,
+					togglePlaylistLock: {
+						isOpen: isPlaylistOpen
+					}
+				});
 		}
 	}
 

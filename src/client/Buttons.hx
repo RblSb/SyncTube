@@ -109,6 +109,10 @@ class Buttons {
 			if (!window.confirm(Lang.get("shufflePlaylistConfirm"))) return;
 			main.send({type: ShufflePlaylist});
 		}
+		final lockPlaylist = ge("#lockplaylist");
+		lockPlaylist.onclick = e -> {
+			if (main.isAdmin()) main.send({type: TogglePlaylistLock});
+		}
 
 		final showMediaUrl = ge("#showmediaurl");
 		showMediaUrl.onclick = e -> {

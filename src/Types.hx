@@ -64,6 +64,7 @@ typedef WsEvent = {
 		isUnknownClient:Bool,
 		clientName:String,
 		videoList:Array<VideoItem>,
+		isPlaylistOpen:Bool,
 		itemPos:Int,
 		globalIp:String
 	},
@@ -125,6 +126,9 @@ typedef WsEvent = {
 	},
 	?updatePlaylist:{
 		videoList:Array<VideoItem>
+	},
+	?togglePlaylistLock:{
+		isOpen:Bool
 	}
 }
 
@@ -155,4 +159,5 @@ enum abstract WsEventType(String) {
 	var ClearPlaylist;
 	var ShufflePlaylist;
 	var UpdatePlaylist;
+	var TogglePlaylistLock;
 }

@@ -118,6 +118,25 @@ Lambda.exists = function(it,f) {
 	}
 	return false;
 };
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+haxe_ds_StringMap.__name__ = true;
+haxe_ds_StringMap.prototype = {
+	setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+};
 var Lang = function() { };
 Lang.__name__ = true;
 Lang.request = function(path,callback) {
@@ -440,15 +459,21 @@ client_Buttons.init = function(main) {
 		extendPlayer.classList.toggle("active");
 		return window.dispatchEvent(new Event("resize"));
 	};
-	window.document.querySelector("#mediarefresh").onclick = function(e5) {
+	window.document.querySelector("#togglesynch").onclick = function(e5) {
+		if(!window.confirm(Lang.get("toggleSynchConfirm"))) {
+			return;
+		}
+		return;
+	};
+	window.document.querySelector("#mediarefresh").onclick = function(e6) {
 		main.refreshPlayer();
 		return;
 	};
-	window.document.querySelector("#fullscreenbtn").onclick = function(e6) {
+	window.document.querySelector("#fullscreenbtn").onclick = function(e7) {
 		return client_Utils.toggleFullScreen(window.document.querySelector("#ytapiplayer"));
 	};
 	var getPlaylist = window.document.querySelector("#getplaylist");
-	getPlaylist.onclick = function(e7) {
+	getPlaylist.onclick = function(e8) {
 		client_Utils.copyToClipboard(main.getPlaylistLinks().join(","));
 		var icon = getPlaylist.firstElementChild;
 		icon.classList.remove("glyphicon-link");
@@ -459,21 +484,27 @@ client_Buttons.init = function(main) {
 			return;
 		},2000);
 	};
-	window.document.querySelector("#clearplaylist").onclick = function(e8) {
+	window.document.querySelector("#clearplaylist").onclick = function(e9) {
 		if(!window.confirm(Lang.get("clearPlaylistConfirm"))) {
 			return;
 		}
 		main.send({ type : "ClearPlaylist"});
 		return;
 	};
-	window.document.querySelector("#shuffleplaylist").onclick = function(e9) {
+	window.document.querySelector("#shuffleplaylist").onclick = function(e10) {
 		if(!window.confirm(Lang.get("shufflePlaylistConfirm"))) {
 			return;
 		}
 		main.send({ type : "ShufflePlaylist"});
 		return;
 	};
-	window.document.querySelector("#showmediaurl").onclick = function(e10) {
+	window.document.querySelector("#lockplaylist").onclick = function(e11) {
+		if((main.personal.group & 4) != 0) {
+			main.send({ type : "TogglePlaylistLock"});
+		}
+		return;
+	};
+	window.document.querySelector("#showmediaurl").onclick = function(e12) {
 		window.document.querySelector("#showmediaurl").classList.toggle("collapsed");
 		window.document.querySelector("#showmediaurl").classList.toggle("active");
 		return window.document.querySelector("#addfromurl").classList.toggle("collapse");
@@ -936,6 +967,9 @@ client_Main.prototype = {
 		case "ToggleItemType":
 			this.player.toggleItemType(data.toggleItemType.pos);
 			break;
+		case "TogglePlaylistLock":
+			this.setPlaylistLock(data.togglePlaylistLock.isOpen);
+			break;
 		case "UpdateClients":
 			this.updateClients(data.updateClients.clients);
 			this.personal = ClientTools.getByName(this.clients,this.personal.name,this.personal);
@@ -967,6 +1001,7 @@ client_Main.prototype = {
 		} else {
 			this.guestLogin(guestName.value);
 		}
+		this.setPlaylistLock(connected.isPlaylistOpen);
 		this.clearChat();
 		this.serverMessage(1);
 		var _g = 0;
@@ -1018,8 +1053,9 @@ client_Main.prototype = {
 		}
 		var smilesWrap = window.document.querySelector("#smileswrap");
 		smilesWrap.onclick = function(e) {
+			var el = e.target;
 			var form = window.document.querySelector("#chatline");
-			form.value += " " + e.target.title;
+			form.value += " " + el.title;
 			form.focus();
 			return;
 		};
@@ -1198,6 +1234,23 @@ client_Main.prototype = {
 			leaderBtn.classList.add("label-success");
 		} else {
 			leaderBtn.classList.remove("label-success");
+		}
+	}
+	,setPlaylistLock: function(isOpen) {
+		var lockPlaylist = window.document.querySelector("#lockplaylist");
+		var icon = lockPlaylist.firstElementChild;
+		if(isOpen) {
+			lockPlaylist.title = Lang.get("playlistOpen");
+			lockPlaylist.classList.add("btn-success");
+			lockPlaylist.classList.remove("btn-danger");
+			icon.classList.add("glyphicon-ok");
+			icon.classList.remove("glyphicon-lock");
+		} else {
+			lockPlaylist.title = Lang.get("playlistLocked");
+			lockPlaylist.classList.add("btn-danger");
+			lockPlaylist.classList.remove("btn-success");
+			icon.classList.add("glyphicon-lock");
+			icon.classList.remove("glyphicon-ok");
 		}
 	}
 	,escapeRegExp: function(regex) {
@@ -2009,25 +2062,6 @@ haxe_crypto_Sha256.prototype = {
 		return str.toLowerCase();
 	}
 };
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-haxe_ds_StringMap.__name__ = true;
-haxe_ds_StringMap.prototype = {
-	setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-};
 var haxe_http_HttpBase = function(url) {
 	this.url = url;
 	this.headers = [];
@@ -2464,10 +2498,10 @@ js_youtube_Youtube.init = function(onAPIReady) {
 function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); else return o.iterator(); }
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;
+var __map_reserved = {};
 if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 String.__name__ = true;
 Array.__name__ = true;
-var __map_reserved = {};
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
 }});
