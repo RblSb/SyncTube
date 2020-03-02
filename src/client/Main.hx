@@ -528,7 +528,7 @@ class Main {
 		}
 		textDiv.innerHTML = text;
 
-		final isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;
+		final isInChatEnd = msgBuf.scrollTop + msgBuf.clientHeight >= msgBuf.scrollHeight - 1;
 		userDiv.appendChild(tstamp);
 		userDiv.appendChild(nameDiv);
 		userDiv.appendChild(textDiv);

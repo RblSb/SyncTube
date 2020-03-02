@@ -1241,7 +1241,7 @@ client_Main.prototype = {
 			}
 		}
 		textDiv.innerHTML = text;
-		var isInChatEnd = msgBuf.scrollHeight - msgBuf.scrollTop == msgBuf.clientHeight;
+		var isInChatEnd = msgBuf.scrollTop + msgBuf.clientHeight >= msgBuf.scrollHeight - 1;
 		userDiv.appendChild(tstamp);
 		userDiv.appendChild(nameDiv);
 		userDiv.appendChild(textDiv);
