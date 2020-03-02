@@ -6,7 +6,8 @@
 			"name": "Node: build and run",
 			"program": "${workspaceFolder}/build/server.js",
 			"sourceMaps": true,
-			"preLaunchTask": "Build all"
+			"preLaunchTask": "Build all",
+			"console": "integratedTerminal"
 		}
 	]
 }

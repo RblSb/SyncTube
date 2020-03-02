@@ -309,6 +309,20 @@ StringTools.startsWith = function(s,start) {
 StringTools.replace = function(s,sub,by) {
 	return s.split(sub).join(by);
 };
+StringTools.hex = function(n,digits) {
+	var s = "";
+	while(true) {
+		s = "0123456789ABCDEF".charAt(n & 15) + s;
+		n >>>= 4;
+		if(!(n > 0)) {
+			break;
+		}
+	}
+	if(digits != null) {
+		while(s.length < digits) s = "0" + s;
+	}
+	return s;
+};
 var _$VideoList_VideoList_$Impl_$ = {};
 _$VideoList_VideoList_$Impl_$.__name__ = true;
 _$VideoList_VideoList_$Impl_$._new = function() {
@@ -408,6 +422,190 @@ haxe_Timer.prototype = {
 	}
 	,run: function() {
 	}
+};
+var haxe_crypto_Sha256 = function() {
+};
+haxe_crypto_Sha256.__name__ = true;
+haxe_crypto_Sha256.encode = function(s) {
+	var sh = new haxe_crypto_Sha256();
+	return sh.hex(sh.doEncode(haxe_crypto_Sha256.str2blks(s),s.length * 8));
+};
+haxe_crypto_Sha256.str2blks = function(s) {
+	var s1 = haxe_io_Bytes.ofString(s);
+	var nblk = (s1.length + 8 >> 6) + 1;
+	var blks = [];
+	var _g = 0;
+	var _g1 = nblk * 16;
+	while(_g < _g1) blks[_g++] = 0;
+	var _g2 = 0;
+	var _g3 = s1.length;
+	while(_g2 < _g3) {
+		var i = _g2++;
+		blks[i >> 2] |= s1.b[i] << 24 - ((i & 3) << 3);
+	}
+	var i1 = s1.length;
+	blks[i1 >> 2] |= 128 << 24 - ((i1 & 3) << 3);
+	blks[nblk * 16 - 1] = s1.length * 8;
+	return blks;
+};
+haxe_crypto_Sha256.prototype = {
+	doEncode: function(m,l) {
+		var K = [1116352408,1899447441,-1245643825,-373957723,961987163,1508970993,-1841331548,-1424204075,-670586216,310598401,607225278,1426881987,1925078388,-2132889090,-1680079193,-1046744716,-459576895,-272742522,264347078,604807628,770255983,1249150122,1555081692,1996064986,-1740746414,-1473132947,-1341970488,-1084653625,-958395405,-710438585,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,-2117940946,-1838011259,-1564481375,-1474664885,-1035236496,-949202525,-778901479,-694614492,-200395387,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,-2067236844,-1933114872,-1866530822,-1538233109,-1090935817,-965641998];
+		var HASH = [1779033703,-1150833019,1013904242,-1521486534,1359893119,-1694144372,528734635,1541459225];
+		var W = [];
+		W[64] = 0;
+		var a;
+		var b;
+		var c;
+		var d;
+		var e;
+		var f;
+		var g;
+		var h;
+		var T1;
+		var T2;
+		m[l >> 5] |= 128 << 24 - l % 32;
+		m[(l + 64 >> 9 << 4) + 15] = l;
+		var i = 0;
+		while(i < m.length) {
+			a = HASH[0];
+			b = HASH[1];
+			c = HASH[2];
+			d = HASH[3];
+			e = HASH[4];
+			f = HASH[5];
+			g = HASH[6];
+			h = HASH[7];
+			var _g = 0;
+			while(_g < 64) {
+				var j = _g++;
+				if(j < 16) {
+					W[j] = m[j + i];
+				} else {
+					var x = W[j - 2];
+					var x1 = (x >>> 17 | x << 15) ^ (x >>> 19 | x << 13) ^ x >>> 10;
+					var y = W[j - 7];
+					var lsw = (x1 & 65535) + (y & 65535);
+					var x2 = (x1 >> 16) + (y >> 16) + (lsw >> 16) << 16 | lsw & 65535;
+					var x3 = W[j - 15];
+					var y1 = (x3 >>> 7 | x3 << 25) ^ (x3 >>> 18 | x3 << 14) ^ x3 >>> 3;
+					var lsw1 = (x2 & 65535) + (y1 & 65535);
+					var x4 = (x2 >> 16) + (y1 >> 16) + (lsw1 >> 16) << 16 | lsw1 & 65535;
+					var y2 = W[j - 16];
+					var lsw2 = (x4 & 65535) + (y2 & 65535);
+					W[j] = (x4 >> 16) + (y2 >> 16) + (lsw2 >> 16) << 16 | lsw2 & 65535;
+				}
+				var y3 = (e >>> 6 | e << 26) ^ (e >>> 11 | e << 21) ^ (e >>> 25 | e << 7);
+				var lsw3 = (h & 65535) + (y3 & 65535);
+				var x5 = (h >> 16) + (y3 >> 16) + (lsw3 >> 16) << 16 | lsw3 & 65535;
+				var y4 = e & f ^ ~e & g;
+				var lsw4 = (x5 & 65535) + (y4 & 65535);
+				var x6 = (x5 >> 16) + (y4 >> 16) + (lsw4 >> 16) << 16 | lsw4 & 65535;
+				var y5 = K[j];
+				var lsw5 = (x6 & 65535) + (y5 & 65535);
+				var x7 = (x6 >> 16) + (y5 >> 16) + (lsw5 >> 16) << 16 | lsw5 & 65535;
+				var y6 = W[j];
+				var lsw6 = (x7 & 65535) + (y6 & 65535);
+				T1 = (x7 >> 16) + (y6 >> 16) + (lsw6 >> 16) << 16 | lsw6 & 65535;
+				var x8 = (a >>> 2 | a << 30) ^ (a >>> 13 | a << 19) ^ (a >>> 22 | a << 10);
+				var y7 = a & b ^ a & c ^ b & c;
+				var lsw7 = (x8 & 65535) + (y7 & 65535);
+				T2 = (x8 >> 16) + (y7 >> 16) + (lsw7 >> 16) << 16 | lsw7 & 65535;
+				h = g;
+				g = f;
+				f = e;
+				var lsw8 = (d & 65535) + (T1 & 65535);
+				e = (d >> 16) + (T1 >> 16) + (lsw8 >> 16) << 16 | lsw8 & 65535;
+				d = c;
+				c = b;
+				b = a;
+				var lsw9 = (T1 & 65535) + (T2 & 65535);
+				a = (T1 >> 16) + (T2 >> 16) + (lsw9 >> 16) << 16 | lsw9 & 65535;
+			}
+			var y8 = HASH[0];
+			var lsw10 = (a & 65535) + (y8 & 65535);
+			HASH[0] = (a >> 16) + (y8 >> 16) + (lsw10 >> 16) << 16 | lsw10 & 65535;
+			var y9 = HASH[1];
+			var lsw11 = (b & 65535) + (y9 & 65535);
+			HASH[1] = (b >> 16) + (y9 >> 16) + (lsw11 >> 16) << 16 | lsw11 & 65535;
+			var y10 = HASH[2];
+			var lsw12 = (c & 65535) + (y10 & 65535);
+			HASH[2] = (c >> 16) + (y10 >> 16) + (lsw12 >> 16) << 16 | lsw12 & 65535;
+			var y11 = HASH[3];
+			var lsw13 = (d & 65535) + (y11 & 65535);
+			HASH[3] = (d >> 16) + (y11 >> 16) + (lsw13 >> 16) << 16 | lsw13 & 65535;
+			var y12 = HASH[4];
+			var lsw14 = (e & 65535) + (y12 & 65535);
+			HASH[4] = (e >> 16) + (y12 >> 16) + (lsw14 >> 16) << 16 | lsw14 & 65535;
+			var y13 = HASH[5];
+			var lsw15 = (f & 65535) + (y13 & 65535);
+			HASH[5] = (f >> 16) + (y13 >> 16) + (lsw15 >> 16) << 16 | lsw15 & 65535;
+			var y14 = HASH[6];
+			var lsw16 = (g & 65535) + (y14 & 65535);
+			HASH[6] = (g >> 16) + (y14 >> 16) + (lsw16 >> 16) << 16 | lsw16 & 65535;
+			var y15 = HASH[7];
+			var lsw17 = (h & 65535) + (y15 & 65535);
+			HASH[7] = (h >> 16) + (y15 >> 16) + (lsw17 >> 16) << 16 | lsw17 & 65535;
+			i += 16;
+		}
+		return HASH;
+	}
+	,hex: function(a) {
+		var str = "";
+		var _g = 0;
+		while(_g < a.length) str += StringTools.hex(a[_g++],8);
+		return str.toLowerCase();
+	}
+};
+var haxe_io_Bytes = function(data) {
+	this.length = data.byteLength;
+	this.b = new Uint8Array(data);
+	this.b.bufferValue = data;
+	data.hxBytes = this;
+	data.bytes = this.b;
+};
+haxe_io_Bytes.__name__ = true;
+haxe_io_Bytes.ofString = function(s,encoding) {
+	if(encoding == haxe_io_Encoding.RawNative) {
+		var buf = new Uint8Array(s.length << 1);
+		var _g = 0;
+		var _g1 = s.length;
+		while(_g < _g1) {
+			var i = _g++;
+			var c = s.charCodeAt(i);
+			buf[i << 1] = c & 255;
+			buf[i << 1 | 1] = c >> 8;
+		}
+		return new haxe_io_Bytes(buf.buffer);
+	}
+	var a = [];
+	var i1 = 0;
+	while(i1 < s.length) {
+		var c1 = s.charCodeAt(i1++);
+		if(55296 <= c1 && c1 <= 56319) {
+			c1 = c1 - 55232 << 10 | s.charCodeAt(i1++) & 1023;
+		}
+		if(c1 <= 127) {
+			a.push(c1);
+		} else if(c1 <= 2047) {
+			a.push(192 | c1 >> 6);
+			a.push(128 | c1 & 63);
+		} else if(c1 <= 65535) {
+			a.push(224 | c1 >> 12);
+			a.push(128 | c1 >> 6 & 63);
+			a.push(128 | c1 & 63);
+		} else {
+			a.push(240 | c1 >> 18);
+			a.push(128 | c1 >> 12 & 63);
+			a.push(128 | c1 >> 6 & 63);
+			a.push(128 | c1 & 63);
+		}
+	}
+	return new haxe_io_Bytes(new Uint8Array(a).buffer);
+};
+var haxe_io_Encoding = $hxEnums["haxe.io.Encoding"] = { __ename__ : true, __constructs__ : ["UTF8","RawNative"]
+	,UTF8: {_hx_index:0,__enum__:"haxe.io.Encoding",toString:$estr}
+	,RawNative: {_hx_index:1,__enum__:"haxe.io.Encoding",toString:$estr}
 };
 var haxe_io_Path = function(path) {
 	switch(path) {
@@ -565,7 +763,52 @@ var js_node_Fs = require("fs");
 var js_node_Http = require("http");
 var js_node_Os = require("os");
 var js_node_Path = require("path");
+var js_node_Readline = require("readline");
 var js_npm_ws_Server = require("ws").Server;
+var server_ConsoleInput = function(main) {
+	this.main = main;
+};
+server_ConsoleInput.__name__ = true;
+server_ConsoleInput.prototype = {
+	initConsoleInput: function() {
+		var _gthis = this;
+		var rl = js_node_Readline.createInterface(process.stdin,process.stdout);
+		haxe_Log.trace = function(msg,pos) {
+			js_node_Readline.clearLine(process.stdout,0);
+			js_node_Readline.cursorTo(process.stdout,0,null);
+			console.log(msg);
+			rl.prompt(true);
+			return;
+		};
+		rl.prompt();
+		rl.on("line",function(line) {
+			_gthis.parseLine(line);
+			rl.prompt();
+			return;
+		});
+	}
+	,parseLine: function(line) {
+		if(StringTools.startsWith(line,"/addAdmin")) {
+			var args = line.split(" ");
+			if(args.length != 3) {
+				haxe_Log.trace("Wrong count of arguments",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 36, className : "server.ConsoleInput", methodName : "parseLine"});
+				return;
+			}
+			var name = args[1];
+			var password = args[2];
+			if(this.main.badNickName(name)) {
+				haxe_Log.trace(StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.main.config.maxLoginLength),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 44, className : "server.ConsoleInput", methodName : "parseLine"});
+				return;
+			}
+			this.main.addAdmin(name,password);
+		} else if(line == "/exit") {
+			this.main.exit();
+			return;
+		} else {
+			haxe_Log.trace("Unknown command \"" + line + "\". List:\n/addAdmin name password | Adds channel admin\n/exit | Exit process",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 53, className : "server.ConsoleInput", methodName : "parseLine"});
+		}
+	}
+};
 var server_HttpServer = function() { };
 server_HttpServer.__name__ = true;
 server_HttpServer.init = function(dir,customDir) {
@@ -701,34 +944,34 @@ var server_Main = function(port,wsPort) {
 		port = envPort;
 	}
 	this.statePath = "" + this.rootDir + "/user/state.json";
-	var exit = function() {
-		_gthis.saveState();
-		process.exit();
-	};
-	process.on("SIGINT",exit);
-	process.on("SIGUSR1",exit);
-	process.on("SIGUSR2",exit);
-	process.on("SIGTERM",exit);
+	process.on("SIGINT",$bind(this,this.exit));
+	process.on("SIGUSR1",$bind(this,this.exit));
+	process.on("SIGUSR2",$bind(this,this.exit));
+	process.on("SIGTERM",$bind(this,this.exit));
 	process.on("uncaughtException",function(err) {
 		_gthis.logError("uncaughtException",{ message : err.message, stack : err.stack});
-		exit();
+		_gthis.exit();
 		return;
 	});
 	process.on("unhandledRejection",function(reason,promise) {
 		_gthis.logError("unhandledRejection",reason);
-		exit();
+		_gthis.exit();
 		return;
 	});
+	this.consoleInput = new server_ConsoleInput(this);
+	this.consoleInput.initConsoleInput();
 	this.initIntergationHandlers();
 	this.loadState();
-	this.config = this.getUserConfig();
+	this.config = this.loadUserConfig();
+	this.userList = this.loadUsers();
+	this.config.salt = this.generateConfigSalt();
 	this.localIp = server_Utils.getLocalIp();
 	this.globalIp = this.localIp;
 	this.port = port;
 	server_Utils.getGlobalIp(function(ip) {
 		_gthis.globalIp = ip;
-		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 71, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 72, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 74, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 75, className : "server.Main", methodName : "new"});
 		return;
 	});
 	var dir = "" + this.rootDir + "/res";
@@ -747,7 +990,18 @@ server_Main.main = function() {
 	new server_Main();
 };
 server_Main.prototype = {
-	getUserConfig: function() {
+	exit: function() {
+		this.saveState();
+		process.exit();
+	}
+	,generateConfigSalt: function() {
+		if(this.userList.salt == null) {
+			var tmp = "" + Math.random();
+			this.userList.salt = haxe_crypto_Sha256.encode(tmp);
+		}
+		return this.userList.salt;
+	}
+	,loadUserConfig: function() {
 		var config = JSON.parse(js_node_Fs.readFileSync("" + this.rootDir + "/default-config.json",{ encoding : "utf8"}));
 		var customPath = "" + this.rootDir + "/user/config.json";
 		if(!sys_FileSystem.exists(customPath)) {
@@ -760,14 +1014,28 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 93, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 107, className : "server.Main", methodName : "loadUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
 		return config;
 	}
+	,loadUsers: function() {
+		var customPath = "" + this.rootDir + "/user/users.json";
+		if(!sys_FileSystem.exists(customPath)) {
+			return { admins : []};
+		}
+		return JSON.parse(js_node_Fs.readFileSync(customPath,{ encoding : "utf8"}));
+	}
+	,writeUsers: function(users) {
+		var folder = "" + this.rootDir + "/user";
+		if(!sys_FileSystem.exists(folder)) {
+			sys_FileSystem.createDirectory(folder);
+		}
+		js_node_Fs.writeFileSync("" + folder + "/users.json",JSON.stringify(users,null,"\t"));
+	}
 	,saveState: function() {
-		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 100, className : "server.Main", methodName : "saveState"});
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 131, className : "server.Main", methodName : "saveState"});
 		var json = JSON.stringify({ videoList : this.videoList, itemPos : this.itemPos, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 	}
@@ -775,7 +1043,7 @@ server_Main.prototype = {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
-		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 116, className : "server.Main", methodName : "loadState"});
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 147, className : "server.Main", methodName : "loadState"});
 		var data = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		this.videoList.length = 0;
 		this.messages.length = 0;
@@ -791,7 +1059,7 @@ server_Main.prototype = {
 		this.videoTimer.pause();
 	}
 	,logError: function(type,data) {
-		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 129, className : "server.Main", methodName : "logError", customParams : [data]});
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 160, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.rootDir + "/user/crashes";
 		var name = new Date().toISOString() + "-" + type;
 		if(!sys_FileSystem.exists(crashesFolder)) {
@@ -807,23 +1075,31 @@ server_Main.prototype = {
 					return;
 				}
 				var url = "http://" + process.env["APP_URL"];
-				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 143, className : "server.Main", methodName : "initIntergationHandlers"});
+				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 174, className : "server.Main", methodName : "initIntergationHandlers"});
 				js_node_Http.get(url,function(r) {
 					return;
 				});
 			};
 		}
 	}
+	,addAdmin: function(name,password) {
+		password += this.config.salt;
+		var hash = haxe_crypto_Sha256.encode(password);
+		if(this.userList.admins == null) {
+			this.userList.admins = [];
+		}
+		this.userList.admins.push({ name : name, hash : hash});
+		this.writeUsers(this.userList);
+		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 189, className : "server.Main", methodName : "addAdmin"});
+	}
 	,onConnect: function(ws,req) {
 		var _gthis = this;
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 153, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 196, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
-		if(req.connection.localAddress == ip) {
-			client.group |= 4;
-		}
+		client.setGroupFlag(ClientGroup.Admin,req.connection.localAddress == ip);
 		this.clients.push(client);
 		if(this.clients.length == 1 && this.videoList.length > 0) {
 			if(this.videoTimer.isPaused()) {
@@ -845,7 +1121,7 @@ server_Main.prototype = {
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 182, className : "server.Main", methodName : "onConnect"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 225, className : "server.Main", methodName : "onConnect"});
 			server_Utils.sortedPush(_gthis.freeIds,client.id);
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
@@ -914,6 +1190,26 @@ server_Main.prototype = {
 				this.send(client,{ type : "LoginError"});
 				return;
 			}
+			var hash = data.login.passHash;
+			if(hash == null) {
+				if(Lambda.exists(this.userList.admins,function(a) {
+					return a.name == name;
+				})) {
+					this.send(client,{ type : "PasswordRequest"});
+					return;
+				}
+			} else if(Lambda.exists(this.userList.admins,function(a1) {
+				if(a1.name == name) {
+					return a1.hash == hash;
+				} else {
+					return false;
+				}
+			})) {
+				client.setGroupFlag(ClientGroup.Admin,true);
+			} else {
+				this.send(client,{ type : "LoginError"});
+				return;
+			}
 			client.name = name;
 			client.setGroupFlag(ClientGroup.User,true);
 			this.send(client,{ type : data.type, login : { isUnknownClient : true, clientName : client.name, clients : this.clientList()}});
@@ -944,6 +1240,8 @@ server_Main.prototype = {
 				this.messages.shift();
 			}
 			this.broadcast(data);
+			break;
+		case "PasswordRequest":
 			break;
 		case "Pause":
 			if(this.videoList.length == 0) {

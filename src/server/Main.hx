@@ -1,5 +1,6 @@
 package server;
 
+import haxe.crypto.Sha256;
 import js.lib.Date;
 import sys.FileSystem;
 import sys.io.File;
@@ -25,9 +26,11 @@ class Main {
 	final localIp:String;
 	var globalIp:String;
 	final port:Int;
-	final config:Config;
+	public final config:Config;
+	final userList:UserList;
 	final clients:Array<Client> = [];
 	final freeIds:Array<Int> = [];
+	final consoleInput:ConsoleInput;
 	final videoList = new VideoList();
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
@@ -39,10 +42,6 @@ class Main {
 		final envPort = (process.env : Dynamic).PORT;
 		if (envPort != null) port = envPort;
 		statePath = '$rootDir/user/state.json';
-		function exit() {
-			saveState();
-			process.exit();
-		}
 		// process.on("exit", exit);
 		process.on("SIGINT", exit); // ctrl+c
 		process.on("SIGUSR1", exit); // kill pid
@@ -59,9 +58,13 @@ class Main {
 			logError("unhandledRejection", reason);
 			exit();
 		});
+		consoleInput = new ConsoleInput(this);
+		consoleInput.initConsoleInput();
 		initIntergationHandlers();
 		loadState();
-		config = getUserConfig();
+		config = loadUserConfig();
+		userList = loadUsers();
+		config.salt = generateConfigSalt();
 		localIp = Utils.getLocalIp();
 		globalIp = localIp;
 		this.port = port;
@@ -84,7 +87,18 @@ class Main {
 		wss.on("connection", onConnect);
 	}
 
-	function getUserConfig():Config {
+	public function exit():Void {
+		saveState();
+		process.exit();
+	}
+
+	function generateConfigSalt():String {
+		if (userList.salt == null)
+			userList.salt = Sha256.encode('${Math.random()}');
+		return userList.salt;
+	}
+
+	function loadUserConfig():Config {
 		final config:Config = Json.parse(File.getContent('$rootDir/default-config.json'));
 		final customPath = '$rootDir/user/config.json';
 		if (!FileSystem.exists(customPath)) return config;
@@ -94,6 +108,23 @@ class Main {
 			Reflect.setField(config, field, Reflect.field(customConfig, field));
 		}
 		return config;
+	}
+
+	function loadUsers():UserList {
+		final customPath = '$rootDir/user/users.json';
+		if (!FileSystem.exists(customPath)) return {
+			admins: []
+		};
+		return Json.parse(File.getContent(customPath));
+	}
+
+	function writeUsers(users:UserList):Void {
+		final folder = '$rootDir/user';
+		if (!FileSystem.exists(folder)) {
+			FileSystem.createDirectory(folder);
+		}
+		final data = Json.stringify(users, "\t");
+		File.saveContent('$folder/users.json', data);
 	}
 
 	function saveState():Void {
@@ -146,6 +177,18 @@ class Main {
 		}
 	}
 
+	public function addAdmin(name:String, password:String):Void {
+		password += config.salt;
+		final hash = Sha256.encode(password);
+		if (userList.admins == null) userList.admins = [];
+		userList.admins.push({
+			name: name,
+			hash: hash
+		});
+		writeUsers(userList);
+		trace('Admin $name added.');
+	}
+
 	function onConnect(ws:WebSocket, req:IncomingMessage):Void {
 		final ip = req.connection.remoteAddress;
 		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
@@ -153,7 +196,7 @@ class Main {
 		trace('$name connected ($ip)');
 		final isAdmin = req.connection.localAddress == ip;
 		final client = new Client(ws, req, id, name, 0);
-		if (isAdmin) client.group.set(Admin);
+		client.isAdmin = isAdmin;
 		clients.push(client);
 		if (clients.length == 1 && videoList.length > 0)
 			if (videoTimer.isPaused()) videoTimer.play();
@@ -205,6 +248,22 @@ class Main {
 					send(client, {type: LoginError});
 					return;
 				}
+				final hash = data.login.passHash;
+				if (hash == null) {
+					if (userList.admins.exists(a -> a.name == name)) {
+						send(client, {type: PasswordRequest});
+						return;
+					}
+				} else {
+					if (userList.admins.exists(
+						a -> a.name == name && a.hash == hash
+					)) client.isAdmin = true;
+					else {
+						// TODO server msg type
+						send(client, {type: LoginError});
+						return;
+					}
+				}
 				client.name = name;
 				client.isUser = true;
 				send(client, {
@@ -217,6 +276,7 @@ class Main {
 				});
 				sendClientList();
 
+			case PasswordRequest:
 			case LoginError:
 			case Logout:
 				final oldName = client.name;
@@ -425,7 +485,7 @@ class Main {
 
 	final htmlChars = ~/[&^<>'"]/;
 
-	function badNickName(name:String):Bool {
+	public function badNickName(name:String):Bool {
 		if (name.length == 0) return true;
 		if (htmlChars.match(name)) return true;
 		return false;

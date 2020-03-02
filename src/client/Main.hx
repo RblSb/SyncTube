@@ -1,5 +1,6 @@
 package client;
 
+import haxe.crypto.Sha256;
 import haxe.Timer;
 import js.html.MouseEvent;
 import js.html.KeyboardEvent;
@@ -217,10 +218,14 @@ class Main {
 			case Login:
 				onLogin(data.login.clients, data.login.clientName);
 
+			case PasswordRequest:
+				showGuestPasswordPanel();
+
 			case LoginError:
 				final text = Lang.get("usernameError")
 					.replace("$MAX", '${config.maxLoginLength}');
 				serverMessage(4, text);
+				showGuestLoginPanel();
 
 			case Logout:
 				updateClients(data.logout.clients);
@@ -324,18 +329,39 @@ class Main {
 			onLogin(connected.clients, connected.clientName);
 		}
 		final guestName:InputElement = cast ge("#guestname");
-		if (guestName.value.length > 0) send({
-			type: Login,
-			login: {
-				clientName: guestName.value
-			}
-		});
+		final guestPass:InputElement = cast ge("#guestpass");
+		if (config.salt != null && guestPass.value.length > 0) {
+			userLogin(guestName.value, guestPass.value);
+		} else {
+			guestLogin(guestName.value);
+		}
 		clearChat();
 		serverMessage(1);
 		for (message in connected.history) {
 			addMessage(message.name, message.text, message.time);
 		}
 		player.setItems(connected.videoList, connected.itemPos);
+	}
+
+	public function guestLogin(name:String):Void {
+		if (name.length == 0) return;
+		send({
+			type: Login, login: {
+				clientName: name
+			}
+		});
+	}
+
+	public function userLogin(name:String, password:String):Void {
+		if (config.salt == null) return;
+		if (password.length == 0) return;
+		if (name.length == 0) return;
+		send({
+			type: Login, login: {
+				clientName: name,
+				passHash: Sha256.encode(password + config.salt)
+			}
+		});
 	}
 
 	function setConfig(config:Config):Void {
@@ -386,6 +412,7 @@ class Main {
 
 	function showGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "block";
+		ge("#guestpassword").style.display = "none";
 		ge("#chatline").style.display = "none";
 		ge("#exitBtn").textContent = Lang.get("login");
 		Browser.window.dispatchEvent(new Event("resize"));
@@ -393,10 +420,17 @@ class Main {
 
 	function hideGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "none";
+		ge("#guestpassword").style.display = "none";
 		ge("#chatline").style.display = "block";
 		ge("#exitBtn").textContent = Lang.get("exit");
 		if (isAdmin()) ge("#clearchatbtn").style.display = "inline-block";
 		Browser.window.dispatchEvent(new Event("resize"));
+	}
+
+	function showGuestPasswordPanel():Void {
+		ge("#guestlogin").style.display = "none";
+		ge("#chatline").style.display = "none";
+		ge("#guestpassword").style.display = "block";
 	}
 
 	function updateClients(newClients:Array<ClientData>):Void {

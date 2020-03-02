@@ -118,25 +118,6 @@ Lambda.exists = function(it,f) {
 	}
 	return false;
 };
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-haxe_ds_StringMap.__name__ = true;
-haxe_ds_StringMap.prototype = {
-	setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-};
 var Lang = function() { };
 Lang.__name__ = true;
 Lang.request = function(path,callback) {
@@ -325,6 +306,20 @@ StringTools.startsWith = function(s,start) {
 };
 StringTools.replace = function(s,sub,by) {
 	return s.split(sub).join(by);
+};
+StringTools.hex = function(n,digits) {
+	var s = "";
+	while(true) {
+		s = "0123456789ABCDEF".charAt(n & 15) + s;
+		n >>>= 4;
+		if(!(n > 0)) {
+			break;
+		}
+	}
+	if(digits != null) {
+		while(s.length < digits) s = "0" + s;
+	}
+	return s;
 };
 var _$VideoList_VideoList_$Impl_$ = {};
 _$VideoList_VideoList_$Impl_$.__name__ = true;
@@ -588,17 +583,21 @@ client_Buttons.hideMenus = function() {
 client_Buttons.initChatInput = function(main) {
 	var guestName = window.document.querySelector("#guestname");
 	guestName.onkeydown = function(e) {
-		if(guestName.value.length == 0) {
-			return;
-		}
 		if(e.keyCode == 13) {
-			main.send({ type : "Login", login : { clientName : guestName.value}});
+			main.guestLogin(guestName.value);
+		}
+		return;
+	};
+	var guestPass = window.document.querySelector("#guestpass");
+	guestPass.onkeydown = function(e1) {
+		if(e1.keyCode == 13) {
+			main.userLogin(guestName.value,guestPass.value);
 		}
 		return;
 	};
 	var chatLine = window.document.querySelector("#chatline");
-	chatLine.onkeydown = function(e1) {
-		switch(e1.keyCode) {
+	chatLine.onkeydown = function(e2) {
+		switch(e2.keyCode) {
 		case 13:
 			if(chatLine.value.length == 0) {
 				return;
@@ -821,7 +820,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 211, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 212, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -868,6 +867,7 @@ client_Main.prototype = {
 		case "LoginError":
 			var text = StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.config.maxLoginLength);
 			this.serverMessage(4,text);
+			this.showGuestLoginPanel();
 			break;
 		case "Logout":
 			this.updateClients(data.logout.clients);
@@ -876,6 +876,9 @@ client_Main.prototype = {
 			break;
 		case "Message":
 			this.addMessage(data.message.clientName,data.message.text);
+			break;
+		case "PasswordRequest":
+			this.showGuestPasswordPanel();
 			break;
 		case "Pause":
 			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
@@ -958,8 +961,11 @@ client_Main.prototype = {
 			this.onLogin(connected.clients,connected.clientName);
 		}
 		var guestName = window.document.querySelector("#guestname");
-		if(guestName.value.length > 0) {
-			this.send({ type : "Login", login : { clientName : guestName.value}});
+		var guestPass = window.document.querySelector("#guestpass");
+		if(this.config.salt != null && guestPass.value.length > 0) {
+			this.userLogin(guestName.value,guestPass.value);
+		} else {
+			this.guestLogin(guestName.value);
 		}
 		this.clearChat();
 		this.serverMessage(1);
@@ -971,6 +977,24 @@ client_Main.prototype = {
 			this.addMessage(message.name,message.text,message.time);
 		}
 		this.player.setItems(connected.videoList,connected.itemPos);
+	}
+	,guestLogin: function(name) {
+		if(name.length == 0) {
+			return;
+		}
+		this.send({ type : "Login", login : { clientName : name}});
+	}
+	,userLogin: function(name,password) {
+		if(this.config.salt == null) {
+			return;
+		}
+		if(password.length == 0) {
+			return;
+		}
+		if(name.length == 0) {
+			return;
+		}
+		this.send({ type : "Login", login : { clientName : name, passHash : haxe_crypto_Sha256.encode(password + this.config.salt)}});
 	}
 	,setConfig: function(config) {
 		this.config = config;
@@ -994,9 +1018,8 @@ client_Main.prototype = {
 		}
 		var smilesWrap = window.document.querySelector("#smileswrap");
 		smilesWrap.onclick = function(e) {
-			var el = e.target;
 			var form = window.document.querySelector("#chatline");
-			form.value += " " + el.title;
+			form.value += " " + e.target.title;
 			form.focus();
 			return;
 		};
@@ -1024,18 +1047,25 @@ client_Main.prototype = {
 	}
 	,showGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "block";
+		window.document.querySelector("#guestpassword").style.display = "none";
 		window.document.querySelector("#chatline").style.display = "none";
 		window.document.querySelector("#exitBtn").textContent = Lang.get("login");
 		window.dispatchEvent(new Event("resize"));
 	}
 	,hideGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
+		window.document.querySelector("#guestpassword").style.display = "none";
 		window.document.querySelector("#chatline").style.display = "block";
 		window.document.querySelector("#exitBtn").textContent = Lang.get("exit");
 		if((this.personal.group & 4) != 0) {
 			window.document.querySelector("#clearchatbtn").style.display = "inline-block";
 		}
 		window.dispatchEvent(new Event("resize"));
+	}
+	,showGuestPasswordPanel: function() {
+		window.document.querySelector("#guestlogin").style.display = "none";
+		window.document.querySelector("#chatline").style.display = "none";
+		window.document.querySelector("#guestpassword").style.display = "block";
 	}
 	,updateClients: function(newClients) {
 		this.clients.length = 0;
@@ -1719,7 +1749,8 @@ client_players_Youtube.prototype = {
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
-			callback({ duration : _gthis.youtube.getDuration()});
+			var tmp = _gthis.youtube.getDuration();
+			callback({ duration : tmp});
 			return;
 		}, onError : function(e1) {
 			haxe_Log.trace("Error " + e1.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 116, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
@@ -1842,6 +1873,159 @@ haxe_Timer.prototype = {
 		this.id = null;
 	}
 	,run: function() {
+	}
+};
+var haxe_crypto_Sha256 = function() {
+};
+haxe_crypto_Sha256.__name__ = true;
+haxe_crypto_Sha256.encode = function(s) {
+	var sh = new haxe_crypto_Sha256();
+	return sh.hex(sh.doEncode(haxe_crypto_Sha256.str2blks(s),s.length * 8));
+};
+haxe_crypto_Sha256.str2blks = function(s) {
+	var s1 = haxe_io_Bytes.ofString(s);
+	var nblk = (s1.length + 8 >> 6) + 1;
+	var blks = [];
+	var _g = 0;
+	var _g1 = nblk * 16;
+	while(_g < _g1) blks[_g++] = 0;
+	var _g2 = 0;
+	var _g3 = s1.length;
+	while(_g2 < _g3) {
+		var i = _g2++;
+		blks[i >> 2] |= s1.b[i] << 24 - ((i & 3) << 3);
+	}
+	var i1 = s1.length;
+	blks[i1 >> 2] |= 128 << 24 - ((i1 & 3) << 3);
+	blks[nblk * 16 - 1] = s1.length * 8;
+	return blks;
+};
+haxe_crypto_Sha256.prototype = {
+	doEncode: function(m,l) {
+		var K = [1116352408,1899447441,-1245643825,-373957723,961987163,1508970993,-1841331548,-1424204075,-670586216,310598401,607225278,1426881987,1925078388,-2132889090,-1680079193,-1046744716,-459576895,-272742522,264347078,604807628,770255983,1249150122,1555081692,1996064986,-1740746414,-1473132947,-1341970488,-1084653625,-958395405,-710438585,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,-2117940946,-1838011259,-1564481375,-1474664885,-1035236496,-949202525,-778901479,-694614492,-200395387,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,-2067236844,-1933114872,-1866530822,-1538233109,-1090935817,-965641998];
+		var HASH = [1779033703,-1150833019,1013904242,-1521486534,1359893119,-1694144372,528734635,1541459225];
+		var W = [];
+		W[64] = 0;
+		var a;
+		var b;
+		var c;
+		var d;
+		var e;
+		var f;
+		var g;
+		var h;
+		var T1;
+		var T2;
+		m[l >> 5] |= 128 << 24 - l % 32;
+		m[(l + 64 >> 9 << 4) + 15] = l;
+		var i = 0;
+		while(i < m.length) {
+			a = HASH[0];
+			b = HASH[1];
+			c = HASH[2];
+			d = HASH[3];
+			e = HASH[4];
+			f = HASH[5];
+			g = HASH[6];
+			h = HASH[7];
+			var _g = 0;
+			while(_g < 64) {
+				var j = _g++;
+				if(j < 16) {
+					W[j] = m[j + i];
+				} else {
+					var x = W[j - 2];
+					var x1 = (x >>> 17 | x << 15) ^ (x >>> 19 | x << 13) ^ x >>> 10;
+					var y = W[j - 7];
+					var lsw = (x1 & 65535) + (y & 65535);
+					var x2 = (x1 >> 16) + (y >> 16) + (lsw >> 16) << 16 | lsw & 65535;
+					var x3 = W[j - 15];
+					var y1 = (x3 >>> 7 | x3 << 25) ^ (x3 >>> 18 | x3 << 14) ^ x3 >>> 3;
+					var lsw1 = (x2 & 65535) + (y1 & 65535);
+					var x4 = (x2 >> 16) + (y1 >> 16) + (lsw1 >> 16) << 16 | lsw1 & 65535;
+					var y2 = W[j - 16];
+					var lsw2 = (x4 & 65535) + (y2 & 65535);
+					W[j] = (x4 >> 16) + (y2 >> 16) + (lsw2 >> 16) << 16 | lsw2 & 65535;
+				}
+				var y3 = (e >>> 6 | e << 26) ^ (e >>> 11 | e << 21) ^ (e >>> 25 | e << 7);
+				var lsw3 = (h & 65535) + (y3 & 65535);
+				var x5 = (h >> 16) + (y3 >> 16) + (lsw3 >> 16) << 16 | lsw3 & 65535;
+				var y4 = e & f ^ ~e & g;
+				var lsw4 = (x5 & 65535) + (y4 & 65535);
+				var x6 = (x5 >> 16) + (y4 >> 16) + (lsw4 >> 16) << 16 | lsw4 & 65535;
+				var y5 = K[j];
+				var lsw5 = (x6 & 65535) + (y5 & 65535);
+				var x7 = (x6 >> 16) + (y5 >> 16) + (lsw5 >> 16) << 16 | lsw5 & 65535;
+				var y6 = W[j];
+				var lsw6 = (x7 & 65535) + (y6 & 65535);
+				T1 = (x7 >> 16) + (y6 >> 16) + (lsw6 >> 16) << 16 | lsw6 & 65535;
+				var x8 = (a >>> 2 | a << 30) ^ (a >>> 13 | a << 19) ^ (a >>> 22 | a << 10);
+				var y7 = a & b ^ a & c ^ b & c;
+				var lsw7 = (x8 & 65535) + (y7 & 65535);
+				T2 = (x8 >> 16) + (y7 >> 16) + (lsw7 >> 16) << 16 | lsw7 & 65535;
+				h = g;
+				g = f;
+				f = e;
+				var lsw8 = (d & 65535) + (T1 & 65535);
+				e = (d >> 16) + (T1 >> 16) + (lsw8 >> 16) << 16 | lsw8 & 65535;
+				d = c;
+				c = b;
+				b = a;
+				var lsw9 = (T1 & 65535) + (T2 & 65535);
+				a = (T1 >> 16) + (T2 >> 16) + (lsw9 >> 16) << 16 | lsw9 & 65535;
+			}
+			var y8 = HASH[0];
+			var lsw10 = (a & 65535) + (y8 & 65535);
+			HASH[0] = (a >> 16) + (y8 >> 16) + (lsw10 >> 16) << 16 | lsw10 & 65535;
+			var y9 = HASH[1];
+			var lsw11 = (b & 65535) + (y9 & 65535);
+			HASH[1] = (b >> 16) + (y9 >> 16) + (lsw11 >> 16) << 16 | lsw11 & 65535;
+			var y10 = HASH[2];
+			var lsw12 = (c & 65535) + (y10 & 65535);
+			HASH[2] = (c >> 16) + (y10 >> 16) + (lsw12 >> 16) << 16 | lsw12 & 65535;
+			var y11 = HASH[3];
+			var lsw13 = (d & 65535) + (y11 & 65535);
+			HASH[3] = (d >> 16) + (y11 >> 16) + (lsw13 >> 16) << 16 | lsw13 & 65535;
+			var y12 = HASH[4];
+			var lsw14 = (e & 65535) + (y12 & 65535);
+			HASH[4] = (e >> 16) + (y12 >> 16) + (lsw14 >> 16) << 16 | lsw14 & 65535;
+			var y13 = HASH[5];
+			var lsw15 = (f & 65535) + (y13 & 65535);
+			HASH[5] = (f >> 16) + (y13 >> 16) + (lsw15 >> 16) << 16 | lsw15 & 65535;
+			var y14 = HASH[6];
+			var lsw16 = (g & 65535) + (y14 & 65535);
+			HASH[6] = (g >> 16) + (y14 >> 16) + (lsw16 >> 16) << 16 | lsw16 & 65535;
+			var y15 = HASH[7];
+			var lsw17 = (h & 65535) + (y15 & 65535);
+			HASH[7] = (h >> 16) + (y15 >> 16) + (lsw17 >> 16) << 16 | lsw17 & 65535;
+			i += 16;
+		}
+		return HASH;
+	}
+	,hex: function(a) {
+		var str = "";
+		var _g = 0;
+		while(_g < a.length) str += StringTools.hex(a[_g++],8);
+		return str.toLowerCase();
+	}
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+haxe_ds_StringMap.__name__ = true;
+haxe_ds_StringMap.prototype = {
+	setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
 	}
 };
 var haxe_http_HttpBase = function(url) {
@@ -2009,6 +2193,44 @@ var haxe_io_Bytes = function(data) {
 	data.bytes = this.b;
 };
 haxe_io_Bytes.__name__ = true;
+haxe_io_Bytes.ofString = function(s,encoding) {
+	if(encoding == haxe_io_Encoding.RawNative) {
+		var buf = new Uint8Array(s.length << 1);
+		var _g = 0;
+		var _g1 = s.length;
+		while(_g < _g1) {
+			var i = _g++;
+			var c = s.charCodeAt(i);
+			buf[i << 1] = c & 255;
+			buf[i << 1 | 1] = c >> 8;
+		}
+		return new haxe_io_Bytes(buf.buffer);
+	}
+	var a = [];
+	var i1 = 0;
+	while(i1 < s.length) {
+		var c1 = s.charCodeAt(i1++);
+		if(55296 <= c1 && c1 <= 56319) {
+			c1 = c1 - 55232 << 10 | s.charCodeAt(i1++) & 1023;
+		}
+		if(c1 <= 127) {
+			a.push(c1);
+		} else if(c1 <= 2047) {
+			a.push(192 | c1 >> 6);
+			a.push(128 | c1 & 63);
+		} else if(c1 <= 65535) {
+			a.push(224 | c1 >> 12);
+			a.push(128 | c1 >> 6 & 63);
+			a.push(128 | c1 & 63);
+		} else {
+			a.push(240 | c1 >> 18);
+			a.push(128 | c1 >> 12 & 63);
+			a.push(128 | c1 >> 6 & 63);
+			a.push(128 | c1 & 63);
+		}
+	}
+	return new haxe_io_Bytes(new Uint8Array(a).buffer);
+};
 haxe_io_Bytes.ofData = function(b) {
 	var hb = b.hxBytes;
 	if(hb != null) {
@@ -2242,10 +2464,10 @@ js_youtube_Youtube.init = function(onAPIReady) {
 function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); else return o.iterator(); }
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;
-var __map_reserved = {};
 if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 String.__name__ = true;
 Array.__name__ = true;
+var __map_reserved = {};
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
 }});

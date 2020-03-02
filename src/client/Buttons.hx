@@ -209,13 +209,12 @@ class Buttons {
 	static function initChatInput(main:Main):Void {
 		final guestName:InputElement = cast ge("#guestname");
 		guestName.onkeydown = e -> {
-			if (guestName.value.length == 0) return;
-			if (e.keyCode == 13) main.send({
-				type: Login,
-				login: {
-					clientName: guestName.value
-				}
-			});
+			if (e.keyCode == 13) main.guestLogin(guestName.value);
+		}
+
+		final guestPass:InputElement = cast ge("#guestpass");
+		guestPass.onkeydown = e -> {
+			if (e.keyCode == 13) main.userLogin(guestName.value, guestPass.value);
 		}
 
 		final chatLine:InputElement = cast ge("#chatline");

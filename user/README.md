@@ -12,7 +12,12 @@ File example:
 You can patch any file you want in project `res/` by creating `user/res/sameName` files.
 For example `user/res/index.html` or `user/res/css/custom.css`.
 You can also add any new files.
+
+## Server commands
+Server has input commands, for example, to set admin users. Simple enter anything to terminal after run to get command list.
+
 ## Other files here
-- `state.json` - saved state of latest server session (messages, videos, video time).
-- `logs/` - latest 10 logs. You can change count in config.
-- `crashes/` - folder with latest error logs, when the server had to restart itself.
+- `state.json` - Saved state of latest server session (messages, videos, video time).
+- `users.json` - Admin names with password hashes and random channel-specific salt. Do not share this file!
+- `crashes/` - Latest error logs, when the server had to restart itself.
+- `logs/` - (TODO) Latest activity logs.

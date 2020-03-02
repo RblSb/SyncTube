@@ -15,8 +15,19 @@ typedef Config = {
 	videoLimit:Int,
 	leaderRequest:String,
 	emotes:Array<Emote>,
-	filters:Array<Filter>
+	filters:Array<Filter>,
+	?salt:String
 };
+
+typedef UserList = {
+	admins:Array<UserField>,
+	?salt:String
+}
+
+typedef UserField = {
+	name:String,
+	hash:String
+}
 
 typedef Emote = {
 	name:String,
@@ -58,6 +69,7 @@ typedef WsEvent = {
 	},
 	?login:{
 		clientName:String,
+		?passHash:String,
 		?clients:Array<ClientData>,
 		?isUnknownClient:Bool,
 	},
@@ -119,6 +131,7 @@ typedef WsEvent = {
 enum abstract WsEventType(String) {
 	var Connected;
 	var Login;
+	var PasswordRequest;
 	var LoginError;
 	var Logout;
 	var Message;
