@@ -182,7 +182,7 @@ class Youtube implements IPlayer {
 
 	public function setTime(time:Float):Void {
 		if (!isLoaded) return;
-		youtube.seekTo((time : Any), true);
+		youtube.seekTo(time, true);
 	}
 
 }
