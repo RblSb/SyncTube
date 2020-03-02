@@ -459,9 +459,23 @@ client_Buttons.init = function(main) {
 		extendPlayer.classList.toggle("active");
 		return window.dispatchEvent(new Event("resize"));
 	};
-	window.document.querySelector("#togglesynch").onclick = function(e5) {
-		if(!window.confirm(Lang.get("toggleSynchConfirm"))) {
-			return;
+	var toggleSynch = window.document.querySelector("#togglesynch");
+	toggleSynch.onclick = function(e5) {
+		var icon = toggleSynch.firstElementChild;
+		if(main.isSyncActive) {
+			if(!window.confirm(Lang.get("toggleSynchConfirm"))) {
+				return;
+			}
+			main.isSyncActive = false;
+			icon.style.color = "rgba(238, 72, 67, 0.75)";
+			icon.classList.add("glyphicon-pause");
+			icon.classList.remove("glyphicon-play");
+		} else {
+			main.isSyncActive = true;
+			icon.style.color = "";
+			icon.classList.add("glyphicon-play");
+			icon.classList.remove("glyphicon-pause");
+			main.send({ type : "UpdatePlaylist"});
 		}
 		return;
 	};
@@ -475,12 +489,12 @@ client_Buttons.init = function(main) {
 	var getPlaylist = window.document.querySelector("#getplaylist");
 	getPlaylist.onclick = function(e8) {
 		client_Utils.copyToClipboard(main.getPlaylistLinks().join(","));
-		var icon = getPlaylist.firstElementChild;
-		icon.classList.remove("glyphicon-link");
-		icon.classList.add("glyphicon-ok");
+		var icon1 = getPlaylist.firstElementChild;
+		icon1.classList.remove("glyphicon-link");
+		icon1.classList.add("glyphicon-ok");
 		return haxe_Timer.delay(function() {
-			icon.classList.add("glyphicon-link");
-			icon.classList.remove("glyphicon-ok");
+			icon1.classList.add("glyphicon-link");
+			icon1.classList.remove("glyphicon-ok");
 			return;
 		},2000);
 	};
@@ -677,6 +691,7 @@ var client_Main = function(host,port) {
 	this.globalIp = "";
 	this.pageTitle = window.document.title;
 	this.clients = [];
+	this.isSyncActive = true;
 	var _gthis = this;
 	this.player = new client_Player(this);
 	if(host == null) {
@@ -694,6 +709,9 @@ var client_Main = function(host,port) {
 	}
 	this.initListeners();
 	this.onTimeGet.run = function() {
+		if(!_gthis.isSyncActive) {
+			return;
+		}
 		if(_gthis.player.isListEmpty()) {
 			return;
 		}
@@ -851,7 +869,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 212, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 214, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1336,6 +1354,9 @@ client_Player.prototype = {
 		}
 	}
 	,setVideo: function(i) {
+		if(!this.main.isSyncActive) {
+			return;
+		}
 		var item = this.items[i];
 		if(client_players_Youtube.isYoutube(item.url)) {
 			this.setPlayer(new client_players_Youtube(this.main,this));
@@ -1527,12 +1548,18 @@ client_Player.prototype = {
 		return this.player != null;
 	}
 	,play: function() {
+		if(!this.main.isSyncActive) {
+			return;
+		}
 		if(this.player == null) {
 			return;
 		}
 		this.player.play();
 	}
 	,pause: function() {
+		if(!this.main.isSyncActive) {
+			return;
+		}
 		if(this.player == null) {
 			return;
 		}
@@ -1547,6 +1574,9 @@ client_Player.prototype = {
 	,setTime: function(time,isLocal) {
 		if(isLocal == null) {
 			isLocal = true;
+		}
+		if(!this.main.isSyncActive) {
+			return;
 		}
 		if(this.player == null) {
 			return;

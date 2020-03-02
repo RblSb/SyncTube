@@ -91,6 +91,7 @@ class Player {
 	}
 
 	public function setVideo(i:Int):Void {
+		if (!main.isSyncActive) return;
 		final item = items[i];
 		if (Youtube.isYoutube(item.url)) {
 			setPlayer(new Youtube(main, this));
@@ -292,11 +293,13 @@ class Player {
 	}
 
 	public function play():Void {
+		if (!main.isSyncActive) return;
 		if (player == null) return;
 		player.play();
 	}
 
 	public function pause():Void {
+		if (!main.isSyncActive) return;
 		if (player == null) return;
 		player.pause();
 	}
@@ -307,6 +310,7 @@ class Player {
 	}
 
 	public function setTime(time:Float, isLocal = true):Void {
+		if (!main.isSyncActive) return;
 		if (player == null) return;
 		skipSetTime = isLocal;
 		player.setTime(time);

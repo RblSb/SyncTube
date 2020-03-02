@@ -452,7 +452,13 @@ class Main {
 					updatePlaylist: {
 					videoList: videoList
 				}});
-			case UpdatePlaylist: // client-only
+
+			case UpdatePlaylist:
+				broadcast({
+					type: UpdatePlaylist,
+					updatePlaylist: {
+					videoList: videoList
+				}});
 
 			case TogglePlaylistLock:
 				if (!client.isAdmin) return;

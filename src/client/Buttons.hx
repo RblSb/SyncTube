@@ -78,6 +78,23 @@ class Buttons {
 			window.dispatchEvent(new Event("resize"));
 		}
 
+		final toggleSynch = ge("#togglesynch");
+		toggleSynch.onclick = e -> {
+			final icon = toggleSynch.firstElementChild;
+			if (main.isSyncActive) {
+				if (!window.confirm(Lang.get("toggleSynchConfirm"))) return;
+				main.isSyncActive = false;
+				icon.style.color = "rgba(238, 72, 67, 0.75)";
+				icon.classList.add("glyphicon-pause");
+				icon.classList.remove("glyphicon-play");
+			} else {
+				main.isSyncActive = true;
+				icon.style.color = "";
+				icon.classList.add("glyphicon-play");
+				icon.classList.remove("glyphicon-pause");
+				main.send({type: UpdatePlaylist});
+			}
+		}
 		final mediaRefresh = ge("#mediarefresh");
 		mediaRefresh.onclick = e -> {
 			main.refreshPlayer();

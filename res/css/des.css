@@ -158,6 +158,9 @@ src:url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.2/fonts/gl
 .glyphicon-play:before {
   content:"\e072"
 }
+.glyphicon-pause:before {
+  content:"\e073"
+}
 .glyphicon-star-empty:before {
   content:"\e007"
 }

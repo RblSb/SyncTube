@@ -1373,6 +1373,7 @@ server_Main.prototype = {
 			this.sendClientList();
 			break;
 		case "UpdatePlaylist":
+			this.broadcast({ type : "UpdatePlaylist", updatePlaylist : { videoList : this.videoList}});
 			break;
 		case "VideoLoaded":
 			this.prepareVideoPlayback();

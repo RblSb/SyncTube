@@ -21,6 +21,7 @@ using ClientTools;
 
 class Main {
 
+	public var isSyncActive = true;
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
 	final host:String;
@@ -46,6 +47,7 @@ class Main {
 
 		initListeners();
 		onTimeGet.run = () -> {
+			if (!isSyncActive) return;
 			if (player.isListEmpty()) return;
 			send({type: GetTime});
 		}
