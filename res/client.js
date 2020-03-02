@@ -549,21 +549,33 @@ client_Buttons.onVideoResize = function() {
 	window.document.querySelector("#messagebuffer").style.height = "" + height + "px";
 	window.document.querySelector("#userlist").style.height = "" + height + "px";
 };
+client_Buttons.onClick = function(el,func) {
+	var isTouch = 'ontouchstart' in window;
+	if(!isTouch) {
+		el.onclick = func;
+	} else {
+		el.ontouchend = func;
+	}
+};
 client_Buttons.initNavBar = function(main) {
+	var onclick = function(e) {
+		return window.document.querySelector("#nav-collapsible").classList.toggle("in");
+	};
+	client_Buttons.onClick(window.document.querySelector("#toggleMenu"),onclick);
 	var classes = window.document.querySelectorAll(".dropdown-toggle");
 	var _g = 0;
 	while(_g < classes.length) {
 		var klass = [classes[_g]];
 		++_g;
 		klass[0].onclick = (function(klass1) {
-			return function(e) {
-				klass1[0].classList.toggle("focus");
+			return function(e1) {
+				var isActive = klass1[0].classList.toggle("focus");
 				client_Buttons.hideMenus();
 				var menu = klass1[0].parentElement.querySelector(".dropdown-menu");
-				if(menu.style.display == "") {
+				if(isActive) {
 					return menu.style.display = "block";
 				} else {
-					return menu.style.display = "";
+					return menu.style.display = "none";
 				}
 			};
 		})(klass);
@@ -575,7 +587,7 @@ client_Buttons.initNavBar = function(main) {
 		var klass2 = [classes1[_g1]];
 		++_g1;
 		klass2[0].onmouseleave = (function(klass3) {
-			return function(e1) {
+			return function(e2) {
 				var toggle = klass3[0].querySelector(".dropdown-toggle");
 				toggle.classList.remove("focus");
 				toggle.blur();
@@ -584,7 +596,7 @@ client_Buttons.initNavBar = function(main) {
 		})(klass2);
 	}
 	var exitBtn = window.document.querySelector("#exitBtn");
-	exitBtn.onclick = function(e2) {
+	exitBtn.onclick = function(e3) {
 		if((main.personal.group & 1) != 0) {
 			main.send({ type : "Logout"});
 		} else {
@@ -595,7 +607,7 @@ client_Buttons.initNavBar = function(main) {
 		return;
 	};
 	var synchThresholdBtn = window.document.querySelector("#synchThresholdBtn");
-	synchThresholdBtn.onclick = function(e3) {
+	synchThresholdBtn.onclick = function(e4) {
 		var secs = main.synchThreshold + 1;
 		if(secs > 5) {
 			secs = 1;
@@ -607,7 +619,7 @@ client_Buttons.initNavBar = function(main) {
 	};
 	synchThresholdBtn.innerText += ": " + main.synchThreshold + "s";
 	var swapLayoutBtn = window.document.querySelector("#swapLayoutBtn");
-	swapLayoutBtn.onclick = function(e4) {
+	swapLayoutBtn.onclick = function(e5) {
 		var p = window.document.querySelector("#main");
 		p.insertBefore(p.children[2],p.children[0]);
 		p.insertBefore(p.children[2],p.children[1]);
@@ -621,7 +633,7 @@ client_Buttons.initNavBar = function(main) {
 		return;
 	};
 	var removeBtn = window.document.querySelector("#removeVideoBtn");
-	removeBtn.onclick = function(e5) {
+	removeBtn.onclick = function(e6) {
 		if(main.toggleVideoElement()) {
 			removeBtn.innerText = Lang.get("removeVideo");
 		} else {

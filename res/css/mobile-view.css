@@ -55,9 +55,8 @@
 	margin-bottom: 0;
 }
 
-@media (max-width:799px)  {
+@media (max-width:767px)  {
 	.navbar {
-		/* display: none; */
 		border-color: #272b30 !important;
 		background: rgb(39, 43, 48) !important;
 		margin-bottom: 0;

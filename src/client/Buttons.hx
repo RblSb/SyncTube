@@ -168,15 +168,27 @@ class Buttons {
 		ge("#userlist").style.height = '${height}px';
 	}
 
+	static function onClick(el:Element, func:Any->Void):Void {
+		final isTouch = untyped __js__("'ontouchstart' in window");
+		if (!isTouch) el.onclick = func;
+		else el.ontouchend = func;
+	}
+
 	static function initNavBar(main:Main):Void {
+		final toggleMenu = ge("#toggleMenu");
+		final onclick = e -> {
+			ge("#nav-collapsible").classList.toggle("in");
+		}
+		onClick(toggleMenu, onclick);
+
 		final classes:Array<Element> = cast document.querySelectorAll(".dropdown-toggle");
 		for (klass in classes) {
 			klass.onclick = e -> {
-				klass.classList.toggle("focus");
+				final isActive = klass.classList.toggle("focus");
 				hideMenus();
 				final menu = klass.parentElement.querySelector(".dropdown-menu");
-				if (menu.style.display == "") menu.style.display = "block";
-				else menu.style.display = "";
+				if (isActive) menu.style.display = "block";
+				else menu.style.display = "none";
 			}
 			klass.onmouseover = klass.onclick;
 		}
@@ -206,7 +218,6 @@ class Buttons {
 			updateSynchThresholdBtn(main);
 			synchThresholdBtn.blur();
 		}
-		final text = synchThresholdBtn.innerText;
 		final secs = main.synchThreshold;
 		synchThresholdBtn.innerText += ': ${secs}s';
 
