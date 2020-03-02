@@ -594,8 +594,20 @@ client_Buttons.initNavBar = function(main) {
 		client_Buttons.hideMenus();
 		return;
 	};
+	var synchThresholdBtn = window.document.querySelector("#synchThresholdBtn");
+	synchThresholdBtn.onclick = function(e3) {
+		var secs = main.synchThreshold + 1;
+		if(secs > 5) {
+			secs = 1;
+		}
+		main.setSynchThreshold(secs);
+		client_Buttons.updateSynchThresholdBtn(main);
+		synchThresholdBtn.blur();
+		return;
+	};
+	synchThresholdBtn.innerText += ": " + main.synchThreshold + "s";
 	var swapLayoutBtn = window.document.querySelector("#swapLayoutBtn");
-	swapLayoutBtn.onclick = function(e3) {
+	swapLayoutBtn.onclick = function(e4) {
 		var p = window.document.querySelector("#main");
 		p.insertBefore(p.children[2],p.children[0]);
 		p.insertBefore(p.children[2],p.children[1]);
@@ -609,7 +621,7 @@ client_Buttons.initNavBar = function(main) {
 		return;
 	};
 	var removeBtn = window.document.querySelector("#removeVideoBtn");
-	removeBtn.onclick = function(e4) {
+	removeBtn.onclick = function(e5) {
 		if(main.toggleVideoElement()) {
 			removeBtn.innerText = Lang.get("removeVideo");
 		} else {
@@ -624,6 +636,10 @@ client_Buttons.hideMenus = function() {
 	var menus = window.document.querySelectorAll(".dropdown-menu");
 	var _g = 0;
 	while(_g < menus.length) menus[_g++].style.display = "";
+};
+client_Buttons.updateSynchThresholdBtn = function(main) {
+	var tmp = "" + Lang.get("synchThreshold") + ": " + main.synchThreshold;
+	window.document.querySelector("#synchThresholdBtn").innerText = tmp + "s";
 };
 client_Buttons.initChatInput = function(main) {
 	var guestName = window.document.querySelector("#guestname");
@@ -691,6 +707,7 @@ var client_Main = function(host,port) {
 	this.globalIp = "";
 	this.pageTitle = window.document.title;
 	this.clients = [];
+	this.synchThreshold = 2;
 	this.isSyncActive = true;
 	var _gthis = this;
 	this.player = new client_Player(this);
@@ -708,16 +725,7 @@ var client_Main = function(host,port) {
 		port = "80";
 	}
 	this.initListeners();
-	this.onTimeGet.run = function() {
-		if(!_gthis.isSyncActive) {
-			return;
-		}
-		if(_gthis.player.isListEmpty()) {
-			return;
-		}
-		_gthis.send({ type : "GetTime"});
-		return;
-	};
+	this.onTimeGet.run = $bind(this,this.requestTime);
 	window.document.onvisibilitychange = function() {
 		if(!window.document.hidden && _gthis.onBlinkTab != null) {
 			window.document.title = _gthis.getPageTitle();
@@ -736,7 +744,16 @@ client_Main.main = function() {
 	new client_Main();
 };
 client_Main.prototype = {
-	openWebSocket: function(host,port) {
+	requestTime: function() {
+		if(!this.isSyncActive) {
+			return;
+		}
+		if(this.player.isListEmpty()) {
+			return;
+		}
+		this.send({ type : "GetTime"});
+	}
+	,openWebSocket: function(host,port) {
 		var _gthis = this;
 		this.ws = new WebSocket("ws://" + host + ":" + port);
 		this.ws.onmessage = $bind(this,this.onMessage);
@@ -869,7 +886,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 214, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 217, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -894,7 +911,7 @@ client_Main.prototype = {
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
 			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
-				if(Math.abs(time - newTime) < 2) {
+				if(Math.abs(time - newTime) < this.synchThreshold) {
 					return;
 				}
 				this.player.setTime(time,false);
@@ -905,7 +922,7 @@ client_Main.prototype = {
 			} else {
 				this.player.pause();
 			}
-			if(Math.abs(time - newTime) < 2) {
+			if(Math.abs(time - newTime) < this.synchThreshold) {
 				return;
 			}
 			this.player.setTime(newTime);
@@ -969,7 +986,7 @@ client_Main.prototype = {
 		case "SetTime":
 			var newTime1 = data.setTime.time;
 			var time1 = this.player.getTime();
-			if(Math.abs(time1 - newTime1) < 2) {
+			if(Math.abs(time1 - newTime1) < this.synchThreshold) {
 				return;
 			}
 			this.player.setTime(newTime1);
@@ -1270,6 +1287,12 @@ client_Main.prototype = {
 			icon.classList.add("glyphicon-lock");
 			icon.classList.remove("glyphicon-ok");
 		}
+	}
+	,setSynchThreshold: function(s) {
+		this.synchThreshold = s;
+		this.onTimeGet.stop();
+		this.onTimeGet = new haxe_Timer(s * 1000);
+		this.onTimeGet.run = $bind(this,this.requestTime);
 	}
 	,escapeRegExp: function(regex) {
 		var _this_r = new RegExp("([.*+?^${}()|[\\]\\\\])","g".split("u").join(""));

@@ -22,6 +22,7 @@ using ClientTools;
 class Main {
 
 	public var isSyncActive = true;
+	public var synchThreshold(default, null) = 2;
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
 	final host:String;
@@ -32,7 +33,7 @@ class Main {
 	var isConnected = false;
 	var ws:WebSocket;
 	final player:Player;
-	final onTimeGet = new Timer(2000);
+	var onTimeGet = new Timer(2000);
 	var onBlinkTab:Null<Timer>;
 
 	static function main():Void new Main();
@@ -46,11 +47,7 @@ class Main {
 		if (port == "") port = "80";
 
 		initListeners();
-		onTimeGet.run = () -> {
-			if (!isSyncActive) return;
-			if (player.isListEmpty()) return;
-			send({type: GetTime});
-		}
+		onTimeGet.run = requestTime;
 		document.onvisibilitychange = () -> {
 			if (!document.hidden && onBlinkTab != null) {
 				document.title = getPageTitle();
@@ -61,6 +58,12 @@ class Main {
 		Lang.init("langs", () -> {
 			openWebSocket(host, port);
 		});
+	}
+
+	function requestTime():Void {
+		if (!isSyncActive) return;
+		if (player.isListEmpty()) return;
+		send({type: GetTime});
 	}
 
 	function openWebSocket(host:String, port:String):Void {
@@ -273,19 +276,19 @@ class Main {
 				if (isLeader()) {
 					// if video is loading on leader
 					// move other clients back in time
-					if (Math.abs(time - newTime) < 2) return;
+					if (Math.abs(time - newTime) < synchThreshold) return;
 					player.setTime(time, false);
 					return;
 				}
 				if (!data.getTime.paused) player.play();
 				else player.pause();
-				if (Math.abs(time - newTime) < 2) return;
+				if (Math.abs(time - newTime) < synchThreshold) return;
 				player.setTime(newTime);
 
 			case SetTime:
 				final newTime = data.setTime.time;
 				final time = player.getTime();
-				if (Math.abs(time - newTime) < 2) return;
+				if (Math.abs(time - newTime) < synchThreshold) return;
 				player.setTime(newTime);
 
 			case Rewind:
@@ -587,6 +590,13 @@ class Main {
 			icon.classList.add("glyphicon-lock");
 			icon.classList.remove("glyphicon-ok");
 		}
+	}
+
+	public function setSynchThreshold(s:Int):Void {
+		synchThreshold = s;
+		onTimeGet.stop();
+		onTimeGet = new Timer(s * 1000);
+		onTimeGet.run = requestTime;
 	}
 
 	function escapeRegExp(regex:String):String {

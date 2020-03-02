@@ -21,6 +21,7 @@
 	"login": "Войти",
 	"exit": "Выход",
 	"settings": "Настройки",
+	"synchThreshold": "Частота синхронизации",
 	"channel": "Канал",
 	"layout": "Разметка",
 	"swapLayout": "Сменить разметку",

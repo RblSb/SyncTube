@@ -36,8 +36,11 @@
                 <li><a id="exitBtn" href="#">${login}</a></li>
               </ul>
             </li>
-            <li><a href="javascript:void(0)">${settings}</a></li>
-            <!-- <li><a id="showchansettings" href="javascript:void(0)">${channel}</a></li> -->
+            <li class="dropdown"><a class="dropdown-toggle" href="#" data-toggle="dropdown">${settings}<b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a href="#" id="synchThresholdBtn">${synchThreshold}</a></li>
+              </ul>
+            </li>
             <li class="dropdown"><a class="dropdown-toggle" href="#" data-toggle="dropdown">${layout}<b class="caret"></b></a>
               <ul class="dropdown-menu">
                 <li><a href="#" id="swapLayoutBtn">${swapLayout}</a></li>

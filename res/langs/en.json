@@ -21,6 +21,7 @@
 	"login": "Login",
 	"exit": "Exit",
 	"settings": "Settings",
+	"synchThreshold": "Synch Threshold",
 	"channel": "Channel",
 	"layout": "Layout",
 	"swapLayout": "Swap Layout",

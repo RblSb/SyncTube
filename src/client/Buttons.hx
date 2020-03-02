@@ -198,6 +198,18 @@ class Buttons {
 			exitBtn.blur();
 			hideMenus();
 		}
+		final synchThresholdBtn = ge("#synchThresholdBtn");
+		synchThresholdBtn.onclick = e -> {
+			var secs = main.synchThreshold + 1;
+			if (secs > 5) secs = 1;
+			main.setSynchThreshold(secs);
+			updateSynchThresholdBtn(main);
+			synchThresholdBtn.blur();
+		}
+		final text = synchThresholdBtn.innerText;
+		final secs = main.synchThreshold;
+		synchThresholdBtn.innerText += ': ${secs}s';
+
 		final swapLayoutBtn = ge("#swapLayoutBtn");
 		swapLayoutBtn.onclick = e -> {
 			final p = ge("#main");
@@ -225,6 +237,12 @@ class Buttons {
 	static function hideMenus():Void {
 		final menus:Array<Element> = cast document.querySelectorAll(".dropdown-menu");
 		for (menu in menus) menu.style.display = "";
+	}
+
+	static function updateSynchThresholdBtn(main:Main):Void {
+		final text = Lang.get("synchThreshold");
+		final secs = main.synchThreshold;
+		ge("#synchThresholdBtn").innerText = '$text: ${secs}s';
 	}
 
 	static function initChatInput(main:Main):Void {
