@@ -1891,10 +1891,11 @@ client_players_Youtube.prototype = {
 		this.video = window.document.createElement("div");
 		this.video.id = "videoplayer";
 		this.playerEl.appendChild(this.video);
-		this.youtube = new YT.Player(this.video.id,{ videoId : client_players_Youtube.extractVideoId(item.url), playerVars : { autoplay : 1, modestbranding : 1, rel : 0, showinfo : 0}, events : { onStateChange : function(e) {
-			switch(e.data) {
+		this.youtube = new YT.Player(this.video.id,{ videoId : client_players_Youtube.extractVideoId(item.url), playerVars : { autoplay : 1, modestbranding : 1, rel : 0, showinfo : 0, start : 0}, events : { onReady : function(e) {
+			return _gthis.isLoaded = true;
+		}, onStateChange : function(e1) {
+			switch(e1.data) {
 			case -1:
-				_gthis.isLoaded = true;
 				_gthis.player.onCanBePlayed();
 				break;
 			case 0:
@@ -1918,7 +1919,9 @@ client_players_Youtube.prototype = {
 		if(this.video == null) {
 			return;
 		}
-		this.playerEl.removeChild(this.video);
+		if(this.playerEl.contains(this.video)) {
+			this.playerEl.removeChild(this.video);
+		}
 		this.video = null;
 	}
 	,play: function() {

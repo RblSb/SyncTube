@@ -137,13 +137,13 @@ class Youtube implements IPlayer {
 				modestbranding: 1,
 				rel: 0,
 				showinfo: 0,
+				start: 0
 			},
 			events: {
-				// onReady: e -> player.onCanBePlayed(),
+				onReady: e -> isLoaded = true,
 				onStateChange: e -> {
 					switch (e.data) {
 						case UNSTARTED:
-							isLoaded = true;
 							player.onCanBePlayed();
 						case ENDED:
 						case PLAYING:
@@ -161,7 +161,7 @@ class Youtube implements IPlayer {
 
 	public function removeVideo():Void {
 		if (video == null) return;
-		playerEl.removeChild(video);
+		if (playerEl.contains(video)) playerEl.removeChild(video);
 		video = null;
 	}
 
