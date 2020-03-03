@@ -46,8 +46,16 @@
 	],
 	"filters": [
 		{
-			"name": "image", "regex": "(http|https)(:\\/\\/.*\\.)(png|jpg|gif|jpeg)([^ ,]*)", "flags": "g",
-			"replace": "<a href='$1$2$3' target='_blank'><img src='$1$2$3$4' style='max-width:200px; max-height:200px' /></a>"
+			"name": "url",
+			"regex": "(https?:\\/\\/[^ \t]*)",
+			"flags": "g",
+			"replace": "<a href='$1' target='_blank' rel='noopener noreferrer'>$1</a>"
+		},
+		{
+			"name": "image",
+			"regex": "(https?:\\/\\/.*\\.)(png|jpg|gif|jpeg)([^ ,]*)",
+			"flags": "g",
+			"replace": "<a href='$1$2$3' target='_blank' rel='noopener noreferrer'><img src='$1$2$3' style='max-width:200px; max-height:200px'/></a>"
 		}
 	]
 }
