@@ -52,7 +52,8 @@ typedef VideoItem = {
 	title:String,
 	author:String,
 	duration:Float,
-	isTemp:Bool
+	isTemp:Bool,
+	isIframe:Bool
 }
 
 typedef WsEvent = {

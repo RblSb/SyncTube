@@ -133,9 +133,16 @@ class Buttons {
 
 		final showMediaUrl = ge("#showmediaurl");
 		showMediaUrl.onclick = e -> {
-			ge("#showmediaurl").classList.toggle("collapsed");
-			ge("#showmediaurl").classList.toggle("active");
+			showMediaUrl.classList.toggle("collapsed");
+			showMediaUrl.classList.toggle("active");
 			ge("#addfromurl").classList.toggle("collapse");
+		}
+
+		final showCustomEmbed = ge("#showcustomembed");
+		showCustomEmbed.onclick = e -> {
+			showCustomEmbed.classList.toggle("collapsed");
+			showCustomEmbed.classList.toggle("active");
+			ge("#customembed").classList.toggle("collapse");
 		}
 
 		window.onresize = onVideoResize;

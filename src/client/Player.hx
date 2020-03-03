@@ -5,6 +5,7 @@ import js.Browser.document;
 import client.Main.ge;
 import client.players.Raw;
 import client.players.Youtube;
+import client.players.Iframe;
 import Types.VideoData;
 import Types.VideoItem;
 using StringTools;
@@ -93,7 +94,9 @@ class Player {
 	public function setVideo(i:Int):Void {
 		if (!main.isSyncActive) return;
 		final item = items[i];
-		if (Youtube.isYoutube(item.url)) {
+		if (item.isIframe) {
+			setPlayer(new Iframe(main, this));
+		} else if (Youtube.isYoutube(item.url)) {
 			setPlayer(new Youtube(main, this));
 		} else {
 			setPlayer(new Raw(main, this));
@@ -156,12 +159,13 @@ class Player {
 	}
 
 	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
+		final url = item.url.htmlEscape(true);
 		final itemEl = nodeFromString(
 			'<li class="queue_entry pluid-0" title="${Lang.get("addedBy")}: ${item.author}">
-				<a class="qe_title" href="${item.url}" target="_blank">${item.title.htmlEscape()}</a>
+				<a class="qe_title" href="$url" target="_blank">${item.title.htmlEscape()}</a>
 				<span class="qe_time">${duration(item.duration)}</span>
 				<div class="qe_clear"></div>
-				<div class="btn-group" style="display: inline-block;">
+				<div class="btn-group">
 					<button class="btn btn-xs btn-default qbtn-play">
 						<span class="glyphicon glyphicon-play"></span>${Lang.get("play")}
 					</button>

@@ -113,9 +113,20 @@ class Main {
 
 		ge("#queue_next").onclick = e -> addVideoUrl(false);
 		ge("#queue_end").onclick = e -> addVideoUrl(true);
-		ge("#mediaurl").onkeydown = function(e:KeyboardEvent) {
+		ge("#mediaurl").onkeydown = (e:KeyboardEvent) -> {
 			if (e.keyCode == 13) addVideoUrl(true);
 		}
+
+		ge("#ce_queue_next").onclick = e -> addIframe(false);
+		ge("#ce_queue_end").onclick = e -> addIframe(true);
+		ge("#customembed-title").onkeydown = (e:KeyboardEvent) -> {
+			if (e.keyCode == 13) {
+				addIframe(true);
+				e.preventDefault();
+			}
+		}
+		ge("#customembed-content").onkeydown =
+			ge("#customembed-title").onkeydown;
 	}
 
 	public inline function isUser():Bool {
@@ -178,12 +189,37 @@ class Main {
 						title: data.title,
 						author: personal.name,
 						duration: data.duration,
-						isTemp: isTemp
+						isTemp: isTemp,
+						isIframe: false
 					},
 					atEnd: atEnd
 			}});
 			callback();
 		});
+	}
+
+	function addIframe(atEnd:Bool):Void {
+		final iframeCode:InputElement = cast ge("#customembed-content");
+		final iframe = iframeCode.value;
+		if (iframe.length == 0) return;
+		iframeCode.value = "";
+		final mediaName:InputElement = cast ge("#customembed-title");
+		final name = mediaName.value.length == 0 ? "Custom Media" : mediaName.value;
+		mediaName.value = "";
+		final checkbox:InputElement = cast ge("#customembed").querySelector(".add-temp");
+		final isTemp = checkbox.checked;
+		send({
+			type: AddVideo, addVideo: {
+				item: {
+					url: iframe,
+					title: name,
+					author: personal.name,
+					duration: 99 * 60 * 60,
+					isTemp: isTemp,
+					isIframe: true
+				},
+				atEnd: atEnd
+		}});
 	}
 
 	public function toggleVideoElement():Bool {

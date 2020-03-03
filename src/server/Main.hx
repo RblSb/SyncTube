@@ -371,8 +371,7 @@ class Main {
 				if (videoTimer.getTime() > videoList[itemPos].duration) {
 					videoTimer.stop();
 					onMessage(client, {
-						type: SkipVideo,
-						skipVideo: {
+						type: SkipVideo, skipVideo: {
 							url: videoList[itemPos].url
 						}
 					});

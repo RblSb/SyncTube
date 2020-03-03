@@ -518,10 +518,17 @@ client_Buttons.init = function(main) {
 		}
 		return;
 	};
-	window.document.querySelector("#showmediaurl").onclick = function(e12) {
-		window.document.querySelector("#showmediaurl").classList.toggle("collapsed");
-		window.document.querySelector("#showmediaurl").classList.toggle("active");
+	var showMediaUrl = window.document.querySelector("#showmediaurl");
+	showMediaUrl.onclick = function(e12) {
+		showMediaUrl.classList.toggle("collapsed");
+		showMediaUrl.classList.toggle("active");
 		return window.document.querySelector("#addfromurl").classList.toggle("collapse");
+	};
+	var showCustomEmbed = window.document.querySelector("#showcustomembed");
+	showCustomEmbed.onclick = function(e13) {
+		showCustomEmbed.classList.toggle("collapsed");
+		showCustomEmbed.classList.toggle("active");
+		return window.document.querySelector("#customembed").classList.toggle("collapse");
 	};
 	window.onresize = client_Buttons.onVideoResize;
 	client_Buttons.initSplit();
@@ -813,7 +820,24 @@ client_Main.prototype = {
 			if(e4.keyCode == 13) {
 				_gthis.addVideoUrl(true);
 			}
+			return;
 		};
+		window.document.querySelector("#ce_queue_next").onclick = function(e5) {
+			_gthis.addIframe(false);
+			return;
+		};
+		window.document.querySelector("#ce_queue_end").onclick = function(e6) {
+			_gthis.addIframe(true);
+			return;
+		};
+		window.document.querySelector("#customembed-title").onkeydown = function(e7) {
+			if(e7.keyCode == 13) {
+				_gthis.addIframe(true);
+				e7.preventDefault();
+			}
+			return;
+		};
+		window.document.querySelector("#customembed-content").onkeydown = window.document.querySelector("#customembed-title").onkeydown;
 	}
 	,addVideoUrl: function(atEnd) {
 		var mediaUrl = window.document.querySelector("#mediaurl");
@@ -865,10 +889,23 @@ client_Main.prototype = {
 			if(data.title == null) {
 				data.title = Lang.get("rawVideo");
 			}
-			_gthis.send({ type : "AddVideo", addVideo : { item : { url : url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp}, atEnd : atEnd}});
+			_gthis.send({ type : "AddVideo", addVideo : { item : { url : url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : false}, atEnd : atEnd}});
 			callback();
 			return;
 		});
+	}
+	,addIframe: function(atEnd) {
+		var iframeCode = window.document.querySelector("#customembed-content");
+		var iframe = iframeCode.value;
+		if(iframe.length == 0) {
+			return;
+		}
+		iframeCode.value = "";
+		var mediaName = window.document.querySelector("#customembed-title");
+		var name = mediaName.value.length == 0 ? "Custom Media" : mediaName.value;
+		mediaName.value = "";
+		var isTemp = window.document.querySelector("#customembed").querySelector(".add-temp").checked;
+		this.send({ type : "AddVideo", addVideo : { item : { url : iframe, title : name, author : this.personal.name, duration : 356400, isTemp : isTemp, isIframe : true}, atEnd : atEnd}});
 	}
 	,toggleVideoElement: function() {
 		if(this.player.hasVideo()) {
@@ -898,7 +935,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 217, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 253, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1393,7 +1430,9 @@ client_Player.prototype = {
 			return;
 		}
 		var item = this.items[i];
-		if(client_players_Youtube.isYoutube(item.url)) {
+		if(item.isIframe) {
+			this.setPlayer(new client_players_Iframe(this.main,this));
+		} else if(client_players_Youtube.isYoutube(item.url)) {
 			this.setPlayer(new client_players_Youtube(this.main,this));
 		} else {
 			this.setPlayer(new client_players_Raw(this.main,this));
@@ -1444,7 +1483,8 @@ client_Player.prototype = {
 		this.main.send({ type : "SetTime", setTime : { time : this.getTime()}});
 	}
 	,addVideoItem: function(item,atEnd) {
-		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + item.url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\" style=\"display: inline-block;\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("setNext") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
+		var url = StringTools.htmlEscape(item.url,true);
+		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("setNext") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
 		_$VideoList_VideoList_$Impl_$.addItem(this.items,item,atEnd,this.itemPos);
 		this.setItemElementType(itemEl,item.isTemp);
 		if(atEnd) {
@@ -1687,6 +1727,40 @@ client_Utils.copyToClipboard = function(text) {
 		textarea.select();
 		window.document.execCommand("copy");
 		window.document.body.removeChild(textarea);
+	}
+};
+var client_players_Iframe = function(main,player) {
+	this.playerEl = window.document.querySelector("#ytapiplayer");
+	this.main = main;
+	this.player = player;
+};
+client_players_Iframe.__name__ = true;
+client_players_Iframe.prototype = {
+	loadVideo: function(item) {
+		this.video = window.document.createElement("div");
+		this.video.id = "videoplayer";
+		this.video.innerHTML = item.url;
+		if(this.video.firstChild.nodeName != "IFRAME" && this.video.firstChild.nodeName != "OBJECT") {
+			this.video = null;
+			return;
+		}
+		this.playerEl.appendChild(this.video);
+	}
+	,removeVideo: function() {
+		if(this.video == null) {
+			return;
+		}
+		this.playerEl.removeChild(this.video);
+		this.video = null;
+	}
+	,play: function() {
+	}
+	,pause: function() {
+	}
+	,getTime: function() {
+		return 0;
+	}
+	,setTime: function(time) {
 	}
 };
 var client_players_Raw = function(main,player) {
