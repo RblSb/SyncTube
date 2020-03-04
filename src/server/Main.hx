@@ -13,7 +13,10 @@ import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
 import js.node.http.IncomingMessage;
 import js.node.Http;
-import Types;
+import Types.Config;
+import Types.UserList;
+import Types.Message;
+import Types.WsEvent;
 using StringTools;
 using ClientTools;
 using Lambda;
@@ -249,6 +252,7 @@ class Main {
 				final name = data.login.clientName;
 				if (badNickName(name) || name.length > config.maxLoginLength
 					|| clients.getByName(name) != null) {
+					serverMessage(client, "usernameError");
 					send(client, {type: LoginError});
 					return;
 				}
@@ -263,7 +267,7 @@ class Main {
 						a -> a.name == name && a.hash == hash
 					)) client.isAdmin = true;
 					else {
-						// TODO server msg type
+						serverMessage(client, "passwordMatchError");
 						send(client, {type: LoginError});
 						return;
 					}
@@ -310,8 +314,22 @@ class Main {
 				if (messages.length > config.serverChatHistory) messages.shift();
 				broadcast(data);
 
+			case ServerMessage:
 			case AddVideo:
-				if (!client.isAdmin && !isPlaylistOpen) return;
+				if (!client.isAdmin && !isPlaylistOpen) {
+					serverMessage(client, "accessError");
+					return;
+				}
+				if (config.totalVideoLimit != 0
+					&& videoList.length >= config.totalVideoLimit) {
+					serverMessage(client, "totalVideoLimitError");
+					return;
+				}
+				if (config.userVideoLimit != 0
+					&& videoList.itemsByUser(client) >= config.userVideoLimit) {
+					serverMessage(client, "videoLimitPerUserError");
+					return;
+				}
 				final item = data.addVideo.item;
 				item.author = client.name;
 				final local = '$localIp:$port';
@@ -319,7 +337,7 @@ class Main {
 					item.url = item.url.replace(local, '$globalIp:$port');
 				}
 				if (videoList.exists(i -> i.url == item.url)) {
-					// TODO send server message
+					serverMessage(client, "videoAlreadyExistsError");
 					return;
 				}
 				videoList.addItem(item, data.addVideo.atEnd, itemPos);
@@ -482,6 +500,14 @@ class Main {
 			type: UpdateClients,
 			updateClients: {
 				clients: clientList()
+			}
+		});
+	}
+
+	function serverMessage(client:Client, textId:String):Void {
+		send(client, {
+			type: ServerMessage, serverMessage: {
+				textId: textId
 			}
 		});
 	}

@@ -12,7 +12,8 @@ typedef Config = {
 	maxLoginLength:Int,
 	maxMessageLength:Int,
 	serverChatHistory:Int,
-	videoLimit:Int,
+	totalVideoLimit:Int,
+	userVideoLimit:Int,
 	leaderRequest:String,
 	emotes:Array<Emote>,
 	filters:Array<Filter>,
@@ -84,6 +85,9 @@ typedef WsEvent = {
 		clientName:String,
 		text:String
 	},
+	?serverMessage:{
+		textId:String
+	},
 	?updateClients:{
 		clients:Array<ClientData>,
 	},
@@ -140,6 +144,7 @@ enum abstract WsEventType(String) {
 	var LoginError;
 	var Logout;
 	var Message;
+	var ServerMessage;
 	var UpdateClients;
 	// var AddClient;
 	// var RemoveClient;

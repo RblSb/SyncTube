@@ -267,9 +267,6 @@ class Main {
 				showGuestPasswordPanel();
 
 			case LoginError:
-				final text = Lang.get("usernameError")
-					.replace("$MAX", '${config.maxLoginLength}');
-				serverMessage(4, text);
 				showGuestLoginPanel();
 
 			case Logout:
@@ -283,6 +280,16 @@ class Main {
 
 			case Message:
 				addMessage(data.message.clientName, data.message.text);
+
+			case ServerMessage:
+				final id = data.serverMessage.textId;
+				final text = switch (id) {
+					case "usernameError":
+						Lang.get(id).replace("$MAX", '${config.maxLoginLength}');
+					default:
+						Lang.get(id);
+				}
+				serverMessage(4, text);
 
 			case AddVideo:
 				player.addVideoItem(data.addVideo.item, data.addVideo.atEnd);

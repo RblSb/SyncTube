@@ -998,8 +998,6 @@ client_Main.prototype = {
 			this.onLogin(data.login.clients,data.login.clientName);
 			break;
 		case "LoginError":
-			var text = StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.config.maxLoginLength);
-			this.serverMessage(4,text);
 			this.showGuestLoginPanel();
 			break;
 		case "Logout":
@@ -1038,6 +1036,11 @@ client_Main.prototype = {
 			break;
 		case "Rewind":
 			this.player.setTime(data.rewind.time);
+			break;
+		case "ServerMessage":
+			var id = data.serverMessage.textId;
+			var text = id == "usernameError" ? StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength) : Lang.get(id);
+			this.serverMessage(4,text);
 			break;
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);

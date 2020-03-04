@@ -2,8 +2,9 @@
 	"channelName": "SyncTube",
 	"maxLoginLength": 20,
 	"maxMessageLength": 500,
-	"serverChatHistory": 30,
-	"videoLimit": 0,
+	"serverChatHistory": 50,
+	"totalVideoLimit": 0,
+	"userVideoLimit": 0,
 	"leaderRequest": "everyone",
 	"emotes": [
 		{"name": ":adorable:", "image": "https://i.imgur.com/5GxNwDY.png"},

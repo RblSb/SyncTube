@@ -64,4 +64,10 @@ abstract VideoList(Array<VideoItem>) from Array<VideoItem> to Array<VideoItem> {
 		return itemPos;
 	}
 
+	public function itemsByUser(client:Client):Int {
+		var i = 0;
+		for (item in this) if (item.author == client.name) i++;
+		return i;
+	}
+
 }
