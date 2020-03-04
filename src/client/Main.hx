@@ -646,6 +646,10 @@ class Main {
 		onTimeGet.run = requestTime;
 	}
 
+	public function getTemplateUrl():String {
+		return config.templateUrl;
+	}
+
 	function escapeRegExp(regex:String):String {
 		return ~/([.*+?^${}()|[\]\\])/g.replace(regex, "\\$1");
 	}

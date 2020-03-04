@@ -5,6 +5,7 @@
 	"serverChatHistory": 50,
 	"totalVideoLimit": 0,
 	"userVideoLimit": 0,
+	"templateUrl": "https://youtube.com/watch?v=iY1QHpp6iEE",
 	"leaderRequest": "everyone",
 	"emotes": [
 		{"name": ":adorable:", "image": "https://i.imgur.com/5GxNwDY.png"},

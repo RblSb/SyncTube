@@ -528,6 +528,12 @@ client_Buttons.init = function(main) {
 		client_Buttons.showPlayerGroup(showCustomEmbed);
 		return;
 	};
+	window.document.querySelector("#insert_template").onclick = function(e14) {
+		var input = window.document.querySelector("#mediaurl");
+		input.value = main.getTemplateUrl();
+		input.focus();
+		return;
+	};
 	window.onresize = client_Buttons.onVideoResize;
 	client_Buttons.initSplit();
 };
@@ -1363,6 +1369,9 @@ client_Main.prototype = {
 		this.onTimeGet.stop();
 		this.onTimeGet = new haxe_Timer(s * 1000);
 		this.onTimeGet.run = $bind(this,this.requestTime);
+	}
+	,getTemplateUrl: function() {
+		return this.config.templateUrl;
 	}
 	,escapeRegExp: function(regex) {
 		var _this_r = new RegExp("([.*+?^${}()|[\\]\\\\])","g".split("u").join(""));

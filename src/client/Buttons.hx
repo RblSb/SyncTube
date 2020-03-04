@@ -137,6 +137,12 @@ class Buttons {
 		final showCustomEmbed = ge("#showcustomembed");
 		showCustomEmbed.onclick = e -> showPlayerGroup(showCustomEmbed);
 
+		ge("#insert_template").onclick = e -> {
+			final input:InputElement = cast ge("#mediaurl");
+			input.value = main.getTemplateUrl();
+			input.focus();
+		}
+
 		window.onresize = onVideoResize;
 		initSplit();
 	}

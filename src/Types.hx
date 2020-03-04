@@ -14,6 +14,7 @@ typedef Config = {
 	serverChatHistory:Int,
 	totalVideoLimit:Int,
 	userVideoLimit:Int,
+	templateUrl:String,
 	leaderRequest:String,
 	emotes:Array<Emote>,
 	filters:Array<Filter>,
