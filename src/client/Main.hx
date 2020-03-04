@@ -230,6 +230,10 @@ class Main {
 		return player.hasVideo();
 	}
 
+	public function isListEmpty():Bool {
+		return player.isListEmpty();
+	}
+
 	public function refreshPlayer():Void {
 		player.refresh();
 	}

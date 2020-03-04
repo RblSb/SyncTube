@@ -132,21 +132,26 @@ class Buttons {
 		}
 
 		final showMediaUrl = ge("#showmediaurl");
-		showMediaUrl.onclick = e -> {
-			showMediaUrl.classList.toggle("collapsed");
-			showMediaUrl.classList.toggle("active");
-			ge("#addfromurl").classList.toggle("collapse");
-		}
+		showMediaUrl.onclick = e -> showPlayerGroup(showMediaUrl);
 
 		final showCustomEmbed = ge("#showcustomembed");
-		showCustomEmbed.onclick = e -> {
-			showCustomEmbed.classList.toggle("collapsed");
-			showCustomEmbed.classList.toggle("active");
-			ge("#customembed").classList.toggle("collapse");
-		}
+		showCustomEmbed.onclick = e -> showPlayerGroup(showCustomEmbed);
 
 		window.onresize = onVideoResize;
 		initSplit();
+	}
+
+	static function showPlayerGroup(el:Element):Void {
+		final groups:Array<Element> = cast document.querySelectorAll('[data-target]');
+		for (group in groups) {
+			if (el == group) continue;
+			group.classList.add("collapsed");
+			group.classList.remove("active");
+			ge(group.dataset.target).classList.add("collapse");
+		}
+		el.classList.toggle("collapsed");
+		el.classList.toggle("active");
+		ge(el.dataset.target).classList.toggle("collapse");
 	}
 
 	static function initSplit(swapped = false):Void {
@@ -245,7 +250,7 @@ class Buttons {
 		final removeBtn = ge("#removeVideoBtn");
 		removeBtn.onclick = e -> {
 			final has = main.toggleVideoElement();
-			if (has) removeBtn.innerText = Lang.get("removeVideo");
+			if (has || main.isListEmpty()) removeBtn.innerText = Lang.get("removeVideo");
 			else removeBtn.innerText = Lang.get("addVideo");
 			removeBtn.blur();
 			hideMenus();

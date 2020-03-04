@@ -293,7 +293,7 @@ class Player {
 	}
 
 	public function hasVideo():Bool {
-		return player != null;
+		return playerEl.children.length != 0;
 	}
 
 	public function play():Void {

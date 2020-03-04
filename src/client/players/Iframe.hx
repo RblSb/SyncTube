@@ -37,6 +37,9 @@ class Iframe implements IPlayer {
 			video = null;
 			return;
 		}
+		if (video.firstChild.nodeName == "IFRAME") {
+			video.setAttribute("sandbox", "allow-scripts");
+		}
 		playerEl.appendChild(video);
 	}
 
