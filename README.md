@@ -24,6 +24,12 @@ Even if some original features are not implemented yet, there is some new things
 ### Configuration
 It's just works, but you can also check [user/ folder](/user/README.md) for server settings and additional customization.
 
+### Intergations
+#### Heroku:
+- Create app and commit repo to get build
+- Remove `user/` folder from `.gitignore` and commit it to change default configuration
+- Add `APP_URL` config var with `your-app-link.herokuapp.com` value to prevent sleeping when clients online
+
 ### Development
 - Install Haxe 4, VSCode and vshaxe extension
 - `haxelib install all` to install extern libs
