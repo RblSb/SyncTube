@@ -1,4 +1,5 @@
 {
+	"port": 4200,
 	"channelName": "SyncTube",
 	"maxLoginLength": 20,
 	"maxMessageLength": 500,

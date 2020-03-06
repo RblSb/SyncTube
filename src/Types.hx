@@ -8,6 +8,7 @@ typedef VideoData = {
 }
 
 typedef Config = {
+	port:Int,
 	channelName:String,
 	maxLoginLength:Int,
 	maxMessageLength:Int,

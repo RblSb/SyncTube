@@ -933,10 +933,7 @@ server_HttpServer.getMimeType = function(ext) {
 	}
 	return contentType;
 };
-var server_Main = function(port,wsPort) {
-	if(port == null) {
-		port = 4200;
-	}
+var server_Main = function() {
 	this.loadedClientsCount = 0;
 	this.htmlChars = new EReg("[&^<>'\"]","");
 	this.itemPos = 0;
@@ -948,10 +945,6 @@ var server_Main = function(port,wsPort) {
 	this.clients = [];
 	this.rootDir = "" + __dirname + "/..";
 	var _gthis = this;
-	var envPort = process.env.PORT;
-	if(envPort != null) {
-		port = envPort;
-	}
 	this.statePath = "" + this.rootDir + "/user/state.json";
 	process.on("SIGINT",$bind(this,this.exit));
 	process.on("SIGUSR1",$bind(this,this.exit));
@@ -976,11 +969,15 @@ var server_Main = function(port,wsPort) {
 	this.config.salt = this.generateConfigSalt();
 	this.localIp = server_Utils.getLocalIp();
 	this.globalIp = this.localIp;
-	this.port = port;
+	this.port = this.config.port;
+	var envPort = process.env.PORT;
+	if(envPort != null) {
+		this.port = envPort;
+	}
 	server_Utils.getGlobalIp(function(ip) {
 		_gthis.globalIp = ip;
-		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 79, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + port,{ fileName : "src/server/Main.hx", lineNumber : 80, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 79, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 80, className : "server.Main", methodName : "new"});
 		return;
 	});
 	var dir = "" + this.rootDir + "/res";
@@ -990,8 +987,8 @@ var server_Main = function(port,wsPort) {
 		server_HttpServer.serveFiles(req,res);
 		return;
 	});
-	server1.listen(port);
-	this.wss = new js_npm_ws_Server({ server : server1, port : wsPort});
+	server1.listen(this.port);
+	this.wss = new js_npm_ws_Server({ server : server1});
 	this.wss.on("connection",$bind(this,this.onConnect));
 };
 server_Main.__name__ = true;

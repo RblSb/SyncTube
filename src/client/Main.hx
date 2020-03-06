@@ -2,11 +2,11 @@ package client;
 
 import haxe.crypto.Sha256;
 import haxe.Timer;
+import haxe.Json;
 import js.html.MouseEvent;
 import js.html.KeyboardEvent;
 import js.html.Event;
 import js.html.Element;
-import haxe.Json;
 import js.html.InputElement;
 import js.html.WebSocket;
 import js.Browser;
@@ -38,7 +38,7 @@ class Main {
 
 	static function main():Void new Main();
 
-	public function new(?host:String, ?port:String) {
+	function new(?host:String, ?port:String) {
 		player = new Player(this);
 		if (host == null) host = Browser.location.hostname;
 		if (host == "") host = "localhost";

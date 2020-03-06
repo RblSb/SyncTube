@@ -1,11 +1,9 @@
 package server;
 
 import haxe.crypto.Sha256;
-import js.lib.Date;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.Timer;
-import Client.ClientData;
 import haxe.Json;
 import js.Node.process;
 import js.Node.__dirname;
@@ -13,6 +11,8 @@ import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
 import js.node.http.IncomingMessage;
 import js.node.Http;
+import js.lib.Date;
+import Client.ClientData;
 import Types.Config;
 import Types.Permission;
 import Types.UserList;
@@ -43,9 +43,7 @@ class Main {
 
 	static function main():Void new Main();
 
-	public function new(port = 4200, ?wsPort:Int) {
-		final envPort = (process.env : Dynamic).PORT;
-		if (envPort != null) port = envPort;
+	function new() {
 		statePath = '$rootDir/user/state.json';
 		// process.on("exit", exit);
 		process.on("SIGINT", exit); // ctrl+c
@@ -72,7 +70,9 @@ class Main {
 		config.salt = generateConfigSalt();
 		localIp = Utils.getLocalIp();
 		globalIp = localIp;
-		this.port = port;
+		port = config.port;
+		final envPort = (process.env : Dynamic).PORT;
+		if (envPort != null) port = envPort;
 
 		Utils.getGlobalIp(ip -> {
 			globalIp = ip;
@@ -88,7 +88,7 @@ class Main {
 			HttpServer.serveFiles(req, res);
 		});
 		server.listen(port);
-		wss = new WSServer({server: server, port: wsPort});
+		wss = new WSServer({server: server});
 		wss.on("connection", onConnect);
 	}
 
