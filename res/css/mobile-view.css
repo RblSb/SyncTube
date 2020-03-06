@@ -17,19 +17,19 @@
 .mobile-view #videowrap {
 	padding-left: 0;
 	padding-right: 0;
+	background-color: #171A1D;
+	margin-bottom: 10px;
 }
 .mobile-view #currenttitle {
-	display: inline;
-	background-color: transparent;
-	text-align: center;
-	border: none;
+	display: inline-block;
+	width: 100%;
 }
 .mobile-view #plcontrol {
 	display: none;
 }
-.mobile-view #leftcontrols {
+/* .mobile-view #leftcontrols {
 	text-align: center;
-}
+} */
 .mobile-view #rightcontrols {
 	text-align: center;
 }
@@ -60,6 +60,12 @@
 		border-color: #272b30 !important;
 		background: rgb(39, 43, 48) !important;
 		margin-bottom: 0;
+	}
+	#leftcontrols {
+		margin-bottom: 10px;
+	}
+	#extendplayer {
+		display: none;
 	}
 	#chatwrap {
 		width: 100% !important;

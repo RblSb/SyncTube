@@ -744,9 +744,9 @@ textarea.form-control {
 .btn-group>.btn:hover, .btn-group>.btn:focus, .btn-group>.btn:active {
   z-index:2
 }
-.btn-group .btn+.btn {
+/* .btn-group .btn+.btn {
   margin-left:-1px
-}
+} */
 .btn-group>.btn:not(:first-child):not(:last-child):not(.dropdown-toggle) {
 border-radius:0
 }
