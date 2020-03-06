@@ -15,11 +15,32 @@ typedef Config = {
 	totalVideoLimit:Int,
 	userVideoLimit:Int,
 	templateUrl:String,
-	leaderRequest:String,
+	permissions:{
+		guest:Array<Permission>,
+		user:Array<Permission>,
+		leader:Array<Permission>,
+		admin:Array<Permission>
+	},
 	emotes:Array<Emote>,
 	filters:Array<Filter>,
 	?salt:String
 };
+
+enum abstract Permission(String) {
+	var GuestPerm = "guest";
+	var UserPerm = "user";
+	var LeaderPerm = "leader";
+	var AdminPerm = "admin";
+	var WriteChatPerm = "writeChat";
+	var AddVideoPerm = "addVideo";
+	var RemoveVideoPerm = "removeVideo";
+	var RequestLeaderPerm = "requestLeader";
+	var RewindPerm = "rewind";
+	var ClearChatPerm = "clearChat";
+	var SetLeaderPerm = "setLeader";
+	var ChangeOrderPerm = "changeOrder";
+	var LockPlaylistPerm = "lockPlaylist";
+}
 
 typedef UserList = {
 	admins:Array<UserField>,

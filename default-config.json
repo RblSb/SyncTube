@@ -6,7 +6,12 @@
 	"totalVideoLimit": 0,
 	"userVideoLimit": 0,
 	"templateUrl": "https://youtube.com/watch?v=iY1QHpp6iEE",
-	"leaderRequest": "everyone",
+	"permissions": {
+		"guest": ["writeChat", "addVideo", "removeVideo", "changeOrder", "requestLeader", "rewind"],
+		"user": ["guest"],
+		"leader": ["user"],
+		"admin": ["user", "clearChat", "setLeader", "lockPlaylist"]
+	},
 	"emotes": [
 		{"name": ":adorable:", "image": "https://i.imgur.com/5GxNwDY.png"},
 		{"name": ":angry:", "image": "https://i.imgur.com/Mx9lhMZ.png"},

@@ -14,6 +14,7 @@ import js.npm.ws.WebSocket;
 import js.node.http.IncomingMessage;
 import js.node.Http;
 import Types.Config;
+import Types.Permission;
 import Types.UserList;
 import Types.Message;
 import Types.WsEvent;
@@ -103,6 +104,24 @@ class Main {
 	}
 
 	function loadUserConfig():Config {
+		final config = getUserConfig();
+		inline function getPermissions(type:Permission):Array<Permission> {
+			return Reflect.field(config.permissions, cast type);
+		}
+		final groups = [GuestPerm, UserPerm, LeaderPerm, AdminPerm];
+		for (field in groups) {
+			final group = getPermissions(field);
+			for (type in groups) {
+				if (type == field) continue;
+				if (group.indexOf(type) == -1) continue;
+				group.remove(type);
+				for (item in getPermissions(type)) group.push(item);
+			}
+		}
+		return config;
+	}
+
+	function getUserConfig():Config {
 		final config:Config = Json.parse(File.getContent('$rootDir/default-config.json'));
 		final customPath = '$rootDir/user/config.json';
 		if (!FileSystem.exists(customPath)) return config;
@@ -302,6 +321,7 @@ class Main {
 				sendClientList();
 
 			case Message:
+				if (!checkPermission(client, WriteChatPerm)) return;
 				var text = data.message.text;
 				if (text.length == 0) return;
 				if (text.length > config.maxMessageLength) {
@@ -316,9 +336,9 @@ class Main {
 
 			case ServerMessage:
 			case AddVideo:
-				if (!client.isAdmin && !isPlaylistOpen) {
-					serverMessage(client, "accessError");
-					return;
+				if (!checkPermission(client, AddVideoPerm)) return;
+				if (!isPlaylistOpen) {
+					if (!checkPermission(client, LockPlaylistPerm)) return;
 				}
 				if (config.totalVideoLimit != 0
 					&& videoList.length >= config.totalVideoLimit) {
@@ -350,6 +370,7 @@ class Main {
 				prepareVideoPlayback();
 
 			case RemoveVideo:
+				if (!checkPermission(client, RemoveVideoPerm)) return;
 				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
 				var index = videoList.findIndex(item -> item.url == url);
@@ -363,6 +384,7 @@ class Main {
 				broadcast(data);
 
 			case SkipVideo:
+				if (!checkPermission(client, RemoveVideoPerm)) return;
 				if (videoList.length == 0) return;
 				final item = videoList[itemPos];
 				if (item.url != data.skipVideo.url) return;
@@ -408,6 +430,7 @@ class Main {
 				broadcastExcept(client, data);
 
 			case Rewind:
+				if (!checkPermission(client, RewindPerm)) return;
 				if (videoList.length == 0) return;
 				// TODO permission
 				data.rewind.time += videoTimer.getTime();
@@ -416,10 +439,16 @@ class Main {
 				broadcast(data);
 
 			case SetLeader:
-				clients.setLeader(data.setLeader.clientName);
+				final clientName = data.setLeader.clientName;
+				if (client.name == clientName) {
+					if (!checkPermission(client, RequestLeaderPerm)) return;
+				} else if (!client.isLeader && clientName != "") {
+					if (!checkPermission(client, SetLeaderPerm)) return;
+				}
+				clients.setLeader(clientName);
 				broadcast({
 					type: SetLeader, setLeader: {
-						clientName: data.setLeader.clientName
+						clientName: clientName
 					}
 				});
 				if (videoList.length == 0) return;
@@ -433,11 +462,13 @@ class Main {
 				}
 
 			case PlayItem:
+				if (!checkPermission(client, ChangeOrderPerm)) return;
 				itemPos = data.playItem.pos;
 				restartWaitTimer();
 				broadcast(data);
 
 			case SetNextItem:
+				if (!checkPermission(client, ChangeOrderPerm)) return;
 				final pos = data.setNextItem.pos;
 				if (pos == itemPos || pos == itemPos + 1) return;
 				videoList.setNextItem(pos, itemPos);
@@ -449,16 +480,19 @@ class Main {
 				broadcast(data);
 
 			case ClearChat:
+				if (!checkPermission(client, ClearChatPerm)) return;
 				messages.resize(0);
-				if (client.isAdmin) broadcast(data);
+				broadcast(data);
 
 			case ClearPlaylist:
+				if (!checkPermission(client, RemoveVideoPerm)) return;
 				videoTimer.stop();
 				videoList.resize(0);
 				itemPos = 0;
 				broadcast(data);
 
 			case ShufflePlaylist:
+				if (!checkPermission(client, ChangeOrderPerm)) return;
 				if (videoList.length == 0) return;
 				final current = videoList[itemPos];
 				videoList.remove(current);
@@ -478,7 +512,7 @@ class Main {
 				}});
 
 			case TogglePlaylistLock:
-				if (!client.isAdmin) return;
+				if (!checkPermission(client, LockPlaylistPerm)) return;
 				isPlaylistOpen = !isPlaylistOpen;
 				broadcast({
 					type: TogglePlaylistLock,
@@ -527,6 +561,24 @@ class Main {
 			if (client == skipped) continue;
 			client.ws.send(json, null);
 		}
+	}
+
+	function checkPermission(client:Client, perm:Permission):Bool {
+		final state = hasPermission(client, perm);
+		if (!state) send(client, {
+			type: ServerMessage, serverMessage: {
+				textId: "accessError"
+			}
+		});
+		return state;
+	}
+
+	function hasPermission(client:Client, perm:Permission):Bool {
+		final p = config.permissions;
+		if (client.isAdmin) return p.admin.indexOf(cast perm) != -1;
+		if (client.isLeader) return p.leader.indexOf(cast perm) != -1;
+		if (client.isUser) return p.user.indexOf(cast perm) != -1;
+		return p.guest.indexOf(cast perm) != -1;
 	}
 
 	final htmlChars = ~/[&^<>'"]/;
