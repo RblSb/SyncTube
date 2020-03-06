@@ -5,7 +5,7 @@ File example:
 ```json
 {
 	"channelName": "-=SuperChannel=-",
-	"videoLimit": 10,
+	"totalVideoLimit": 10
 }
 ```
 ## User-specific resources
