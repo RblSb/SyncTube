@@ -4,7 +4,7 @@ Based on CyTube layout, but with lightweight implementation and very easy way to
 
 ### New features
 Even if some original features are not implemented yet, there is some new things:
-- Multi-Language
+- Multi-Language support
 - Mobile view with page fullscreen
 - Way to play local videos for network users (without NAT loopback feature)
 - `/30`, `/-21`, etc to rewind video playback in seconds

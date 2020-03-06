@@ -145,37 +145,48 @@ Lang.request = function(path,callback) {
 	http.request();
 };
 Lang.init = function(folderPath,callback) {
-	var _this = Lang.langs;
-	_this.h = { };
-	_this.rh = null;
+	var _this = Lang.ids;
+	var _g = [];
+	var _g1 = 0;
+	while(_g1 < _this.length) {
+		var v = _this[_g1];
+		++_g1;
+		if(v == Lang.lang || v == "en") {
+			_g.push(v);
+		}
+	}
+	Lang.ids = _g;
+	var _this1 = Lang.langs;
+	_this1.h = { };
+	_this1.rh = null;
 	var count = 0;
-	var _g = 0;
-	var _g1 = Lang.ids;
-	while(_g < _g1.length) {
-		var name = [_g1[_g]];
-		++_g;
+	var _g2 = 0;
+	var _g11 = Lang.ids;
+	while(_g2 < _g11.length) {
+		var name = [_g11[_g2]];
+		++_g2;
 		Lang.request("" + folderPath + "/" + name[0] + ".json",(function(name1) {
 			return function(data) {
 				var data1 = JSON.parse(data);
 				var lang = new haxe_ds_StringMap();
-				var _g2 = 0;
-				var _g11 = Reflect.fields(data1);
-				while(_g2 < _g11.length) {
-					var key = _g11[_g2];
-					++_g2;
-					var v = Reflect.field(data1,key);
+				var _g3 = 0;
+				var _g12 = Reflect.fields(data1);
+				while(_g3 < _g12.length) {
+					var key = _g12[_g3];
+					++_g3;
+					var v1 = Reflect.field(data1,key);
 					if(__map_reserved[key] != null) {
-						lang.setReserved(key,v);
+						lang.setReserved(key,v1);
 					} else {
-						lang.h[key] = v;
+						lang.h[key] = v1;
 					}
 				}
 				var id = haxe_io_Path.withoutExtension(name1[0]);
-				var _this1 = Lang.langs;
+				var _this2 = Lang.langs;
 				if(__map_reserved[id] != null) {
-					_this1.setReserved(id,lang);
+					_this2.setReserved(id,lang);
 				} else {
-					_this1.h[id] = lang;
+					_this2.h[id] = lang;
 				}
 				count += 1;
 				if(count == Lang.ids.length && callback != null) {
@@ -1978,7 +1989,7 @@ client_players_Youtube.prototype = {
 			callback({ duration : tmp});
 			return;
 		}, onError : function(e1) {
-			haxe_Log.trace("Error " + e1.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 116, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
+			haxe_Log.trace("Error " + e1.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 117, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
@@ -2681,8 +2692,8 @@ Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function()
 	return String(this.val);
 }});
 js_Boot.__toStr = ({ }).toString;
-Lang.ids = ["en","ru"];
 Lang.langs = new haxe_ds_StringMap();
+Lang.ids = ["en","ru"];
 Lang.lang = HxOverrides.substr(window.navigator.language,0,2).toLowerCase();
 client_Buttons.personalHistory = [];
 client_Buttons.personalHistoryId = -1;

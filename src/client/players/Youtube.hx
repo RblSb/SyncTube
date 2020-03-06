@@ -80,6 +80,7 @@ class Youtube implements IPlayer {
 			}
 			final title:String = item.snippet.title;
 			final duration:String = item.contentDetails.duration;
+			// TODO duration is PT0S for streams
 			callback({
 				duration: convertTime(duration),
 				title: title

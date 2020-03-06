@@ -7,13 +7,17 @@ import sys.io.File;
 #else
 import haxe.Http;
 #end
+using Lambda;
 
 private typedef LangMap = Map<String, String>;
 
 class Lang {
 
-	static final ids = ["en", "ru"];
 	static final langs:Map<String, LangMap> = [];
+	static var ids = ["en", "ru"];
+	#if (js && !nodejs)
+	static var lang = js.Browser.navigator.language.substr(0, 2).toLowerCase();
+	#end
 
 	static function request(path:String, callback:(data:String)->Void):Void {
 		#if (sys || nodejs)
@@ -26,6 +30,10 @@ class Lang {
 	}
 
 	public static function init(folderPath:String, ?callback:()->Void):Void {
+		#if (js && !nodejs)
+		// Filter unused languages
+		ids = ids.filter(id -> id == lang || id == "en");
+		#end
 		langs.clear();
 		var count = 0;
 		for (name in ids) {
@@ -50,8 +58,6 @@ class Lang {
 		return text == null ? key : text;
 	}
 	#else
-	static var lang = js.Browser.navigator.language.substr(0, 2).toLowerCase();
-
 	public static function get(key:String):String {
 		if (langs[lang] == null) lang = "en";
 		final text = langs[lang][key];

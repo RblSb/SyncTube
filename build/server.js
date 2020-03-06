@@ -1695,8 +1695,8 @@ Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function()
 	return String(this.val);
 }});
 js_Boot.__toStr = ({ }).toString;
-Lang.ids = ["en","ru"];
 Lang.langs = new haxe_ds_StringMap();
+Lang.ids = ["en","ru"];
 server_HttpServer.mimeTypes = (function($this) {
 	var $r;
 	var _g = new haxe_ds_StringMap();

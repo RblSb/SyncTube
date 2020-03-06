@@ -432,7 +432,6 @@ class Main {
 			case Rewind:
 				if (!checkPermission(client, RewindPerm)) return;
 				if (videoList.length == 0) return;
-				// TODO permission
 				data.rewind.time += videoTimer.getTime();
 				if (data.rewind.time < 0) data.rewind.time = 0;
 				videoTimer.setTime(data.rewind.time);
