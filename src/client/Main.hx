@@ -67,7 +67,9 @@ class Main {
 	}
 
 	function openWebSocket(host:String, port:String):Void {
-		ws = new WebSocket('ws://$host:$port');
+		var protocol = "ws:";
+		if (Browser.location.protocol == "https:") protocol = "wss:";
+		ws = new WebSocket('$protocol//$host:$port');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
 			serverMessage(1);

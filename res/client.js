@@ -806,7 +806,11 @@ client_Main.prototype = {
 	}
 	,openWebSocket: function(host,port) {
 		var _gthis = this;
-		this.ws = new WebSocket("ws://" + host + ":" + port);
+		var protocol = "ws:";
+		if(window.location.protocol == "https:") {
+			protocol = "wss:";
+		}
+		this.ws = new WebSocket("" + protocol + "//" + host + ":" + port);
 		this.ws.onmessage = $bind(this,this.onMessage);
 		this.ws.onopen = function() {
 			_gthis.serverMessage(1);
@@ -973,7 +977,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 258, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 260, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
