@@ -2,7 +2,7 @@
 /* CSS Document */
 
 
-@import url(http://fonts.googleapis.com/css?family=Play:400italic,700italic,300,700,300italic,400&subset=latin,cyrillic);
+@import url(https://fonts.googleapis.com/css?family=Play:400italic,700italic,300,700,300italic,400&subset=latin,cyrillic);
 /*! normalize.css v3.0.2 | MIT License | git.io/normalize */
 html {
   font-family:Play;
@@ -1214,8 +1214,7 @@ input, textarea {
   color:#ffffff
 }
 html, body {
-  /* font-family: 'Roboto', sans-serif!important; */
-  font-family:Play !important;
+  font-family:Play, 'Roboto', sans-serif !important;
   font-weight: 300;
 }
 p, h3, h4 {

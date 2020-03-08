@@ -9,6 +9,9 @@ class Utils {
 		Http.get("http://myexternalip.com/raw", r -> {
 			r.setEncoding("utf8");
 			r.on("data", callback);
+		}).on("error", e -> {
+			trace("Warning: connection error, server is local.");
+			callback("127.0.0.1");
 		});
 	}
 

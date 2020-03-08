@@ -1562,6 +1562,10 @@ server_Utils.getGlobalIp = function(callback) {
 	js_node_Http.get("http://myexternalip.com/raw",function(r) {
 		r.setEncoding("utf8");
 		return r.on("data",callback);
+	}).on("error",function(e) {
+		haxe_Log.trace("Warning: connection error, server is local.",{ fileName : "src/server/Utils.hx", lineNumber : 13, className : "server.Utils", methodName : "getGlobalIp"});
+		callback("127.0.0.1");
+		return;
 	});
 };
 server_Utils.getLocalIp = function() {
