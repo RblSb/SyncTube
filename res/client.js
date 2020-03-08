@@ -921,7 +921,10 @@ client_Main.prototype = {
 			if(data.title == null) {
 				data.title = Lang.get("rawVideo");
 			}
-			_gthis.send({ type : "AddVideo", addVideo : { item : { url : url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : false}, atEnd : atEnd}});
+			if(data.url == null) {
+				data.url = url;
+			}
+			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : false}, atEnd : atEnd}});
 			callback();
 			return;
 		});
@@ -970,7 +973,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 257, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 258, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1237,7 +1240,10 @@ client_Main.prototype = {
 		}
 		this.ws.send(JSON.stringify(data));
 	}
-	,serverMessage: function(type,text) {
+	,serverMessage: function(type,text,isText) {
+		if(isText == null) {
+			isText = true;
+		}
 		var msgBuf = window.document.querySelector("#messagebuffer");
 		var div = window.document.createElement("div");
 		var time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
@@ -1256,7 +1262,11 @@ client_Main.prototype = {
 			break;
 		case 4:
 			div.className = "server-whisper";
-			div.textContent = time + text;
+			if(isText) {
+				div.textContent = time + text;
+			} else {
+				div.innerHTML = time + text;
+			}
 			break;
 		default:
 		}
@@ -1383,6 +1393,9 @@ client_Main.prototype = {
 	}
 	,getTemplateUrl: function() {
 		return this.config.templateUrl;
+	}
+	,getYoutubeApiKey: function() {
+		return this.config.youtubeApiKey;
 	}
 	,escapeRegExp: function(regex) {
 		var _this_r = new RegExp("([.*+?^${}()|[\\]\\\\])","g".split("u").join(""));
@@ -1907,10 +1920,15 @@ var client_players_Youtube = function(main,player) {
 	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.main = main;
 	this.player = player;
+	client_players_Youtube.apiKey = main.getYoutubeApiKey();
 };
 client_players_Youtube.__name__ = true;
 client_players_Youtube.isYoutube = function(url) {
-	return client_players_Youtube.extractVideoId(url) != "";
+	if(client_players_Youtube.extractVideoId(url) == "") {
+		return client_players_Youtube.extractPlaylistId(url) != "";
+	} else {
+		return true;
+	}
 };
 client_players_Youtube.extractVideoId = function(url) {
 	if(url.indexOf("youtu.be/") != -1) {
@@ -1925,6 +1943,12 @@ client_players_Youtube.extractVideoId = function(url) {
 		return "";
 	}
 	return client_players_Youtube.matchId.matched(1);
+};
+client_players_Youtube.extractPlaylistId = function(url) {
+	if(!client_players_Youtube.matchPlaylist.match(url)) {
+		return "";
+	}
+	return client_players_Youtube.matchPlaylist.matched(1);
 };
 client_players_Youtube.prototype = {
 	convertTime: function(duration) {
@@ -1945,29 +1969,77 @@ client_players_Youtube.prototype = {
 	}
 	,getVideoData: function(url,callback) {
 		var _gthis = this;
-		var url1 = "" + client_players_Youtube.apiUrl + client_players_Youtube.urlTitleDuration + "&id=" + client_players_Youtube.extractVideoId(url) + "&key=" + client_players_Youtube.apiKey;
-		var http = new haxe_http_HttpJs(url1);
+		var id = client_players_Youtube.extractVideoId(url);
+		if(id == "") {
+			this.getPlaylistVideoData(url,callback);
+			return;
+		}
+		var http = new haxe_http_HttpJs("" + client_players_Youtube.videosUrl + client_players_Youtube.urlTitleDuration + "&id=" + id + "&key=" + client_players_Youtube.apiKey);
 		http.onData = function(data) {
 			var json = JSON.parse(data);
 			if(json.error != null) {
-				_gthis.getRemoteDataFallback(url1,callback);
+				_gthis.youtubeApiError(json.error);
+				_gthis.getRemoteDataFallback(url,callback);
 				return;
 			}
-			var item = json.items[0];
-			if(item == null) {
+			var items = json.items;
+			if(items == null || items.length == 0) {
 				callback({ duration : 0});
 				return;
 			}
-			var title = item.snippet.title;
-			var tmp = _gthis.convertTime(item.contentDetails.duration);
-			callback({ duration : tmp, title : title});
+			var _g = 0;
+			while(_g < items.length) {
+				var item = items[_g];
+				++_g;
+				var title = item.snippet.title;
+				var tmp = _gthis.convertTime(item.contentDetails.duration);
+				callback({ duration : tmp, title : title, url : url});
+			}
 			return;
 		};
 		http.onError = function(msg) {
-			_gthis.getRemoteDataFallback(url1,callback);
+			_gthis.getRemoteDataFallback(url,callback);
 			return;
 		};
 		http.request();
+	}
+	,getPlaylistVideoData: function(url,callback) {
+		var _gthis = this;
+		var http = new haxe_http_HttpJs("" + client_players_Youtube.playlistUrl + client_players_Youtube.urlVideoId + "&maxResults=50&playlistId=" + client_players_Youtube.extractPlaylistId(url) + "&key=" + client_players_Youtube.apiKey);
+		http.onData = function(data) {
+			var json = JSON.parse(data);
+			if(json.error != null) {
+				_gthis.youtubeApiError(json.error);
+				callback({ duration : 0});
+				return;
+			}
+			var items = json.items;
+			if(items == null || items.length == 0) {
+				callback({ duration : 0});
+				return;
+			}
+			var loadNextItem = null;
+			loadNextItem = function() {
+				var loadNextItem1 = "youtu.be/" + items.shift().snippet.resourceId.videoId;
+				_gthis.getVideoData(loadNextItem1,function(data1) {
+					callback(data1);
+					if(items.length > 0) {
+						loadNextItem();
+					}
+					return;
+				});
+			};
+			loadNextItem();
+			return;
+		};
+		http.onError = function(msg) {
+			callback({ duration : 0});
+			return;
+		};
+		http.request();
+	}
+	,youtubeApiError: function(error) {
+		this.main.serverMessage(4,"Error " + error.code + ": " + error.message,false);
 	}
 	,getRemoteDataFallback: function(url,callback) {
 		var _gthis = this;
@@ -1989,7 +2061,7 @@ client_players_Youtube.prototype = {
 			callback({ duration : tmp});
 			return;
 		}, onError : function(e1) {
-			haxe_Log.trace("Error " + e1.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 117, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
+			haxe_Log.trace("Error " + e1.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 170, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
@@ -2700,9 +2772,11 @@ client_Buttons.personalHistoryId = -1;
 client_players_Youtube.matchId = new EReg("v=([A-z0-9_-]+)","");
 client_players_Youtube.matchShort = new EReg("youtu.be/([A-z0-9_-]+)","");
 client_players_Youtube.matchEmbed = new EReg("embed/([A-z0-9_-]+)","");
-client_players_Youtube.apiUrl = "https://www.googleapis.com/youtube/v3/videos";
+client_players_Youtube.matchPlaylist = new EReg("youtube\\.com.*list=([A-z0-9_-]+)","");
+client_players_Youtube.videosUrl = "https://www.googleapis.com/youtube/v3/videos";
+client_players_Youtube.playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
 client_players_Youtube.urlTitleDuration = "?part=snippet,contentDetails&fields=items(snippet/title,contentDetails/duration)";
-client_players_Youtube.apiKey = "AIzaSyDTk1OPRI9cDkAK_BKsBcv10DQCHse-QaA";
+client_players_Youtube.urlVideoId = "?part=snippet&fields=items(snippet/resourceId/videoId)";
 js_youtube_Youtube.isLoadedAPI = false;
 client_Main.main();
 })(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);

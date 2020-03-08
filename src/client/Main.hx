@@ -182,10 +182,11 @@ class Main {
 				return;
 			}
 			if (data.title == null) data.title = Lang.get("rawVideo");
+			if (data.url == null) data.url = url;
 			send({
 				type: AddVideo, addVideo: {
 					item: {
-						url: url,
+						url: data.url,
 						title: data.title,
 						author: personal.name,
 						duration: data.duration,
@@ -502,7 +503,7 @@ class Main {
 		ws.send(Json.stringify(data));
 	}
 
-	function serverMessage(type:Int, ?text:String):Void {
+	public function serverMessage(type:Int, ?text:String, isText = true):Void {
 		final msgBuf = ge("#messagebuffer");
 		final div = document.createDivElement();
 		final time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
@@ -518,7 +519,8 @@ class Main {
 				div.textContent = time + text + " " + Lang.get("entered");
 			case 4:
 				div.className = "server-whisper";
-				div.textContent = time + text;
+				if (isText) div.textContent = time + text;
+				else div.innerHTML = time + text;
 			default:
 		}
 		msgBuf.appendChild(div);
@@ -648,6 +650,10 @@ class Main {
 
 	public function getTemplateUrl():String {
 		return config.templateUrl;
+	}
+
+	public function getYoutubeApiKey():String {
+		return config.youtubeApiKey;
 	}
 
 	function escapeRegExp(regex:String):String {

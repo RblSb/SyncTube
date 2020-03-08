@@ -4,7 +4,8 @@ import Client.ClientData;
 
 typedef VideoData = {
 	duration:Float,
-	?title:String
+	?title:String,
+	?url:String
 }
 
 typedef Config = {
@@ -16,6 +17,7 @@ typedef Config = {
 	totalVideoLimit:Int,
 	userVideoLimit:Int,
 	templateUrl:String,
+	youtubeApiKey:String,
 	permissions:{
 		guest:Array<Permission>,
 		user:Array<Permission>,
