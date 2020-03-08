@@ -71,7 +71,7 @@
             <div class="split split-horizontal" id="chatwrap" style="width: calc(40% - 5px);">
               <div id="chatheader"><i class="glyphicon glyphicon-chevron-down pull-left pointer" id="userlisttoggle" title="${toggleUserList}"></i>
                 <span class="pointer" id="usercount">${connection}...</span>
-                <span class="label label-default pull-right pointer" id="leader_btn">${leader}</span>
+                <span class="label label-default pull-right pointer" id="leader_btn" title="${leaderDesc}">${leader}</span>
               </div>
               <div id="userlist" style="height: 389px;"></div>
               <div class="linewrap" id="messagebuffer" style="height: 389px;"></div>
@@ -124,7 +124,7 @@
                 <div class="plcontrol-collapse col-lg-12 col-md-12 collapse" id="addfromurl" aria-expanded="false" style="height: 89px;">
                   <div class="vertical-spacer"></div>
                   <div class="input-group"><span class="input-group-btn">
-                      <button class="btn btn-default" id="insert_template">&gt;</button></span>
+                      <button class="btn btn-default" id="insert_template" title="${addTemplateUrl}">&gt;</button></span>
                     <input class="form-control" id="mediaurl" type="text" placeholder="${mediaUrl}"><span class="input-group-btn">
                       <button class="btn btn-default" id="queue_next">${queueNext}</button></span><span class="input-group-btn">
                       <button class="btn btn-default" id="queue_end">${queueLast}</button></span>

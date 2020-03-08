@@ -2,6 +2,8 @@
 Synchronized video viewing with chat and other features.
 Based on CyTube layout, but with lightweight implementation and very easy way to run locally.
 
+Default channel example: http://synctube-example.herokuapp.com/
+
 ### New features
 Even if some original features are not implemented yet, there is some new things:
 - Multi-Language support
