@@ -82,6 +82,14 @@ EReg.prototype = {
 };
 var HxOverrides = function() { };
 HxOverrides.__name__ = true;
+HxOverrides.dateStr = function(date) {
+	var m = date.getMonth() + 1;
+	var d = date.getDate();
+	var h = date.getHours();
+	var mi = date.getMinutes();
+	var s = date.getSeconds();
+	return date.getFullYear() + "-" + (m < 10 ? "0" + m : "" + m) + "-" + (d < 10 ? "0" + d : "" + d) + " " + (h < 10 ? "0" + h : "" + h) + ":" + (mi < 10 ? "0" + mi : "" + mi) + ":" + (s < 10 ? "0" + s : "" + s);
+};
 HxOverrides.substr = function(s,pos,len) {
 	if(len == null) {
 		len = s.length;
@@ -977,7 +985,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 260, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 259, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1250,7 +1258,7 @@ client_Main.prototype = {
 		}
 		var msgBuf = window.document.querySelector("#messagebuffer");
 		var div = window.document.createElement("div");
-		var time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+		var time = "[" + HxOverrides.dateStr(new Date()).split(" ")[1] + "] ";
 		switch(type) {
 		case 1:
 			div.className = "server-msg-reconnect";
@@ -1308,7 +1316,7 @@ client_Main.prototype = {
 		var tstamp = window.document.createElement("span");
 		tstamp.className = "timestamp";
 		if(time == null) {
-			time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+			time = "[" + HxOverrides.dateStr(new Date()).split(" ")[1] + "] ";
 		}
 		tstamp.textContent = time;
 		var nameDiv = window.document.createElement("strong");
@@ -2764,6 +2772,7 @@ var __map_reserved = {};
 if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 String.__name__ = true;
 Array.__name__ = true;
+Date.__name__ = "Date";
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
 }});

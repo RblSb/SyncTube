@@ -11,7 +11,6 @@ import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
 import js.node.http.IncomingMessage;
 import js.node.Http;
-import js.lib.Date;
 import Client.ClientData;
 import Types.Config;
 import Types.Permission;
@@ -184,8 +183,8 @@ class Main {
 	function logError(type:String, data:Dynamic):Void {
 		trace(type, data);
 		final crashesFolder = '$rootDir/user/crashes';
-		final name = new Date().toISOString() + "-" + type;
 		if (!FileSystem.exists(crashesFolder)) FileSystem.createDirectory(crashesFolder);
+		final name = DateTools.format(Date.now(), "%Y-%m-%d_%H_%M_%S") + "-" + type;
 		File.saveContent('$crashesFolder/$name.json', Json.stringify(data, "\t"));
 	}
 
@@ -329,7 +328,7 @@ class Main {
 				}
 				data.message.text = text;
 				data.message.clientName = client.name;
-				final time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+				final time = "[" + Date.now().toString().split(" ")[1] + "] ";
 				messages.push({text: text, name: client.name, time: time});
 				if (messages.length > config.serverChatHistory) messages.shift();
 				broadcast(data);

@@ -11,7 +11,6 @@ import js.html.InputElement;
 import js.html.WebSocket;
 import js.Browser;
 import js.Browser.document;
-import js.lib.Date;
 import Client.ClientData;
 import Types.VideoData;
 import Types.Config;
@@ -508,7 +507,7 @@ class Main {
 	public function serverMessage(type:Int, ?text:String, isText = true):Void {
 		final msgBuf = ge("#messagebuffer");
 		final div = document.createDivElement();
-		final time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+		final time = "[" + Date.now().toString().split(" ")[1] + "] ";
 		switch (type) {
 			case 1:
 				div.className = "server-msg-reconnect";
@@ -560,7 +559,7 @@ class Main {
 
 		final tstamp = document.createSpanElement();
 		tstamp.className = "timestamp";
-		if (time == null) time = "[" + new Date().toTimeString().split(" ")[0] + "] ";
+		if (time == null) time = "[" + Date.now().toString().split(" ")[1] + "] ";
 		tstamp.textContent = time;
 
 		final nameDiv = document.createElement("strong");
