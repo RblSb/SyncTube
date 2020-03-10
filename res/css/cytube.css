@@ -49,6 +49,17 @@
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
+#guestpass_icon {
+  float: right;
+  margin-right: 14px;
+  margin-top: -27px;
+  position: relative;
+  z-index: 2;
+}
+#guestpass_icon:hover {
+  cursor: pointer;
+  color: white;
+}
 
 .linewrap, .linewrap code {
   white-space: pre-wrap; /* css-3 */

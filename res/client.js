@@ -417,8 +417,19 @@ client_Buttons.__name__ = true;
 client_Buttons.init = function(main) {
 	client_Buttons.initChatInput(main);
 	client_Buttons.initNavBar(main);
+	var passIcon = window.document.querySelector("#guestpass_icon");
+	passIcon.onclick = function(e) {
+		var isOpen = passIcon.classList.toggle("glyphicon-eye-open");
+		passIcon.classList.toggle("glyphicon-eye-close");
+		var pass = window.document.querySelector("#guestpass");
+		if(isOpen) {
+			return pass.type = "password";
+		} else {
+			return pass.type = "text";
+		}
+	};
 	var smilesBtn = window.document.querySelector("#smilesbtn");
-	smilesBtn.onclick = function(e) {
+	smilesBtn.onclick = function(e1) {
 		smilesBtn.classList.toggle("active");
 		var smilesWrap = window.document.querySelector("#smileswrap");
 		if(smilesBtn.classList.contains("active")) {
@@ -427,18 +438,18 @@ client_Buttons.init = function(main) {
 			return smilesWrap.style.display = "none";
 		}
 	};
-	window.document.querySelector("#clearchatbtn").onclick = function(e1) {
+	window.document.querySelector("#clearchatbtn").onclick = function(e2) {
 		if((main.personal.group & 4) != 0) {
 			main.send({ type : "ClearChat"});
 		}
 		return;
 	};
 	var userList = window.document.querySelector("#userlist");
-	userList.onclick = function(e2) {
+	userList.onclick = function(e3) {
 		if((main.personal.group & 4) == 0) {
 			return;
 		}
-		var el = e2.target;
+		var el = e3.target;
 		if(userList == el) {
 			return;
 		}
@@ -453,7 +464,7 @@ client_Buttons.init = function(main) {
 		return;
 	};
 	var userlistToggle = window.document.querySelector("#userlisttoggle");
-	userlistToggle.onclick = function(e3) {
+	userlistToggle.onclick = function(e4) {
 		var style = window.document.querySelector("#userlist").style;
 		if(style.display == "none") {
 			userlistToggle.classList.add("glyphicon-chevron-down");
@@ -467,7 +478,7 @@ client_Buttons.init = function(main) {
 	};
 	window.document.querySelector("#usercount").onclick = userlistToggle.onclick;
 	var extendPlayer = window.document.querySelector("#extendplayer");
-	extendPlayer.onclick = function(e4) {
+	extendPlayer.onclick = function(e5) {
 		if(extendPlayer.classList.contains("active")) {
 			client_Buttons.split.setSizes([40,60]);
 			window.document.querySelector("#userlist").style.width = "90px";
@@ -479,7 +490,7 @@ client_Buttons.init = function(main) {
 		return window.dispatchEvent(new Event("resize"));
 	};
 	var toggleSynch = window.document.querySelector("#togglesynch");
-	toggleSynch.onclick = function(e5) {
+	toggleSynch.onclick = function(e6) {
 		var icon = toggleSynch.firstElementChild;
 		if(main.isSyncActive) {
 			if(!window.confirm(Lang.get("toggleSynchConfirm"))) {
@@ -498,15 +509,15 @@ client_Buttons.init = function(main) {
 		}
 		return;
 	};
-	window.document.querySelector("#mediarefresh").onclick = function(e6) {
+	window.document.querySelector("#mediarefresh").onclick = function(e7) {
 		main.refreshPlayer();
 		return;
 	};
-	window.document.querySelector("#fullscreenbtn").onclick = function(e7) {
+	window.document.querySelector("#fullscreenbtn").onclick = function(e8) {
 		return client_Utils.toggleFullScreen(window.document.querySelector("#ytapiplayer"));
 	};
 	var getPlaylist = window.document.querySelector("#getplaylist");
-	getPlaylist.onclick = function(e8) {
+	getPlaylist.onclick = function(e9) {
 		client_Utils.copyToClipboard(main.getPlaylistLinks().join(","));
 		var icon1 = getPlaylist.firstElementChild;
 		icon1.classList.remove("glyphicon-link");
@@ -517,37 +528,37 @@ client_Buttons.init = function(main) {
 			return;
 		},2000);
 	};
-	window.document.querySelector("#clearplaylist").onclick = function(e9) {
+	window.document.querySelector("#clearplaylist").onclick = function(e10) {
 		if(!window.confirm(Lang.get("clearPlaylistConfirm"))) {
 			return;
 		}
 		main.send({ type : "ClearPlaylist"});
 		return;
 	};
-	window.document.querySelector("#shuffleplaylist").onclick = function(e10) {
+	window.document.querySelector("#shuffleplaylist").onclick = function(e11) {
 		if(!window.confirm(Lang.get("shufflePlaylistConfirm"))) {
 			return;
 		}
 		main.send({ type : "ShufflePlaylist"});
 		return;
 	};
-	window.document.querySelector("#lockplaylist").onclick = function(e11) {
+	window.document.querySelector("#lockplaylist").onclick = function(e12) {
 		if((main.personal.group & 4) != 0) {
 			main.send({ type : "TogglePlaylistLock"});
 		}
 		return;
 	};
 	var showMediaUrl = window.document.querySelector("#showmediaurl");
-	showMediaUrl.onclick = function(e12) {
+	showMediaUrl.onclick = function(e13) {
 		client_Buttons.showPlayerGroup(showMediaUrl);
 		return;
 	};
 	var showCustomEmbed = window.document.querySelector("#showcustomembed");
-	showCustomEmbed.onclick = function(e13) {
+	showCustomEmbed.onclick = function(e14) {
 		client_Buttons.showPlayerGroup(showCustomEmbed);
 		return;
 	};
-	window.document.querySelector("#insert_template").onclick = function(e14) {
+	window.document.querySelector("#insert_template").onclick = function(e15) {
 		var input = window.document.querySelector("#mediaurl");
 		input.value = main.getTemplateUrl();
 		input.focus();

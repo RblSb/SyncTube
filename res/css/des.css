@@ -167,14 +167,20 @@ src:url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.2/fonts/gl
 .glyphicon-step-forward:before {
   content:"\e077"
 }
+.glyphicon-chevron-right::before {
+  content: "\e080";
+}
 .glyphicon-share-alt:before {
   content:"\e095"
 }
+.glyphicon-eye-open:before {
+  content:"\e105";
+}
+.glyphicon-eye-close:before {
+  content: "\e106";
+}
 .glyphicon-chevron-down:before {
   content:"\e114"
-}
-.glyphicon-chevron-right::before {
-  content: "\e080";
 }
 .glyphicon-retweet:before {
   content:"\e115"

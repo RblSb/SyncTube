@@ -19,6 +19,15 @@ class Buttons {
 		initChatInput(main);
 		initNavBar(main);
 
+		final passIcon = ge("#guestpass_icon");
+		passIcon.onclick = e -> {
+			final isOpen = passIcon.classList.toggle("glyphicon-eye-open");
+			passIcon.classList.toggle("glyphicon-eye-close");
+			final pass:InputElement = cast ge("#guestpass");
+			if (isOpen) pass.type = "password";
+			else pass.type = "text";
+		}
+
 		final smilesBtn = ge("#smilesbtn");
 		smilesBtn.onclick = e -> {
 			smilesBtn.classList.toggle("active");
