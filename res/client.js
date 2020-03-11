@@ -415,6 +415,9 @@ _$VideoList_VideoList_$Impl_$.skipItem = function(this1,itemPos) {
 var client_Buttons = function() { };
 client_Buttons.__name__ = true;
 client_Buttons.init = function(main) {
+	client_Buttons.settings = main.settings;
+	window.onresize = client_Buttons.onVideoResize;
+	client_Buttons.initSplit();
 	client_Buttons.initChatInput(main);
 	client_Buttons.initNavBar(main);
 	var passIcon = window.document.querySelector("#guestpass_icon");
@@ -479,30 +482,38 @@ client_Buttons.init = function(main) {
 	};
 	var userlistToggle = window.document.querySelector("#userlisttoggle");
 	userlistToggle.onclick = function(e4) {
+		var isHidden = userlistToggle.classList.toggle("glyphicon-chevron-right");
+		userlistToggle.classList.toggle("glyphicon-chevron-down");
 		var style = window.document.querySelector("#userlist").style;
-		if(style.display == "none") {
-			userlistToggle.classList.add("glyphicon-chevron-down");
-			userlistToggle.classList.remove("glyphicon-chevron-right");
-			return style.display = "block";
+		if(isHidden) {
+			style.display = "none";
 		} else {
-			userlistToggle.classList.add("glyphicon-chevron-right");
-			userlistToggle.classList.remove("glyphicon-chevron-down");
-			return style.display = "none";
+			style.display = "block";
 		}
+		client_Buttons.settings.isUserListHidden = isHidden;
+		client_Settings.write(client_Buttons.settings);
+		return;
 	};
 	window.document.querySelector("#usercount").onclick = userlistToggle.onclick;
+	if(client_Buttons.settings.isUserListHidden) {
+		userlistToggle.onclick();
+	}
 	var extendPlayer = window.document.querySelector("#extendplayer");
 	extendPlayer.onclick = function(e5) {
-		if(extendPlayer.classList.contains("active")) {
-			client_Buttons.split.setSizes([40,60]);
-			window.document.querySelector("#userlist").style.width = "90px";
-		} else {
-			client_Buttons.split.setSizes([20,80]);
-			window.document.querySelector("#userlist").style.width = "80px";
+		var isExtended = extendPlayer.classList.toggle("active");
+		var sizes = isExtended ? [20,80] : [40,60];
+		window.document.querySelector("#userlist").style.width = isExtended ? "80px" : "90px";
+		if(client_Buttons.settings.isSwapped) {
+			sizes.reverse();
 		}
-		extendPlayer.classList.toggle("active");
+		client_Buttons.split.setSizes(sizes);
+		client_Buttons.settings.isExtendedPlayer = isExtended;
+		client_Buttons.writeSplitSize();
 		return window.dispatchEvent(new Event("resize"));
 	};
+	if(client_Buttons.settings.isExtendedPlayer) {
+		extendPlayer.onclick();
+	}
 	var toggleSynch = window.document.querySelector("#togglesynch");
 	toggleSynch.onclick = function(e6) {
 		var icon = toggleSynch.firstElementChild;
@@ -578,8 +589,6 @@ client_Buttons.init = function(main) {
 		input.focus();
 		return;
 	};
-	window.onresize = client_Buttons.onVideoResize;
-	client_Buttons.initSplit();
 };
 client_Buttons.showPlayerGroup = function(el) {
 	var groups = window.document.querySelectorAll("[data-target]");
@@ -598,23 +607,31 @@ client_Buttons.showPlayerGroup = function(el) {
 	el.classList.toggle("active");
 	window.document.querySelector(el.dataset.target).classList.toggle("collapse");
 };
-client_Buttons.initSplit = function(swapped) {
-	if(swapped == null) {
-		swapped = false;
-	}
+client_Buttons.initSplit = function() {
 	if(client_Buttons.split != null) {
 		client_Buttons.split.destroy();
 	}
 	var divs = ["#chatwrap","#videowrap"];
-	var sizes = [40,60];
-	if(swapped) {
+	var sizes = [client_Buttons.settings.chatSize,client_Buttons.settings.playerSize];
+	if(client_Buttons.settings.isSwapped) {
 		divs.reverse();
 		sizes.reverse();
 	}
 	client_Buttons.split = new Split(divs,{ sizes : sizes, onDragEnd : function() {
-		return window.dispatchEvent(new Event("resize"));
+		window.dispatchEvent(new Event("resize"));
+		client_Buttons.writeSplitSize();
+		return;
 	}, minSize : 185, snapOffset : 0});
 	window.dispatchEvent(new Event("resize"));
+};
+client_Buttons.writeSplitSize = function() {
+	var sizes = client_Buttons.split.getSizes();
+	if(client_Buttons.settings.isSwapped) {
+		sizes.reverse();
+	}
+	client_Buttons.settings.chatSize = sizes[0];
+	client_Buttons.settings.playerSize = sizes[1];
+	client_Settings.write(client_Buttons.settings);
 };
 client_Buttons.onVideoResize = function() {
 	var height = window.document.querySelector("#ytapiplayer").offsetHeight - window.document.querySelector("#chatline").offsetHeight;
@@ -680,7 +697,7 @@ client_Buttons.initNavBar = function(main) {
 	};
 	var synchThresholdBtn = window.document.querySelector("#synchThresholdBtn");
 	synchThresholdBtn.onclick = function(e4) {
-		var secs = main.synchThreshold + 1;
+		var secs = main.settings.synchThreshold + 1;
 		if(secs > 5) {
 			secs = 1;
 		}
@@ -689,7 +706,7 @@ client_Buttons.initNavBar = function(main) {
 		synchThresholdBtn.blur();
 		return;
 	};
-	synchThresholdBtn.innerText += ": " + main.synchThreshold + "s";
+	synchThresholdBtn.innerText += ": " + main.settings.synchThreshold + "s";
 	var swapLayoutBtn = window.document.querySelector("#swapLayoutBtn");
 	swapLayoutBtn.onclick = function(e5) {
 		var p = window.document.querySelector("#main");
@@ -699,11 +716,18 @@ client_Buttons.initNavBar = function(main) {
 		p1.insertBefore(p1.children[1],p1.children[0]);
 		var p2 = window.document.querySelector("#playlistrow");
 		p2.insertBefore(p2.children[1],p2.children[0]);
-		client_Buttons.initSplit(window.document.querySelector("#main").firstElementChild == window.document.querySelector("#videowrap"));
+		var tmp = window.document.querySelector("#main").firstElementChild;
+		var tmp1 = window.document.querySelector("#videowrap");
+		client_Buttons.settings.isSwapped = tmp == tmp1;
+		client_Settings.write(client_Buttons.settings);
+		client_Buttons.initSplit();
 		swapLayoutBtn.blur();
 		client_Buttons.hideMenus();
 		return;
 	};
+	if(client_Buttons.settings.isSwapped) {
+		swapLayoutBtn.onclick();
+	}
 	var removeBtn = window.document.querySelector("#removeVideoBtn");
 	removeBtn.onclick = function(e6) {
 		if(main.toggleVideoElement() || main.isListEmpty()) {
@@ -722,7 +746,7 @@ client_Buttons.hideMenus = function() {
 	while(_g < menus.length) menus[_g++].style.display = "";
 };
 client_Buttons.updateSynchThresholdBtn = function(main) {
-	var tmp = "" + Lang.get("synchThreshold") + ": " + main.synchThreshold;
+	var tmp = "" + Lang.get("synchThreshold") + ": " + main.settings.synchThreshold;
 	window.document.querySelector("#synchThresholdBtn").innerText = tmp + "s";
 };
 client_Buttons.initChatInput = function(main) {
@@ -784,14 +808,12 @@ client_Buttons.initChatInput = function(main) {
 };
 var client_Main = function(host,port) {
 	this.matchNumbers = new EReg("^-?[0-9]+$","");
-	this.onTimeGet = new haxe_Timer(2000);
 	this.isConnected = false;
 	this.personal = new Client("Unknown",0);
 	this.filters = [];
 	this.globalIp = "";
 	this.pageTitle = window.document.title;
 	this.clients = [];
-	this.synchThreshold = 2;
 	this.isSyncActive = true;
 	var _gthis = this;
 	this.player = new client_Player(this);
@@ -808,7 +830,10 @@ var client_Main = function(host,port) {
 	if(port == "") {
 		port = "80";
 	}
+	client_Settings.init({ version : 1, name : "", hash : "", isExtendedPlayer : false, chatSize : 40, playerSize : 60, synchThreshold : 2, isSwapped : false, isUserListHidden : false, latestLinks : []});
+	this.settings = client_Settings.read();
 	this.initListeners();
+	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
 	this.onTimeGet.run = $bind(this,this.requestTime);
 	window.document.onvisibilitychange = function() {
 		if(!window.document.hidden && _gthis.onBlinkTab != null) {
@@ -1010,7 +1035,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 259, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 280, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1035,7 +1060,7 @@ client_Main.prototype = {
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
 			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
-				if(Math.abs(time - newTime) < this.synchThreshold) {
+				if(Math.abs(time - newTime) < this.settings.synchThreshold) {
 					return;
 				}
 				this.player.setTime(time,false);
@@ -1046,7 +1071,7 @@ client_Main.prototype = {
 			} else {
 				this.player.pause();
 			}
-			if(Math.abs(time - newTime) < this.synchThreshold) {
+			if(Math.abs(time - newTime) < this.settings.synchThreshold) {
 				return;
 			}
 			this.player.setTime(newTime);
@@ -1055,11 +1080,17 @@ client_Main.prototype = {
 			this.onLogin(data.login.clients,data.login.clientName);
 			break;
 		case "LoginError":
+			this.settings.name = "";
+			this.settings.hash = "";
+			client_Settings.write(this.settings);
 			this.showGuestLoginPanel();
 			break;
 		case "Logout":
 			this.updateClients(data.logout.clients);
 			this.personal = new Client(data.logout.clientName,0);
+			this.settings.name = "";
+			this.settings.hash = "";
+			client_Settings.write(this.settings);
 			this.showGuestLoginPanel();
 			break;
 		case "Message":
@@ -1113,7 +1144,7 @@ client_Main.prototype = {
 		case "SetTime":
 			var newTime1 = data.setTime.time;
 			var time1 = this.player.getTime();
-			if(Math.abs(time1 - newTime1) < this.synchThreshold) {
+			if(Math.abs(time1 - newTime1) < this.settings.synchThreshold) {
 				return;
 			}
 			this.player.setTime(newTime1);
@@ -1157,11 +1188,15 @@ client_Main.prototype = {
 			this.onLogin(connected.clients,connected.clientName);
 		}
 		var guestName = window.document.querySelector("#guestname");
-		var guestPass = window.document.querySelector("#guestpass");
-		if(this.config.salt != null && guestPass.value.length > 0) {
-			this.userLogin(guestName.value,guestPass.value);
+		var name = this.settings.name;
+		if(name.length == 0) {
+			name = guestName.value;
+		}
+		var hash = this.settings.hash;
+		if(hash.length > 0) {
+			this.loginRequest(name,hash);
 		} else {
-			this.guestLogin(guestName.value);
+			this.guestLogin(name);
 		}
 		this.setPlaylistLock(connected.isPlaylistOpen);
 		this.clearChat();
@@ -1180,6 +1215,8 @@ client_Main.prototype = {
 			return;
 		}
 		this.send({ type : "Login", login : { clientName : name}});
+		this.settings.name = name;
+		client_Settings.write(this.settings);
 	}
 	,userLogin: function(name,password) {
 		if(this.config.salt == null) {
@@ -1191,7 +1228,13 @@ client_Main.prototype = {
 		if(name.length == 0) {
 			return;
 		}
-		this.send({ type : "Login", login : { clientName : name, passHash : haxe_crypto_Sha256.encode(password + this.config.salt)}});
+		var hash = haxe_crypto_Sha256.encode(password + this.config.salt);
+		this.loginRequest(name,hash);
+		this.settings.hash = hash;
+		client_Settings.write(this.settings);
+	}
+	,loginRequest: function(name,hash) {
+		this.send({ type : "Login", login : { clientName : name, passHash : hash}});
 	}
 	,setConfig: function(config) {
 		this.config = config;
@@ -1423,10 +1466,11 @@ client_Main.prototype = {
 		}
 	}
 	,setSynchThreshold: function(s) {
-		this.synchThreshold = s;
 		this.onTimeGet.stop();
 		this.onTimeGet = new haxe_Timer(s * 1000);
 		this.onTimeGet.run = $bind(this,this.requestTime);
+		this.settings.synchThreshold = s;
+		client_Settings.write(this.settings);
 	}
 	,getTemplateUrl: function() {
 		return this.config.templateUrl;
@@ -1750,6 +1794,49 @@ client_Player.prototype = {
 		this.skipSetTime = isLocal;
 		this.player.setTime(time);
 	}
+};
+var client_Settings = function() { };
+client_Settings.__name__ = true;
+client_Settings.init = function(def,upd) {
+	client_Settings.storage = js_Browser.getLocalStorage();
+	client_Settings.isSupported = client_Settings.storage != null;
+	client_Settings.defaults = def;
+	client_Settings.updater = upd;
+};
+client_Settings.read = function() {
+	if(!client_Settings.isSupported) {
+		return client_Settings.defaults;
+	}
+	return client_Settings.checkData(JSON.parse(client_Settings.storage.getItem("data")));
+};
+client_Settings.checkData = function(data) {
+	if(client_Settings.defaults == null) {
+		throw new js__$Boot_HaxeError("read: default data is null");
+	}
+	if(data == null) {
+		return client_Settings.defaults;
+	}
+	if(data.version == client_Settings.defaults.version) {
+		return data;
+	}
+	if(data.version > client_Settings.defaults.version) {
+		throw new js__$Boot_HaxeError("read: current data version is larger than default data version");
+	}
+	if(client_Settings.updater == null) {
+		throw new js__$Boot_HaxeError("read: updater function is null");
+	}
+	while(data.version < client_Settings.defaults.version) {
+		data = client_Settings.updater(data,data.version);
+		data.version++;
+	}
+	client_Settings.write(data);
+	return data;
+};
+client_Settings.write = function(data) {
+	if(!client_Settings.isSupported) {
+		return;
+	}
+	client_Settings.storage.setItem("data",JSON.stringify(data));
 };
 var client_Utils = function() { };
 client_Utils.__name__ = true;
@@ -2767,6 +2854,20 @@ js_Boot.__string_rec = function(o,s) {
 };
 var js_Browser = function() { };
 js_Browser.__name__ = true;
+js_Browser.getLocalStorage = function() {
+	try {
+		var s = window.localStorage;
+		s.getItem("");
+		if(s.length == 0) {
+			var key = "_hx_" + Math.random();
+			s.setItem(key,key);
+			s.removeItem(key);
+		}
+		return s;
+	} catch( e ) {
+		return null;
+	}
+};
 js_Browser.createXMLHttpRequest = function() {
 	if(typeof XMLHttpRequest != "undefined") {
 		return new XMLHttpRequest();
@@ -2807,6 +2908,7 @@ Lang.ids = ["en","ru"];
 Lang.lang = HxOverrides.substr(window.navigator.language,0,2).toLowerCase();
 client_Buttons.personalHistory = [];
 client_Buttons.personalHistoryId = -1;
+client_Settings.isSupported = false;
 client_players_Youtube.matchId = new EReg("v=([A-z0-9_-]+)","");
 client_players_Youtube.matchShort = new EReg("youtu.be/([A-z0-9_-]+)","");
 client_players_Youtube.matchEmbed = new EReg("embed/([A-z0-9_-]+)","");

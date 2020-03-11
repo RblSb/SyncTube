@@ -15,8 +15,12 @@ class Buttons {
 	static final personalHistory:Array<String> = [];
 	static var personalHistoryId = -1;
 	static var split:Split;
+	static var settings:ClientSettings;
 
 	public static function init(main:Main):Void {
+		settings = main.settings;
+		window.onresize = onVideoResize;
+		initSplit();
 		initChatInput(main);
 		initNavBar(main);
 
@@ -67,31 +71,29 @@ class Buttons {
 
 		final userlistToggle = ge("#userlisttoggle");
 		userlistToggle.onclick = e -> {
+			final isHidden = userlistToggle.classList.toggle("glyphicon-chevron-right");
+			userlistToggle.classList.toggle("glyphicon-chevron-down");
 			final style = ge("#userlist").style;
-			if (style.display == "none") {
-				userlistToggle.classList.add("glyphicon-chevron-down");
-				userlistToggle.classList.remove("glyphicon-chevron-right");
-				style.display = "block";
-			} else {
-				userlistToggle.classList.add("glyphicon-chevron-right");
-				userlistToggle.classList.remove("glyphicon-chevron-down");
-				style.display = "none";
-			}
+			if (isHidden) style.display = "none";
+			else style.display = "block";
+			settings.isUserListHidden = isHidden;
+			Settings.write(settings);
 		}
 		ge("#usercount").onclick = userlistToggle.onclick;
+		if (settings.isUserListHidden) userlistToggle.onclick();
 
 		final extendPlayer = ge("#extendplayer");
 		extendPlayer.onclick = e -> {
-			if (extendPlayer.classList.contains("active")) {
-				split.setSizes([40, 60]);
-				ge("#userlist").style.width = "90px";
-			} else {
-				split.setSizes([20, 80]);
-				ge("#userlist").style.width = "80px";
-			}
-			extendPlayer.classList.toggle("active");
+			final isExtended = extendPlayer.classList.toggle("active");
+			final sizes = isExtended ? [20, 80] : [40, 60];
+			ge("#userlist").style.width = isExtended ? "80px" : "90px";
+			if (settings.isSwapped) sizes.reverse();
+			split.setSizes(sizes);
+			settings.isExtendedPlayer = isExtended;
+			writeSplitSize();
 			window.dispatchEvent(new Event("resize"));
 		}
+		if (settings.isExtendedPlayer) extendPlayer.onclick();
 
 		final toggleSynch = ge("#togglesynch");
 		toggleSynch.onclick = e -> {
@@ -157,9 +159,6 @@ class Buttons {
 			input.value = main.getTemplateUrl();
 			input.focus();
 		}
-
-		window.onresize = onVideoResize;
-		initSplit();
 	}
 
 	static function showPlayerGroup(el:Element):Void {
@@ -175,11 +174,11 @@ class Buttons {
 		ge(el.dataset.target).classList.toggle("collapse");
 	}
 
-	static function initSplit(swapped = false):Void {
+	static function initSplit():Void {
 		if (split != null) split.destroy();
 		final divs = ["#chatwrap", "#videowrap"];
-		final sizes = [40, 60];
-		if (swapped) {
+		final sizes = [settings.chatSize, settings.playerSize];
+		if (settings.isSwapped) {
 			divs.reverse();
 			sizes.reverse();
 		}
@@ -187,11 +186,20 @@ class Buttons {
 			sizes: sizes,
 			onDragEnd: () -> {
 				window.dispatchEvent(new Event("resize"));
+				writeSplitSize();
 			},
 			minSize: 185,
 			snapOffset: 0
 		});
 		window.dispatchEvent(new Event("resize"));
+	}
+
+	static function writeSplitSize():Void {
+		final sizes = split.getSizes();
+		if (settings.isSwapped) sizes.reverse();
+		settings.chatSize = sizes[0];
+		settings.playerSize = sizes[1];
+		Settings.write(settings);
 	}
 
 	static function onVideoResize():Void {
@@ -263,11 +271,13 @@ class Buttons {
 			p.insertBefore(p.children[1], p.children[0]);
 			final p = ge("#playlistrow");
 			p.insertBefore(p.children[1], p.children[0]);
-			final swapped = ge("#main").firstElementChild == ge("#videowrap");
-			initSplit(swapped);
+			settings.isSwapped = ge("#main").firstElementChild == ge("#videowrap");
+			Settings.write(settings);
+			initSplit();
 			swapLayoutBtn.blur();
 			hideMenus();
 		}
+		if (settings.isSwapped) swapLayoutBtn.onclick();
 		final removeBtn = ge("#removeVideoBtn");
 		removeBtn.onclick = e -> {
 			final has = main.toggleVideoElement();

@@ -20,8 +20,9 @@ using ClientTools;
 
 class Main {
 
+	public final settings:ClientSettings;
 	public var isSyncActive = true;
-	public var synchThreshold(default, null) = 2;
+	public var synchThreshold(get, never):Int;
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
 	final host:String;
@@ -32,7 +33,7 @@ class Main {
 	var isConnected = false;
 	var ws:WebSocket;
 	final player:Player;
-	var onTimeGet = new Timer(2000);
+	var onTimeGet:Timer;
 	var onBlinkTab:Null<Timer>;
 
 	static function main():Void new Main();
@@ -45,7 +46,23 @@ class Main {
 		if (port == null) port = Browser.location.port;
 		if (port == "") port = "80";
 
+		final defaults:ClientSettings = {
+			version: 1,
+			name: "",
+			hash: "",
+			isExtendedPlayer: false,
+			chatSize: 40,
+			playerSize: 60,
+			synchThreshold: 2,
+			isSwapped: false,
+			isUserListHidden: false,
+			latestLinks: []
+		}
+		Settings.init(defaults);
+		settings = Settings.read();
+
 		initListeners();
+		onTimeGet = new Timer(settings.synchThreshold * 1000);
 		onTimeGet.run = requestTime;
 		document.onvisibilitychange = () -> {
 			if (!document.hidden && onBlinkTab != null) {
@@ -57,6 +74,10 @@ class Main {
 		Lang.init("langs", () -> {
 			openWebSocket(host, port);
 		});
+	}
+
+	inline function get_synchThreshold():Int {
+		return settings.synchThreshold;
 	}
 
 	function requestTime():Void {
@@ -269,11 +290,17 @@ class Main {
 				showGuestPasswordPanel();
 
 			case LoginError:
+				settings.name = "";
+				settings.hash = "";
+				Settings.write(settings);
 				showGuestLoginPanel();
 
 			case Logout:
 				updateClients(data.logout.clients);
 				personal = new Client(data.logout.clientName, 0);
+				settings.name = "";
+				settings.hash = "";
+				Settings.write(settings);
 				showGuestLoginPanel();
 
 			case UpdateClients:
@@ -386,12 +413,12 @@ class Main {
 			onLogin(connected.clients, connected.clientName);
 		}
 		final guestName:InputElement = cast ge("#guestname");
-		final guestPass:InputElement = cast ge("#guestpass");
-		if (config.salt != null && guestPass.value.length > 0) {
-			userLogin(guestName.value, guestPass.value);
-		} else {
-			guestLogin(guestName.value);
-		}
+		var name = settings.name;
+		if (name.length == 0) name = guestName.value;
+		final hash = settings.hash;
+		if (hash.length > 0) loginRequest(name, hash);
+		else guestLogin(name);
+
 		setPlaylistLock(connected.isPlaylistOpen);
 		clearChat();
 		serverMessage(1);
@@ -408,16 +435,25 @@ class Main {
 				clientName: name
 			}
 		});
+		settings.name = name;
+		Settings.write(settings);
 	}
 
 	public function userLogin(name:String, password:String):Void {
 		if (config.salt == null) return;
 		if (password.length == 0) return;
 		if (name.length == 0) return;
+		final hash = Sha256.encode(password + config.salt);
+		loginRequest(name, hash);
+		settings.hash = hash;
+		Settings.write(settings);
+	}
+
+	public function loginRequest(name:String, hash:String):Void {
 		send({
 			type: Login, login: {
 				clientName: name,
-				passHash: Sha256.encode(password + config.salt)
+				passHash: hash
 			}
 		});
 	}
@@ -643,10 +679,11 @@ class Main {
 	}
 
 	public function setSynchThreshold(s:Int):Void {
-		synchThreshold = s;
 		onTimeGet.stop();
 		onTimeGet = new Timer(s * 1000);
 		onTimeGet.run = requestTime;
+		settings.synchThreshold = s;
+		Settings.write(settings);
 	}
 
 	public function getTemplateUrl():String {
