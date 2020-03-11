@@ -1,5 +1,6 @@
 package client;
 
+import js.html.ImageElement;
 import haxe.Timer;
 import js.html.KeyboardEvent;
 import js.html.InputElement;
@@ -30,11 +31,16 @@ class Buttons {
 
 		final smilesBtn = ge("#smilesbtn");
 		smilesBtn.onclick = e -> {
-			smilesBtn.classList.toggle("active");
 			final smilesWrap = ge("#smileswrap");
-			if (smilesBtn.classList.contains("active"))
-				smilesWrap.style.display = "block";
+			if (smilesWrap.children.length == 0) return;
+			final isActive = smilesBtn.classList.toggle("active");
+			if (isActive) smilesWrap.style.display = "block";
 			else smilesWrap.style.display = "none";
+			if (smilesWrap.firstElementChild.dataset.src == null) return;
+			for (child in smilesWrap.children) {
+				(cast child : ImageElement).src = child.dataset.src;
+				child.removeAttribute("data-src");
+			}
 		}
 
 		ge("#clearchatbtn").onclick = e -> {

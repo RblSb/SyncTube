@@ -454,7 +454,7 @@ class Main {
 		for (emote in config.emotes) {
 			final img = document.createImageElement();
 			img.className = "smile-preview";
-			img.src = emote.image;
+			img.dataset.src = emote.image;
 			img.title = emote.name;
 			smilesWrap.appendChild(img);
 		}

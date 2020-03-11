@@ -430,13 +430,27 @@ client_Buttons.init = function(main) {
 	};
 	var smilesBtn = window.document.querySelector("#smilesbtn");
 	smilesBtn.onclick = function(e1) {
-		smilesBtn.classList.toggle("active");
 		var smilesWrap = window.document.querySelector("#smileswrap");
-		if(smilesBtn.classList.contains("active")) {
-			return smilesWrap.style.display = "block";
-		} else {
-			return smilesWrap.style.display = "none";
+		if(smilesWrap.children.length == 0) {
+			return;
 		}
+		if(smilesBtn.classList.toggle("active")) {
+			smilesWrap.style.display = "block";
+		} else {
+			smilesWrap.style.display = "none";
+		}
+		if(smilesWrap.firstElementChild.dataset.src == null) {
+			return;
+		}
+		var _g = 0;
+		var _g1 = smilesWrap.children;
+		while(_g < _g1.length) {
+			var child = _g1[_g];
+			++_g;
+			child.src = child.dataset.src;
+			child.removeAttribute("data-src");
+		}
+		return;
 	};
 	window.document.querySelector("#clearchatbtn").onclick = function(e2) {
 		if((main.personal.group & 4) != 0) {
@@ -1215,7 +1229,7 @@ client_Main.prototype = {
 			++_g4;
 			var img = window.document.createElement("img");
 			img.className = "smile-preview";
-			img.src = emote1.image;
+			img.dataset.src = emote1.image;
 			img.title = emote1.name;
 			smilesWrap.appendChild(img);
 		}
