@@ -5,18 +5,6 @@
   margin-right: auto;
 }
 
-#loginform > .form-group {
-  margin-right: 5px;
-}
-
-.center {
-  text-align: center;
-}
-
-.messagebox > p {
-  margin-top: 20px;
-}
-
 .vertical-spacer {
   margin-top: 10px;
 }
@@ -61,7 +49,7 @@
   color: white;
 }
 
-.linewrap, .linewrap code {
+.linewrap {
   white-space: pre-wrap; /* css-3 */
   white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
   white-space: -pre-wrap; /* Opera 4-6 */
@@ -69,16 +57,8 @@
   word-wrap: break-word; /* Internet Explorer 5.5+ */
 }
 
-#from-url, #from-search {
-  margin-top: 3px;
-}
-
 .clear {
   clear: both;
-}
-
-.chat-name {
-  font-weight: bold;
 }
 
 #customembed > .input-group {
@@ -89,7 +69,7 @@
   padding-left: 5px;
 }
 
-#chatheader > p, #currenttitle {
+#currenttitle {
   margin: 0;
 }
 
@@ -121,17 +101,6 @@
   cursor: pointer;
 }
 
-.embed-responsive-chat {
-  padding-bottom: 78.75%;
-}
-
-#userpl_list {
-  list-style: none outside none;
-  margin-left: 0;
-  max-height: 500px;
-  overflow-y: scroll;
-}
-
 /*
 #userpl_list li {
   display: inline-block;
@@ -144,17 +113,7 @@
 }
 */
 
-#customembed_wrap {
-  margin: 5px 0;
-}
-
-#library {
-  padding-left: 0;
-  padding-right: 0;
-  margin-bottom: 5px;
-}
-
-#library_search, #queue_next, #ce_queue_next {
+#queue_next, #ce_queue_next {
   border-radius: 0;
 }
 
@@ -195,27 +154,11 @@
   margin-bottom: 0;
 }
 
-#userpl_list > li:last-child {
-  border-bottom-width: 1px;
-}
-
 .videolist > li:first-child {
   border-top-width: 1px;
 }
 
-li.ui-sortable-helper, li.ui-sortable-placeholder + li.queue_entry {
-  border-top-width: 1px;
-}
-
-.qe_btn {
-  height: 20px;
-  font-family: Monospace;
-  padding: 0 5px 0 5px;
-  margin: auto;
-  overflow: hidden;
-}
-
-.qe_buttons, .qe_title {
+.qe_title {
   float: left;
 }
 
@@ -238,25 +181,6 @@ li.ui-sortable-helper, li.ui-sortable-placeholder + li.queue_entry {
 }
 
 .well {
-  margin-top: 10px;
-}
-
-.well hr {
-  border-color: #cccccc;
-}
-
-#csstext, #jstext {
-  font-family: Monospace;
-}
-
-#optedit, #permedit, #filteredit, #motdedit, #cssedit, #jsedit,
-#banlist, #loginhistory, #channelranks, #chanlog {
-  display: none;
-}
-
-#chanlog_contents {
-  max-height: 400px;
-  overflow-y: scroll;
   margin-top: 10px;
 }
 
@@ -284,12 +208,6 @@ li.ui-sortable-helper, li.ui-sortable-placeholder + li.queue_entry {
   cursor: row-resize;
 }
 
-.poll-notify {
-  color: #0000aa;
-  font-weight: bold;
-  font-size: 14pt;
-}
-
 .userlist_item {
   cursor: pointer;
 }
@@ -303,46 +221,10 @@ li.ui-sortable-helper, li.ui-sortable-placeholder + li.queue_entry {
   color: #888888!important;
 }
 
-.action {
-  font-style: italic;
-  color: #888888;
-}
-
 .server-whisper {
   font-style: italic;
   color: #888888;
   font-size: 8pt;
-}
-
-.spoiler {
-  color: #000000;
-  background-color: #000000;
-}
-
-.spoiler:hover {
-  color: #ffffff;
-}
-
-.greentext {
-  color: #789922; /* Color value directly from 4chan */
-}
-
-.shout {
-  color: #ff0000;
-  font-weight: bold;
-  font-size: 18pt;
-}
-
-.mono {
-  font-family: Monospace;
-}
-
-.nick-highlight {
-  background-color: #ddffdd;
-}
-
-.nick-hover {
-  background-color: #ffff99;
 }
 
 .timestamp {
@@ -350,154 +232,16 @@ li.ui-sortable-helper, li.ui-sortable-placeholder + li.queue_entry {
   font-size: 8pt;
 }
 
-.profile-box {
-  z-index: 9999;
-  position: fixed;
-  border: 1px solid #aaaaaa;
-  border-radius: 5px;
-  padding: 5px;
-  max-width: 200px;
-  max-height: 300px;
-  overflow-y: hidden;
-}
-
-.user-dropdown {
-  z-index: 9999;
-  position: absolute;
-  border: 1px solid #aaaaaa;
-  border-radius: 5px;
-  color: #000000;
-  max-width: 200px;
-  padding: 5px;
-}
-
-.profile-image {
-  max-width: 80px;
-  max-height: 80px;
-  border: 1px solid #aaaaaa;
-  border-radius: 5px;
-}
-
 #togglemotd .glyphicon {
   font-size: 10pt;
-}
-
-.poll-menu > .btn, .poll-menu > input {
-  clear: both;
-  margin-bottom: 10px;
-}
-
-.poll-menu {
-  margin-top: 10px;
-}
-
-#search_clear {
-  margin-top: 10px;
-}
-
-#qualitywrap {
-  margin-right: 5px;
 }
 
 #guestlogin .input-group-addon {
   min-width: 120px;
 }
 
-#channeloptions .modal-header {
-  border-bottom: none;
-}
-
-#pollwrap > div {
-  margin-top: 10px;
-}
-
-.option {
-  margin-top: 5px;
-}
-
-.option-selected {
-  font-weight: bold;
-}
-
-.option > button {
-  margin-right: 15px;
-}
-
-.option-selected > button {
-  border-width: 3px !important;
-  margin-right: 10px;
-}
-
-#useroptions .modal-header {
-  border-bottom: 0;
-  padding-bottom: 0;
-  margin-bottom: 0;
-}
-
-#useroptions .modal-body {
-  padding-top: 0;
-  margin-top: 0;
-}
-
-.qfalert {
-  margin-bottom: 10px;
-  padding-left: 0!important;
-  padding-right: 0!important;
-}
-
 #customembed-content {
   font-family: Monospace;
-}
-
-#cs-csstext, #cs-jstext, #cs-motdtext {
-  font-family: Monospace;
-}
-
-#cs-csssubmit, #cs-motdsubmit, #cs-jssubmit {
-  margin-top: 10px;
-}
-
-#cs-chatfilters input[type='text'], #cs-chatfilters textarea {
-  font-family: monospace;
-}
-
-#cs-chatfilters-exporttext {
-  margin-top: 5px;
-}
-
-#cs-emotes input[type='text'], #cs-emotes textarea {
-  font-family: monospace;
-}
-
-#cs-emotes-exporttext {
-  margin-top: 5px;
-}
-
-.pagination {
-  margin: 0;
-}
-
-#cs-chanlog-filter {
-  border-bottom: 0;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-#cs-chanlog-text {
-  max-height: 300px;
-  overflow-y: scroll;
-  font-size: 8pt;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-
-.channel-emote, .chat-img {
-  max-width: 120px;
-  max-height: 120px;
-}
-
-#cs-emotes td:nth-child(3) {
-  max-width: 300px;
 }
 
 #pmbar {
@@ -506,93 +250,6 @@ li.ui-sortable-helper, li.ui-sortable-placeholder + li.queue_entry {
   z-index: 10000;
   min-width: 100%;
   pointer-events: none;
-}
-
-body.chatOnly .pm-panel, body.chatOnly .pm-panel-placeholder {
-  margin-left: 0;
-  margin-right: 5px;
-  float: right;
-}
-
-.pm-panel, .pm-panel-placeholder {
-  margin-left: 5px;
-  margin-bottom: 20px;
-  float: left;
-  width: 250px;
-  pointer-events: auto;
-}
-
-.pm-panel {
-  margin-bottom: 0!important;
-  border-radius: 0!important;
-  border-radius: 0!important;
-}
-
-.pm-panel > .panel-heading {
-  cursor: pointer;
-  border-radius: 0!important;
-  border-radius: 0!important;
-}
-
-.pm-panel > .panel-body {
-  padding: 0;
-}
-
-.pm-panel > .panel-body > .pm-buffer {
-  height: 200px;
-  overflow-y: scroll;
-}
-
-.pm-panel > .panel-body > hr {
-  margin: 0;
-}
-
-.pm-input {
-  margin: 0;
-  width: 100%;
-  border-top-left-radius: 0!important;
-  border-top-right-radius: 0!important;
-}
-
-.chat-shadow {
-  text-decoration: line-through;
-}
-
-#chanjs-allow-prompt {
-  text-align: center;
-}
-
-#chanjs-allow-prompt-buttons {
-  margin-top: 10px;
-}
-
-#chanjs-allow-prompt-buttons button:first-child {
-  margin-right: 5px;
-}
-
-@media screen and (min-width: 768px) {
-  .modal-dialog {
-    min-width: 600px!important;
-    max-width: 1200px!important;
-    width: auto!important;
-  }
-
-  .modal-dialog-nonfluid.modal-dialog {
-    max-width: 600px!important;
-  }
-}
-
-table td {
-  max-width: 200px;
-  word-wrap: break-word;
-}
-
-#cs-chatfilters table .form-group {
-  max-width: 25%;
-}
-
-#cs-chatfilters table .form-group > input {
-  max-width: 100%;
 }
 
 #userlisttoggle {
@@ -607,35 +264,6 @@ table td {
   border-top-width: 0;
 }
 
-.emotelist-table {
-  margin: auto;
-}
-
-.emote-preview-container {
-  width: 100px;
-  height: 100px;
-  float: left;
-  text-align: center;
-  white-space: nowrap;
-  margin: 5px;
-}
-
-.emote-preview-hax {
-  display: inline-block;
-  vertical-align: middle;
-  height: 100%;
-}
-
-.emote-preview {
-  max-width: 100px;
-  max-height: 100px;
-  cursor: pointer;
-}
-
-.emotelist-paginator-container {
-  text-align: center;
-}
-
 #leftcontrols .btn {
   margin-right: 5px;
 }
@@ -645,24 +273,6 @@ table td {
 #videowrap .embed-responsive:-ms-full-screen { width: 100%; }
 #videowrap .embed-responsive:-o-full-screen { width: 100%; }
 #videowrap .embed-responsive:full-screen { width: 100%; }
-
-li.vjs-menu-item.vjs-selected {
-  background-color: #66a8cc !important;
-}
-
-.video-js video::-webkit-media-text-track-container {
-  bottom: 50px;
-}
-
-input#logout[type="submit"] {
-  background: none;
-  border: none;
-  padding: 0;
-}
-
-input#logout[type="submit"]:hover {
-  text-decoration: underline;
-}
 
 #newmessages-indicator {
   margin-top: -30px;
@@ -675,22 +285,6 @@ input#logout[type="submit"]:hover {
 }
 
 #newmessages-indicator .glyphicon {
-  margin-left: 10px;
-  margin-right: 10px;
-}
-
-#soundcloud-volume-holder {
-  position: absolute;
-  top: 170px;
-  width: 100%;
-}
-
-#soundcloud-volume-label {
-  margin-left: 2px;
-}
-
-#soundcloud-volume {
-  margin-top: 5px;
   margin-left: 10px;
   margin-right: 10px;
 }
