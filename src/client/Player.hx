@@ -223,6 +223,7 @@ class Player {
 		if (index == -1) return;
 		if (items[index].isTemp) removeElementItem(url);
 		index = items.skipItem(index);
+		updateCounters();
 		if (items.length == 0) return;
 		setVideo(index);
 	}
@@ -242,6 +243,7 @@ class Player {
 		if (list.length == 0) return;
 		for (video in list) addVideoItem(video, true);
 		if (currentSrc != items[itemPos].url) setVideo(itemPos);
+		else videoItemsEl.children[itemPos].classList.add("queue_active");
 	}
 
 	public function clearItems():Void {

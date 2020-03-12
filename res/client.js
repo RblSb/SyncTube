@@ -1676,6 +1676,7 @@ client_Player.prototype = {
 			this.removeElementItem(url);
 		}
 		index = _$VideoList_VideoList_$Impl_$.skipItem(this.items,index);
+		this.updateCounters();
 		if(this.items.length == 0) {
 			return;
 		}
@@ -1702,6 +1703,8 @@ client_Player.prototype = {
 		while(_g < list.length) this.addVideoItem(list[_g++],true);
 		if(this.currentSrc != this.items[this.itemPos].url) {
 			this.setVideo(this.itemPos);
+		} else {
+			this.videoItemsEl.children[this.itemPos].classList.add("queue_active");
 		}
 	}
 	,clearItems: function() {
