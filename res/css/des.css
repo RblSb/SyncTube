@@ -771,7 +771,8 @@ border-top-left-radius:0
   padding:0;
   overflow:hidden
 }
-.embed-responsive video {
+.embed-responsive video,
+.embed-responsive iframe {
   position:absolute;
   top:0;
   left:0;
