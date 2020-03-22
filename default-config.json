@@ -55,16 +55,16 @@
 	],
 	"filters": [
 		{
-			"name": "url",
-			"regex": "(https?:\\/\\/[^ \t]*)",
-			"flags": "g",
-			"replace": "<a href='$1' target='_blank' rel='noopener noreferrer'>$1</a>"
-		},
-		{
 			"name": "image",
-			"regex": "(https?:\\/\\/.*\\.)(png|jpg|gif|jpeg)([^ ,]*)",
+			"regex": "(https?:\\/\\/[^']*\\.)(png|jpg|gif|jpeg)([^' ,]*)",
 			"flags": "g",
 			"replace": "<a href='$1$2$3' target='_blank' rel='noopener noreferrer'><img src='$1$2$3' style='max-width:200px; max-height:200px'/></a>"
+		},
+		{
+			"name": "url",
+			"regex": "(^|[^'])(https?:\\/\\/[^' \t]*)",
+			"flags": "g",
+			"replace": "$1<a href='$2' target='_blank' rel='noopener noreferrer'>$2</a>"
 		}
 	]
 }
