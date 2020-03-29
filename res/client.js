@@ -342,6 +342,15 @@ StringTools.startsWith = function(s,start) {
 		return false;
 	}
 };
+StringTools.endsWith = function(s,end) {
+	var elen = end.length;
+	var slen = s.length;
+	if(slen >= elen) {
+		return s.indexOf(end,slen - elen) == slen - elen;
+	} else {
+		return false;
+	}
+};
 StringTools.replace = function(s,sub,by) {
 	return s.split(sub).join(by);
 };
@@ -1035,7 +1044,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 280, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 281, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1254,7 +1263,8 @@ client_Main.prototype = {
 		while(_g2 < _g3.length) {
 			var emote = _g3[_g2];
 			++_g2;
-			this.filters.push({ regex : new EReg(this.escapeRegExp(emote.name),"g"), replace : "<img class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>"});
+			var tag = StringTools.endsWith(emote.image,"mp4") ? "video autoplay=\"\" loop=\"\"" : "img";
+			this.filters.push({ regex : new EReg("(^| )" + this.escapeRegExp(emote.name) + "($| )","g"), replace : "$1<" + tag + " class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>$2"});
 		}
 		var smilesWrap = window.document.querySelector("#smileswrap");
 		smilesWrap.onclick = function(e) {
@@ -1270,11 +1280,16 @@ client_Main.prototype = {
 		while(_g4 < _g5.length) {
 			var emote1 = _g5[_g4];
 			++_g4;
-			var img = window.document.createElement("img");
-			img.className = "smile-preview";
-			img.dataset.src = emote1.image;
-			img.title = emote1.name;
-			smilesWrap.appendChild(img);
+			var tag1 = StringTools.endsWith(emote1.image,"mp4") ? "video" : "img";
+			var el1 = window.document.createElement(tag1);
+			el1.className = "smile-preview";
+			el1.dataset.src = emote1.image;
+			el1.title = emote1.name;
+			if(tag1 == "video") {
+				el1.autoplay = true;
+				el1.loop = true;
+			}
+			smilesWrap.appendChild(el1);
 		}
 	}
 	,onLogin: function(data,clientName) {

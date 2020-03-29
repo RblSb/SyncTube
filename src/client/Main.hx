@@ -8,6 +8,7 @@ import js.html.KeyboardEvent;
 import js.html.Event;
 import js.html.Element;
 import js.html.InputElement;
+import js.html.VideoElement;
 import js.html.WebSocket;
 import js.Browser;
 import js.Browser.document;
@@ -474,9 +475,10 @@ class Main {
 			});
 		}
 		for (emote in config.emotes) {
+			final tag = emote.image.endsWith("mp4") ? 'video autoplay="" loop=""' : "img";
 			filters.push({
-				regex: new EReg(escapeRegExp(emote.name), "g"),
-				replace: '<img class="channel-emote" src="${emote.image}" title="${emote.name}"/>'
+				regex: new EReg("(^| )" + escapeRegExp(emote.name) + "($| )", "g"),
+				replace: '$1<$tag class="channel-emote" src="${emote.image}" title="${emote.name}"/>$2'
 			});
 		}
 		final smilesWrap = ge("#smileswrap");
@@ -488,11 +490,16 @@ class Main {
 		}
 		smilesWrap.textContent = "";
 		for (emote in config.emotes) {
-			final img = document.createImageElement();
-			img.className = "smile-preview";
-			img.dataset.src = emote.image;
-			img.title = emote.name;
-			smilesWrap.appendChild(img);
+			final tag = emote.image.endsWith("mp4") ? "video" : "img";
+			final el = document.createElement(tag);
+			el.className = "smile-preview";
+			el.dataset.src = emote.image;
+			el.title = emote.name;
+			if (tag == "video") {
+				(cast el : VideoElement).autoplay = true;
+				(cast el : VideoElement).loop = true;
+			}
+			smilesWrap.appendChild(el);
 		}
 	}
 

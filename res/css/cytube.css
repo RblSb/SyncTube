@@ -92,13 +92,14 @@
   text-align: center;
   color: #fff;
 }
-#smileswrap video {
-  vertical-align: middle;
-}
 .smile-preview {
   padding: 2px;
   max-height: 75px;
   cursor: pointer;
+}
+.channel-emote, .chat-img {
+  max-width: 200px;
+  max-height: 200px;
 }
 
 /*
