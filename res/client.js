@@ -1285,10 +1285,6 @@ client_Main.prototype = {
 			el1.className = "smile-preview";
 			el1.dataset.src = emote1.image;
 			el1.title = emote1.name;
-			if(tag1 == "video") {
-				el1.autoplay = true;
-				el1.loop = true;
-			}
 			smilesWrap.appendChild(el1);
 		}
 	}

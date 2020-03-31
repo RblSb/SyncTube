@@ -495,10 +495,6 @@ class Main {
 			el.className = "smile-preview";
 			el.dataset.src = emote.image;
 			el.title = emote.name;
-			if (tag == "video") {
-				(cast el : VideoElement).autoplay = true;
-				(cast el : VideoElement).loop = true;
-			}
 			smilesWrap.appendChild(el);
 		}
 	}
