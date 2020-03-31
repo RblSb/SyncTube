@@ -47,7 +47,7 @@ class VideoTimer {
 	}
 
 	function pauseTime():Float {
-		if (!isPaused()) return 0;
+		if (pauseStartTime == 0) return 0;
 		return Timer.stamp() - pauseStartTime;
 	}
 
