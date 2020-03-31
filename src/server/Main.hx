@@ -24,6 +24,7 @@ using Lambda;
 class Main {
 
 	final rootDir = '$__dirname/..';
+	final verbose:Bool;
 	final statePath:String;
 	final wss:WSServer;
 	final localIp:String;
@@ -43,6 +44,7 @@ class Main {
 	static function main():Void new Main();
 
 	function new() {
+		verbose = Sys.args().has("--verbose");
 		statePath = '$rootDir/user/state.json';
 		// process.on("exit", exit);
 		process.on("SIGINT", exit); // ctrl+c
@@ -132,6 +134,14 @@ class Main {
 		for (field in Reflect.fields(customConfig)) {
 			if (Reflect.field(config, field) == null) trace('Warning: config field "$field" is unknown');
 			Reflect.setField(config, field, Reflect.field(customConfig, field));
+		}
+		final emoteCopies:Map<String, Bool> = [];
+		for (emote in config.emotes) {
+			if (emoteCopies[emote.name]) trace('Warning: emote name "${emote.name}" has copy');
+			emoteCopies[emote.name] = true;
+			if (!verbose) continue;
+			if (emoteCopies[emote.image]) trace('Warning: emote url of name "${emote.name}" has copy');
+			emoteCopies[emote.image] = true;
 		}
 		return config;
 	}
