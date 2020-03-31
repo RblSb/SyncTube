@@ -1110,7 +1110,14 @@ server_Main.main = function() {
 server_Main.prototype = {
 	exit: function() {
 		this.saveState();
-		process.exit();
+		if(this.wss == null) {
+			process.exit();
+			return;
+		}
+		this.wss.close(function() {
+			process.exit();
+			return;
+		});
 	}
 	,generateConfigSalt: function() {
 		if(this.userList.salt == null) {
@@ -1158,7 +1165,7 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 129, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 133, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
@@ -1179,7 +1186,7 @@ server_Main.prototype = {
 		js_node_Fs.writeFileSync("" + folder + "/users.json",JSON.stringify(users,null,"\t"));
 	}
 	,saveState: function() {
-		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 153, className : "server.Main", methodName : "saveState"});
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 157, className : "server.Main", methodName : "saveState"});
 		var json = JSON.stringify({ videoList : this.videoList, isPlaylistOpen : this.isPlaylistOpen, itemPos : this.itemPos, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 	}
@@ -1187,7 +1194,7 @@ server_Main.prototype = {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
-		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 170, className : "server.Main", methodName : "loadState"});
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 174, className : "server.Main", methodName : "loadState"});
 		var data = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		this.videoList.length = 0;
 		this.messages.length = 0;
@@ -1204,7 +1211,7 @@ server_Main.prototype = {
 		this.videoTimer.pause();
 	}
 	,logError: function(type,data) {
-		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 184, className : "server.Main", methodName : "logError", customParams : [data]});
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 188, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.rootDir + "/user/crashes";
 		if(!sys_FileSystem.exists(crashesFolder)) {
 			sys_FileSystem.createDirectory(crashesFolder);
@@ -1219,7 +1226,7 @@ server_Main.prototype = {
 					return;
 				}
 				var url = "http://" + process.env["APP_URL"];
-				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 198, className : "server.Main", methodName : "initIntergationHandlers"});
+				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 202, className : "server.Main", methodName : "initIntergationHandlers"});
 				js_node_Http.get(url,function(r) {
 					return;
 				});
@@ -1234,14 +1241,14 @@ server_Main.prototype = {
 		}
 		this.userList.admins.push({ name : name, hash : hash});
 		this.writeUsers(this.userList);
-		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 213, className : "server.Main", methodName : "addAdmin"});
+		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 217, className : "server.Main", methodName : "addAdmin"});
 	}
 	,onConnect: function(ws,req) {
 		var _gthis = this;
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 220, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 224, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
 		client.setGroupFlag(ClientGroup.Admin,req.connection.localAddress == ip);
 		this.clients.push(client);
@@ -1265,7 +1272,7 @@ server_Main.prototype = {
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 250, className : "server.Main", methodName : "onConnect"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 254, className : "server.Main", methodName : "onConnect"});
 			server_Utils.sortedPush(_gthis.freeIds,client.id);
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
@@ -1734,8 +1741,8 @@ server_VideoTimer.prototype = {
 	}
 	,stop: function() {
 		this.isStarted = false;
-		this.startTime = 0.0;
-		this.pauseStartTime = 0.0;
+		this.startTime = 0;
+		this.pauseStartTime = 0;
 	}
 	,pause: function() {
 		this.pauseStartTime = Date.now() / 1000;
@@ -1760,7 +1767,11 @@ server_VideoTimer.prototype = {
 		}
 	}
 	,isPaused: function() {
-		return this.pauseStartTime != 0;
+		if(!(!this.isStarted)) {
+			return this.pauseStartTime != 0;
+		} else {
+			return true;
+		}
 	}
 	,pauseTime: function() {
 		if(!this.isPaused()) {

@@ -93,7 +93,11 @@ class Main {
 
 	public function exit():Void {
 		saveState();
-		process.exit();
+		if (wss == null) {
+			process.exit();
+			return;
+		}
+		wss.close(() -> process.exit());
 	}
 
 	function generateConfigSalt():String {

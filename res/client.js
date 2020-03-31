@@ -1264,7 +1264,7 @@ client_Main.prototype = {
 			var emote = _g3[_g2];
 			++_g2;
 			var tag = StringTools.endsWith(emote.image,"mp4") ? "video autoplay=\"\" loop=\"\"" : "img";
-			this.filters.push({ regex : new EReg("(^| )" + this.escapeRegExp(emote.name) + "($| )","g"), replace : "$1<" + tag + " class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>$2"});
+			this.filters.push({ regex : new EReg("(^| )" + this.escapeRegExp(emote.name) + "(?!\\S)","g"), replace : "$1<" + tag + " class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>"});
 		}
 		var smilesWrap = window.document.querySelector("#smileswrap");
 		smilesWrap.onclick = function(e) {

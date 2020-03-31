@@ -18,8 +18,8 @@ class VideoTimer {
 
 	public function stop():Void {
 		isStarted = false;
-		startTime = 0.0;
-		pauseStartTime = 0.0;
+		startTime = 0;
+		pauseStartTime = 0;
 	}
 
 	public function pause():Void {
@@ -43,7 +43,7 @@ class VideoTimer {
 	}
 
 	public function isPaused():Bool {
-		return pauseStartTime != 0;
+		return !isStarted || pauseStartTime != 0;
 	}
 
 	function pauseTime():Float {

@@ -477,8 +477,8 @@ class Main {
 		for (emote in config.emotes) {
 			final tag = emote.image.endsWith("mp4") ? 'video autoplay="" loop=""' : "img";
 			filters.push({
-				regex: new EReg("(^| )" + escapeRegExp(emote.name) + "($| )", "g"),
-				replace: '$1<$tag class="channel-emote" src="${emote.image}" title="${emote.name}"/>$2'
+				regex: new EReg("(^| )" + escapeRegExp(emote.name) + "(?!\\S)", "g"),
+				replace: '$1<$tag class="channel-emote" src="${emote.image}" title="${emote.name}"/>'
 			});
 		}
 		final smilesWrap = ge("#smileswrap");
