@@ -1959,6 +1959,7 @@ client_players_Iframe.prototype = {
 	}
 };
 var client_players_Raw = function(main,player) {
+	this.playAllowed = true;
 	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.main = main;
 	this.player = player;
@@ -2013,10 +2014,13 @@ client_players_Raw.prototype = {
 		}
 		this.video.oncanplaythrough = ($_=this.player,$bind($_,$_.onCanBePlayed));
 		this.video.onseeking = ($_=this.player,$bind($_,$_.onSetTime));
-		this.video.onplay = ($_=this.player,$bind($_,$_.onPlay));
+		this.video.onplay = function(e1) {
+			_gthis.playAllowed = true;
+			_gthis.player.onPlay();
+			return;
+		};
 		this.video.onpause = ($_=this.player,$bind($_,$_.onPause));
 		this.playerEl.appendChild(this.video);
-		this.video.pause();
 	}
 	,removeVideo: function() {
 		if(this.video == null) {
@@ -2026,10 +2030,20 @@ client_players_Raw.prototype = {
 		this.video = null;
 	}
 	,play: function() {
+		var _gthis = this;
 		if(this.video == null) {
 			return;
 		}
-		this.video.play();
+		if(!this.playAllowed) {
+			return;
+		}
+		var promise = this.video.play();
+		if(promise == null) {
+			return;
+		}
+		promise.catch(function(error) {
+			return _gthis.playAllowed = false;
+		});
 	}
 	,pause: function() {
 		if(this.video == null) {

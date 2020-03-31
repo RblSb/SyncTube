@@ -13,6 +13,7 @@ class Raw implements IPlayer {
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
+	var playAllowed = true;
 	var video:VideoElement;
 
 	public function new(main:Main, player:Player) {
@@ -60,10 +61,12 @@ class Raw implements IPlayer {
 		}, 3000);
 		video.oncanplaythrough = player.onCanBePlayed;
 		video.onseeking = player.onSetTime;
-		video.onplay = player.onPlay;
+		video.onplay = e -> {
+			playAllowed = true;
+			player.onPlay();
+		}
 		video.onpause = player.onPause;
 		playerEl.appendChild(video);
-		video.pause();
 	}
 
 	public function removeVideo():Void {
@@ -74,7 +77,13 @@ class Raw implements IPlayer {
 
 	public function play():Void {
 		if (video == null) return;
-		video.play();
+		if (!playAllowed) return;
+		final promise = video.play();
+		if (promise == null) return;
+		promise.catchError(error -> {
+			// Do not try to play video anymore or Chromium will hide play button
+			playAllowed = false;
+		});
 	}
 
 	public function pause():Void {
