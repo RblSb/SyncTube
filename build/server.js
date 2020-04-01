@@ -1096,8 +1096,8 @@ var server_Main = function() {
 	}
 	server_Utils.getGlobalIp(function(ip) {
 		_gthis.globalIp = ip;
-		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 80, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 81, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 82, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 83, className : "server.Main", methodName : "new"});
 		return;
 	});
 	var dir = "" + this.rootDir + "/res";
@@ -1173,7 +1173,7 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 135, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 137, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
@@ -1185,7 +1185,7 @@ server_Main.prototype = {
 			++_g2;
 			var key = emote.name;
 			if(__map_reserved[key] != null ? emoteCopies.getReserved(key) : emoteCopies.h[key]) {
-				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 140, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 142, className : "server.Main", methodName : "getUserConfig"});
 			}
 			var k = emote.name;
 			if(__map_reserved[k] != null) {
@@ -1198,7 +1198,7 @@ server_Main.prototype = {
 			}
 			var key1 = emote.image;
 			if(__map_reserved[key1] != null ? emoteCopies.getReserved(key1) : emoteCopies.h[key1]) {
-				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 143, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 145, className : "server.Main", methodName : "getUserConfig"});
 			}
 			var k1 = emote.image;
 			if(__map_reserved[k1] != null) {
@@ -1224,7 +1224,7 @@ server_Main.prototype = {
 		js_node_Fs.writeFileSync("" + folder + "/users.json",JSON.stringify(users,null,"\t"));
 	}
 	,saveState: function() {
-		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 167, className : "server.Main", methodName : "saveState"});
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 169, className : "server.Main", methodName : "saveState"});
 		var json = JSON.stringify({ videoList : this.videoList, isPlaylistOpen : this.isPlaylistOpen, itemPos : this.itemPos, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 	}
@@ -1232,7 +1232,7 @@ server_Main.prototype = {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
-		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 184, className : "server.Main", methodName : "loadState"});
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 186, className : "server.Main", methodName : "loadState"});
 		var data = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		this.videoList.length = 0;
 		this.messages.length = 0;
@@ -1249,7 +1249,7 @@ server_Main.prototype = {
 		this.videoTimer.pause();
 	}
 	,logError: function(type,data) {
-		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 198, className : "server.Main", methodName : "logError", customParams : [data]});
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 200, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.rootDir + "/user/crashes";
 		if(!sys_FileSystem.exists(crashesFolder)) {
 			sys_FileSystem.createDirectory(crashesFolder);
@@ -1264,7 +1264,7 @@ server_Main.prototype = {
 					return;
 				}
 				var url = "http://" + process.env["APP_URL"];
-				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 212, className : "server.Main", methodName : "initIntergationHandlers"});
+				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 214, className : "server.Main", methodName : "initIntergationHandlers"});
 				js_node_Http.get(url,function(r) {
 					return;
 				});
@@ -1279,14 +1279,14 @@ server_Main.prototype = {
 		}
 		this.userList.admins.push({ name : name, hash : hash});
 		this.writeUsers(this.userList);
-		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 227, className : "server.Main", methodName : "addAdmin"});
+		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 229, className : "server.Main", methodName : "addAdmin"});
 	}
 	,onConnect: function(ws,req) {
 		var _gthis = this;
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 234, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 236, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
 		client.setGroupFlag(ClientGroup.Admin,req.connection.localAddress == ip);
 		this.clients.push(client);
@@ -1310,7 +1310,7 @@ server_Main.prototype = {
 			return;
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 264, className : "server.Main", methodName : "onConnect"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 266, className : "server.Main", methodName : "onConnect"});
 			server_Utils.sortedPush(_gthis.freeIds,client.id);
 			HxOverrides.remove(_gthis.clients,client);
 			_gthis.sendClientList();
@@ -1329,6 +1329,7 @@ server_Main.prototype = {
 		});
 	}
 	,onMessage: function(client,data) {
+		var _gthis = this;
 		switch(data.type) {
 		case "AddVideo":
 			if(!this.checkPermission(client,"addVideo")) {
@@ -1387,7 +1388,7 @@ server_Main.prototype = {
 			if(this.videoList.length == 0) {
 				return;
 			}
-			if(this.videoTimer.getTime() > this.videoList[this.itemPos].duration) {
+			if(this.videoTimer.getTime() > this.videoList[this.itemPos].duration - 0.01) {
 				this.videoTimer.stop();
 				this.onMessage(client,{ type : "SkipVideo", skipVideo : { url : this.videoList[this.itemPos].url}});
 				return;
@@ -1505,9 +1506,14 @@ server_Main.prototype = {
 			var isCurrent = this.videoList[this.itemPos].url == url;
 			this.itemPos = _$VideoList_VideoList_$Impl_$.removeItem(this.videoList,index,this.itemPos);
 			if(isCurrent && this.videoList.length > 0) {
-				this.restartWaitTimer();
+				haxe_Timer.delay(function() {
+					_gthis.broadcast(data);
+					_gthis.restartWaitTimer();
+					return;
+				},1000);
+			} else {
+				this.broadcast(data);
 			}
-			this.broadcast(data);
 			break;
 		case "Rewind":
 			if(!this.checkPermission(client,"rewind")) {
@@ -1592,11 +1598,14 @@ server_Main.prototype = {
 			if(this.videoList[this.itemPos].url != data.skipVideo.url) {
 				return;
 			}
-			this.itemPos = _$VideoList_VideoList_$Impl_$.skipItem(this.videoList,this.itemPos);
-			if(this.videoList.length > 0) {
-				this.restartWaitTimer();
-			}
-			this.broadcast(data);
+			haxe_Timer.delay(function() {
+				_gthis.itemPos = _$VideoList_VideoList_$Impl_$.skipItem(_gthis.videoList,_gthis.itemPos);
+				if(_gthis.videoList.length > 0) {
+					_gthis.restartWaitTimer();
+				}
+				_gthis.broadcast(data);
+				return;
+			},1000);
 			break;
 		case "ToggleItemType":
 			_$VideoList_VideoList_$Impl_$.toggleItemType(this.videoList,data.toggleItemType.pos);

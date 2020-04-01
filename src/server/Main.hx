@@ -23,6 +23,8 @@ using Lambda;
 
 class Main {
 
+	static inline var VIDEO_START_MAX_DELAY = 3000;
+	static inline var VIDEO_SKIP_DELAY = 1000;
 	final rootDir = '$__dirname/..';
 	final verbose:Bool;
 	final statePath:String;
@@ -392,18 +394,24 @@ class Main {
 				final isCurrent = videoList[itemPos].url == url;
 				itemPos = videoList.removeItem(index, itemPos);
 				if (isCurrent && videoList.length > 0) {
-					restartWaitTimer();
+					Timer.delay(() -> {
+						broadcast(data);
+						restartWaitTimer();
+					}, VIDEO_SKIP_DELAY);
+				} else {
+					broadcast(data);
 				}
-				broadcast(data);
 
 			case SkipVideo:
 				if (!checkPermission(client, RemoveVideoPerm)) return;
 				if (videoList.length == 0) return;
 				final item = videoList[itemPos];
 				if (item.url != data.skipVideo.url) return;
-				itemPos = videoList.skipItem(itemPos);
-				if (videoList.length > 0) restartWaitTimer();
-				broadcast(data);
+				Timer.delay(() -> {
+					itemPos = videoList.skipItem(itemPos);
+					if (videoList.length > 0) restartWaitTimer();
+					broadcast(data);
+				}, VIDEO_SKIP_DELAY);
 
 			case Pause:
 				if (videoList.length == 0) return;
@@ -421,7 +429,7 @@ class Main {
 
 			case GetTime:
 				if (videoList.length == 0) return;
-				if (videoTimer.getTime() > videoList[itemPos].duration) {
+				if (videoTimer.getTime() > videoList[itemPos].duration - 0.01) {
 					videoTimer.stop();
 					onMessage(client, {
 						type: SkipVideo, skipVideo: {
@@ -607,7 +615,7 @@ class Main {
 	function restartWaitTimer():Void {
 		videoTimer.stop();
 		if (waitVideoStart != null) waitVideoStart.stop();
-		waitVideoStart = Timer.delay(startVideoPlayback, 3000);
+		waitVideoStart = Timer.delay(startVideoPlayback, VIDEO_START_MAX_DELAY);
 	}
 
 	function prepareVideoPlayback():Void {
