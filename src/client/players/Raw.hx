@@ -10,6 +10,7 @@ import Types.VideoItem;
 
 class Raw implements IPlayer {
 
+	static var controlsHider:Timer;
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
@@ -50,15 +51,15 @@ class Raw implements IPlayer {
 		video.src = url;
 		video.controls = true;
 		final isTouch = untyped __js__("'ontouchstart' in window");
-		if (!isTouch) Timer.delay(() -> {
+		if (controlsHider != null) controlsHider.stop();
+		if (!isTouch) controlsHider = Timer.delay(() -> {
 			video.controls = false;
-			video.onmouseover = e -> {
-				video.controls = true;
-				video.onmouseover = null;
-				video.onmousemove = null;
-			}
-			video.onmousemove = video.onmouseover;
 		}, 3000);
+		video.onmousemove = e -> {
+			controlsHider.stop();
+			video.controls = true;
+			video.onmousemove = null;
+		}
 		video.oncanplaythrough = player.onCanBePlayed;
 		video.onseeking = player.onSetTime;
 		video.onplay = e -> {

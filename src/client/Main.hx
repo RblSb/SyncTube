@@ -8,7 +8,6 @@ import js.html.KeyboardEvent;
 import js.html.Event;
 import js.html.Element;
 import js.html.InputElement;
-import js.html.VideoElement;
 import js.html.WebSocket;
 import js.Browser;
 import js.Browser.document;

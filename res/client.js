@@ -1069,7 +1069,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 300, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 299, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -2026,17 +2026,19 @@ client_players_Raw.prototype = {
 		this.video.src = url;
 		this.video.controls = true;
 		var isTouch = 'ontouchstart' in window;
+		if(client_players_Raw.controlsHider != null) {
+			client_players_Raw.controlsHider.stop();
+		}
 		if(!isTouch) {
-			haxe_Timer.delay(function() {
-				_gthis.video.controls = false;
-				_gthis.video.onmouseover = function(e) {
-					_gthis.video.controls = true;
-					_gthis.video.onmouseover = null;
-					return _gthis.video.onmousemove = null;
-				};
-				return _gthis.video.onmousemove = _gthis.video.onmouseover;
+			client_players_Raw.controlsHider = haxe_Timer.delay(function() {
+				return _gthis.video.controls = false;
 			},3000);
 		}
+		this.video.onmousemove = function(e) {
+			client_players_Raw.controlsHider.stop();
+			_gthis.video.controls = true;
+			return _gthis.video.onmousemove = null;
+		};
 		this.video.oncanplaythrough = ($_=this.player,$bind($_,$_.onCanBePlayed));
 		this.video.onseeking = ($_=this.player,$bind($_,$_.onSetTime));
 		this.video.onplay = function(e1) {
