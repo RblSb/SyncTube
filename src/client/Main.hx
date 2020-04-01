@@ -164,6 +164,24 @@ class Main {
 		return personal.isAdmin;
 	}
 
+	final mask = ~/\${([0-9]+)-([0-9]+)}/g;
+
+	function handleUrlMasks(links:Array<String>):Void {
+		for (link in links) {
+			if (!mask.match(link)) continue;
+			final start = Std.parseInt(mask.matched(1));
+			var end = Std.parseInt(mask.matched(2));
+			if (Math.abs(start - end) > 100) continue;
+			final step = end > start ? -1 : 1;
+			final i = links.indexOf(link);
+			links.remove(link);
+			while (end != start + step) {
+				links.insert(i, mask.replace(link, '$end'));
+				end += step;
+			}
+		}
+	}
+
 	function addVideoUrl(atEnd:Bool):Void {
 		final mediaUrl:InputElement = cast ge("#mediaurl");
 		final checkbox:InputElement = cast ge("#addfromurl").querySelector(".add-temp");
@@ -173,6 +191,7 @@ class Main {
 		mediaUrl.value = "";
 		final url = ~/,(https?)/g.replace(url, "|$1");
 		final links = url.split("|");
+		handleUrlMasks(links);
 		// if videos added as next, we need to load them in reverse order
 		if (!atEnd) {
 			// except first item when list empty

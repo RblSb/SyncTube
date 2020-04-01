@@ -817,6 +817,7 @@ client_Buttons.initChatInput = function(main) {
 };
 var client_Main = function(host,port) {
 	this.matchNumbers = new EReg("^-?[0-9]+$","");
+	this.mask = new EReg("\\${([0-9]+)-([0-9]+)}","g");
 	this.isConnected = false;
 	this.personal = new Client("Unknown",0);
 	this.filters = [];
@@ -942,6 +943,29 @@ client_Main.prototype = {
 		};
 		window.document.querySelector("#customembed-content").onkeydown = window.document.querySelector("#customembed-title").onkeydown;
 	}
+	,handleUrlMasks: function(links) {
+		var _g = 0;
+		while(_g < links.length) {
+			var link = links[_g];
+			++_g;
+			if(!this.mask.match(link)) {
+				continue;
+			}
+			var start = Std.parseInt(this.mask.matched(1));
+			var end = Std.parseInt(this.mask.matched(2));
+			if(Math.abs(start - end) > 100) {
+				continue;
+			}
+			var step = end > start ? -1 : 1;
+			var i = links.indexOf(link);
+			HxOverrides.remove(links,link);
+			while(end != start + step) {
+				var x = link.replace(this.mask.r,"" + end);
+				links.splice(i,0,x);
+				end += step;
+			}
+		}
+	}
 	,addVideoUrl: function(atEnd) {
 		var mediaUrl = window.document.querySelector("#mediaurl");
 		var isTemp = window.document.querySelector("#addfromurl").querySelector(".add-temp").checked;
@@ -952,6 +976,7 @@ client_Main.prototype = {
 		mediaUrl.value = "";
 		var _this_r = new RegExp(",(https?)","g".split("u").join(""));
 		var links = url.replace(_this_r,"|$1").split("|");
+		this.handleUrlMasks(links);
 		if(!atEnd) {
 			var first = null;
 			if(this.player.isListEmpty()) {
@@ -1044,7 +1069,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 281, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 300, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
