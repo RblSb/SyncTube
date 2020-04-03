@@ -449,6 +449,7 @@ class Main {
 		if (hash.length > 0) loginRequest(name, hash);
 		else guestLogin(name);
 
+		setLeaderButton(isLeader());
 		setPlaylistLock(connected.isPlaylistOpen);
 		clearChat();
 		serverMessage(1);
@@ -510,7 +511,9 @@ class Main {
 				replace: '$1<$tag class="channel-emote" src="${emote.image}" title="${emote.name}"/>'
 			});
 		}
+		ge("#smilesbtn").classList.remove("active");
 		final smilesWrap = ge("#smileswrap");
+		smilesWrap.style.display = "none";
 		smilesWrap.onclick = (e:MouseEvent) -> {
 			final el:Element = cast e.target;
 			final form:InputElement = cast ge("#chatline");
@@ -685,11 +688,8 @@ class Main {
 
 	function setLeaderButton(flag:Bool):Void {
 		final leaderBtn = ge("#leader_btn");
-		if (isLeader()) {
-			leaderBtn.classList.add("label-success");
-		} else {
-			leaderBtn.classList.remove("label-success");
-		}
+		if (flag) leaderBtn.classList.add("label-success");
+		else leaderBtn.classList.remove("label-success");
 	}
 
 	function setPlaylistLock(isOpen:Bool):Void {

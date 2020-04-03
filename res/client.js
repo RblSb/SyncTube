@@ -1247,6 +1247,7 @@ client_Main.prototype = {
 		} else {
 			this.guestLogin(name);
 		}
+		this.setLeaderButton((this.personal.group & 2) != 0);
 		this.setPlaylistLock(connected.isPlaylistOpen);
 		this.clearChat();
 		this.serverMessage(1);
@@ -1306,7 +1307,9 @@ client_Main.prototype = {
 			var tag = StringTools.endsWith(emote.image,"mp4") ? "video autoplay=\"\" loop=\"\"" : "img";
 			this.filters.push({ regex : new EReg("(^| )" + this.escapeRegExp(emote.name) + "(?!\\S)","g"), replace : "$1<" + tag + " class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>"});
 		}
+		window.document.querySelector("#smilesbtn").classList.remove("active");
 		var smilesWrap = window.document.querySelector("#smileswrap");
+		smilesWrap.style.display = "none";
 		smilesWrap.onclick = function(e) {
 			var el = e.target;
 			var form = window.document.querySelector("#chatline");
@@ -1493,7 +1496,7 @@ client_Main.prototype = {
 	}
 	,setLeaderButton: function(flag) {
 		var leaderBtn = window.document.querySelector("#leader_btn");
-		if((this.personal.group & 2) != 0) {
+		if(flag) {
 			leaderBtn.classList.add("label-success");
 		} else {
 			leaderBtn.classList.remove("label-success");
