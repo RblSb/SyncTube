@@ -208,7 +208,10 @@ class Youtube implements IPlayer {
 							player.onSetTime();
 						case CUED:
 					}
-				}
+				},
+				onPlaybackRateChange: e -> {
+					player.onRateChange();
+				},
 			}
 		});
 	}
@@ -237,6 +240,14 @@ class Youtube implements IPlayer {
 	public function setTime(time:Float):Void {
 		if (!isLoaded) return;
 		youtube.seekTo(time, true);
+	}
+
+	public function getPlaybackRate():Float {
+		return youtube.getPlaybackRate();
+	}
+
+	public function setPlaybackRate(rate:Float):Void {
+		youtube.setPlaybackRate(rate);
 	}
 
 }

@@ -134,10 +134,14 @@ typedef WsEvent = {
 	},
 	?getTime:{
 		time:Float,
-		paused:Bool
+		?paused:Bool,
+		?rate:Float
 	},
 	?setTime:{
 		time:Float
+	},
+	?setRate:{
+		rate:Float
 	},
 	?rewind:{
 		time:Float
@@ -181,6 +185,7 @@ enum abstract WsEventType(String) {
 	var Play;
 	var GetTime;
 	var SetTime;
+	var SetRate;
 	var Rewind;
 	var SetLeader;
 	var PlayItem;

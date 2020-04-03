@@ -1,19 +1,22 @@
 package server;
 
-import haxe.Timer;
+import haxe.Timer.stamp;
 
 class VideoTimer {
 
 	public var isStarted(default, null) = false;
 	var startTime = 0.0;
 	var pauseStartTime = 0.0;
+	var rateStartTime = 0.0;
+	var rate = 1.0;
 
 	public function new() {}
 
 	public function start():Void {
 		isStarted = true;
-		startTime = Timer.stamp();
+		startTime = stamp();
 		pauseStartTime = 0;
+		rateStartTime = stamp();
 	}
 
 	public function stop():Void {
@@ -23,22 +26,26 @@ class VideoTimer {
 	}
 
 	public function pause():Void {
-		pauseStartTime = Timer.stamp();
+		startTime += rateTime() - rateTime() * this.rate;
+		pauseStartTime = stamp();
+		rateStartTime = 0;
 	}
 
 	public function play():Void {
 		if (!isStarted) start();
 		startTime += pauseTime();
+		rateStartTime = stamp();
 		pauseStartTime = 0;
 	}
 
 	public function getTime():Float {
 		if (startTime == 0) return 0;
-		return Timer.stamp() - startTime - pauseTime();
+		final time = stamp() - startTime;
+		return time - rateTime() + rateTime() * rate - pauseTime();
 	}
 
 	public function setTime(secs:Float):Void {
-		startTime = Timer.stamp() - secs;
+		startTime = stamp() - secs;
 		if (isPaused()) pause();
 	}
 
@@ -46,9 +53,26 @@ class VideoTimer {
 		return !isStarted || pauseStartTime != 0;
 	}
 
+	public function getRate():Float {
+		return rate;
+	}
+
+	public function setRate(rate:Float):Void {
+		if (!isPaused()) {
+			startTime += rateTime() - rateTime() * this.rate;
+			rateStartTime = stamp();
+		}
+		this.rate = rate;
+	}
+
 	function pauseTime():Float {
 		if (pauseStartTime == 0) return 0;
-		return Timer.stamp() - pauseStartTime;
+		return stamp() - pauseStartTime;
+	}
+
+	function rateTime():Float {
+		if (rateStartTime == 0) return 0;
+		return stamp() - rateStartTime - pauseTime();
 	}
 
 }

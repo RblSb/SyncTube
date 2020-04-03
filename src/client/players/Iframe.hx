@@ -59,4 +59,10 @@ class Iframe implements IPlayer {
 
 	public function setTime(time:Float):Void {}
 
+	public function getPlaybackRate():Float {
+		return 1;
+	}
+
+	public function setPlaybackRate(rate:Float):Void {}
+
 }

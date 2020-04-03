@@ -1,0 +1,6 @@
+-cp src
+-cp test
+--main Main
+-lib utest
+--interp
+#-D test=9133

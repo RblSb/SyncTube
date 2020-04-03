@@ -1393,7 +1393,17 @@ server_Main.prototype = {
 				this.onMessage(client,{ type : "SkipVideo", skipVideo : { url : this.videoList[this.itemPos].url}});
 				return;
 			}
-			this.send(client,{ type : "GetTime", getTime : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}});
+			var obj = { type : "GetTime", getTime : { time : this.videoTimer.getTime()}};
+			if(this.videoTimer.isPaused()) {
+				obj.getTime.paused = true;
+			}
+			if(this.videoTimer.getRate() != 1) {
+				if(!ClientTools.hasLeader(this.clients)) {
+					this.videoTimer.setRate(1);
+				}
+				obj.getTime.rate = this.videoTimer.getRate();
+			}
+			this.send(client,obj);
 			break;
 		case "Login":
 			var name = data.login.clientName;
@@ -1551,6 +1561,7 @@ server_Main.prototype = {
 				if(this.videoTimer.isPaused()) {
 					this.videoTimer.play();
 				}
+				this.videoTimer.setRate(1);
 				this.broadcast({ type : "Play", play : { time : this.videoTimer.getTime()}});
 			}
 			break;
@@ -1564,6 +1575,16 @@ server_Main.prototype = {
 			}
 			_$VideoList_VideoList_$Impl_$.setNextItem(this.videoList,pos,this.itemPos);
 			this.broadcast(data);
+			break;
+		case "SetRate":
+			if(this.videoList.length == 0) {
+				return;
+			}
+			if((client.group & 2) == 0) {
+				return;
+			}
+			this.videoTimer.setRate(data.setRate.rate);
+			this.broadcastExcept(client,data);
 			break;
 		case "SetTime":
 			if(this.videoList.length == 0) {
@@ -1775,6 +1796,8 @@ server_Utils.shuffle = function(arr) {
 	}
 };
 var server_VideoTimer = function() {
+	this.rate = 1.0;
+	this.rateStartTime = 0.0;
 	this.pauseStartTime = 0.0;
 	this.startTime = 0.0;
 	this.isStarted = false;
@@ -1785,6 +1808,7 @@ server_VideoTimer.prototype = {
 		this.isStarted = true;
 		this.startTime = Date.now() / 1000;
 		this.pauseStartTime = 0;
+		this.rateStartTime = Date.now() / 1000;
 	}
 	,stop: function() {
 		this.isStarted = false;
@@ -1792,20 +1816,23 @@ server_VideoTimer.prototype = {
 		this.pauseStartTime = 0;
 	}
 	,pause: function() {
+		this.startTime += this.rateTime() - this.rateTime() * this.rate;
 		this.pauseStartTime = Date.now() / 1000;
+		this.rateStartTime = 0;
 	}
 	,play: function() {
 		if(!this.isStarted) {
 			this.start();
 		}
 		this.startTime += this.pauseTime();
+		this.rateStartTime = Date.now() / 1000;
 		this.pauseStartTime = 0;
 	}
 	,getTime: function() {
 		if(this.startTime == 0) {
 			return 0;
 		}
-		return Date.now() / 1000 - this.startTime - this.pauseTime();
+		return Date.now() / 1000 - this.startTime - this.rateTime() + this.rateTime() * this.rate - this.pauseTime();
 	}
 	,setTime: function(secs) {
 		this.startTime = Date.now() / 1000 - secs;
@@ -1820,11 +1847,27 @@ server_VideoTimer.prototype = {
 			return true;
 		}
 	}
+	,getRate: function() {
+		return this.rate;
+	}
+	,setRate: function(rate) {
+		if(!this.isPaused()) {
+			this.startTime += this.rateTime() - this.rateTime() * this.rate;
+			this.rateStartTime = Date.now() / 1000;
+		}
+		this.rate = rate;
+	}
 	,pauseTime: function() {
 		if(this.pauseStartTime == 0) {
 			return 0;
 		}
 		return Date.now() / 1000 - this.pauseStartTime;
+	}
+	,rateTime: function() {
+		if(this.rateStartTime == 0) {
+			return 0;
+		}
+		return Date.now() / 1000 - this.rateStartTime - this.pauseTime();
 	}
 };
 var sys_FileSystem = function() { };

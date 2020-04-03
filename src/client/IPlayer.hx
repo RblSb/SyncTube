@@ -11,4 +11,6 @@ interface IPlayer {
 	function pause():Void;
 	function getTime():Float;
 	function setTime(time:Float):Void;
+	function getPlaybackRate():Float;
+	function setPlaybackRate(rate:Float):Void;
 }

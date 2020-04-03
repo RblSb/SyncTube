@@ -21,6 +21,7 @@ class Player {
 	var itemPos = 0;
 	var isLoaded = false;
 	var skipSetTime = false;
+	var skipSetRate = false;
 
 	public function new(main:Main):Void {
 		this.main = main;
@@ -154,6 +155,19 @@ class Player {
 		main.send({
 			type: SetTime, setTime: {
 				time: getTime()
+			}
+		});
+	}
+
+	public function onRateChange():Void {
+		if (skipSetRate) {
+			skipSetRate = false;
+			return;
+		}
+		if (!main.isLeader()) return;
+		main.send({
+			type: SetRate, setRate: {
+				rate: getPlaybackRate()
 			}
 		});
 	}
@@ -320,6 +334,18 @@ class Player {
 		if (player == null) return;
 		skipSetTime = isLocal;
 		player.setTime(time);
+	}
+
+	public function getPlaybackRate():Float {
+		if (player == null) return 1;
+		return player.getPlaybackRate();
+	}
+
+	public function setPlaybackRate(rate:Float, isLocal = true):Void {
+		if (!main.isSyncActive) return;
+		if (player == null) return;
+		skipSetRate = isLocal;
+		player.setPlaybackRate(rate);
 	}
 
 }

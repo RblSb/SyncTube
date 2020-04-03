@@ -2,6 +2,7 @@
 -lib hxnodejs-ws
 # Client libs for completion
 -lib youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
+-lib utest
 -cp src
 --main server.Main
 -D analyzer-optimize

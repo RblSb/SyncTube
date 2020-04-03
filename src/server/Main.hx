@@ -438,16 +438,28 @@ class Main {
 					});
 					return;
 				}
-				send(client, {
+				final obj:WsEvent = {
 					type: GetTime, getTime: {
-					time: videoTimer.getTime(),
-					paused: videoTimer.isPaused()
-				}});
+						time: videoTimer.getTime()
+					}
+				};
+				if (videoTimer.isPaused()) obj.getTime.paused = true;
+				if (videoTimer.getRate() != 1) {
+					if (!clients.hasLeader()) videoTimer.setRate(1);
+					obj.getTime.rate = videoTimer.getRate();
+				}
+				send(client, obj);
 
 			case SetTime:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
 				videoTimer.setTime(data.setTime.time);
+				broadcastExcept(client, data);
+
+			case SetRate:
+				if (videoList.length == 0) return;
+				if (!client.isLeader) return;
+				videoTimer.setRate(data.setRate.rate);
 				broadcastExcept(client, data);
 
 			case Rewind:
@@ -474,6 +486,7 @@ class Main {
 				if (videoList.length == 0) return;
 				if (!clients.hasLeader()) {
 					if (videoTimer.isPaused()) videoTimer.play();
+					videoTimer.setRate(1);
 					broadcast({
 						type: Play, play: {
 							time: videoTimer.getTime()

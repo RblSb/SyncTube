@@ -366,6 +366,13 @@ class Main {
 				player.play();
 
 			case GetTime:
+				if (data.getTime.paused == null) data.getTime.paused = false;
+				if (data.getTime.rate == null) data.getTime.rate = 1;
+
+				if (player.getPlaybackRate() != data.getTime.rate) {
+					player.setPlaybackRate(data.getTime.rate);
+				}
+
 				final newTime = data.getTime.time;
 				final time = player.getTime();
 				if (isLeader()) {
@@ -385,6 +392,10 @@ class Main {
 				final time = player.getTime();
 				if (Math.abs(time - newTime) < synchThreshold) return;
 				player.setTime(newTime);
+
+			case SetRate:
+				if (isLeader()) return;
+				player.setPlaybackRate(data.setRate.rate);
 
 			case Rewind:
 				player.setTime(data.rewind.time);

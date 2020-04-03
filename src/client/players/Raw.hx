@@ -67,6 +67,7 @@ class Raw implements IPlayer {
 			player.onPlay();
 		}
 		video.onpause = player.onPause;
+		video.onratechange = player.onRateChange;
 		playerEl.appendChild(video);
 	}
 
@@ -100,6 +101,14 @@ class Raw implements IPlayer {
 	public function setTime(time:Float):Void {
 		if (video == null) return;
 		video.currentTime = time;
+	}
+
+	public function getPlaybackRate():Float {
+		return video.playbackRate;
+	}
+
+	public function setPlaybackRate(rate:Float):Void {
+		video.playbackRate = rate;
 	}
 
 }

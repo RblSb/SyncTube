@@ -1091,6 +1091,15 @@ client_Main.prototype = {
 			this.onTimeGet.run();
 			break;
 		case "GetTime":
+			if(data.getTime.paused == null) {
+				data.getTime.paused = false;
+			}
+			if(data.getTime.rate == null) {
+				data.getTime.rate = 1;
+			}
+			if(this.player.getPlaybackRate() != data.getTime.rate) {
+				this.player.setPlaybackRate(data.getTime.rate);
+			}
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
 			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
@@ -1174,6 +1183,12 @@ client_Main.prototype = {
 			break;
 		case "SetNextItem":
 			this.player.setNextItem(data.setNextItem.pos);
+			break;
+		case "SetRate":
+			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
+				return;
+			}
+			this.player.setPlaybackRate(data.setRate.rate);
 			break;
 		case "SetTime":
 			var newTime1 = data.setTime.time;
@@ -1543,6 +1558,7 @@ client_MobileView.init = function() {
 	};
 };
 var client_Player = function(main) {
+	this.skipSetRate = false;
 	this.skipSetTime = false;
 	this.isLoaded = false;
 	this.itemPos = 0;
@@ -1652,6 +1668,16 @@ client_Player.prototype = {
 			return;
 		}
 		this.main.send({ type : "SetTime", setTime : { time : this.getTime()}});
+	}
+	,onRateChange: function() {
+		if(this.skipSetRate) {
+			this.skipSetRate = false;
+			return;
+		}
+		if((this.main.personal.group & 2) == 0) {
+			return;
+		}
+		this.main.send({ type : "SetRate", setRate : { rate : this.getPlaybackRate()}});
 	}
 	,addVideoItem: function(item,atEnd) {
 		var url = StringTools.htmlEscape(item.url,true);
@@ -1833,6 +1859,25 @@ client_Player.prototype = {
 		this.skipSetTime = isLocal;
 		this.player.setTime(time);
 	}
+	,getPlaybackRate: function() {
+		if(this.player == null) {
+			return 1;
+		}
+		return this.player.getPlaybackRate();
+	}
+	,setPlaybackRate: function(rate,isLocal) {
+		if(isLocal == null) {
+			isLocal = true;
+		}
+		if(!this.main.isSyncActive) {
+			return;
+		}
+		if(this.player == null) {
+			return;
+		}
+		this.skipSetRate = isLocal;
+		this.player.setPlaybackRate(rate);
+	}
 };
 var client_Settings = function() { };
 client_Settings.__name__ = true;
@@ -1982,6 +2027,11 @@ client_players_Iframe.prototype = {
 	}
 	,setTime: function(time) {
 	}
+	,getPlaybackRate: function() {
+		return 1;
+	}
+	,setPlaybackRate: function(rate) {
+	}
 };
 var client_players_Raw = function(main,player) {
 	this.playAllowed = true;
@@ -2047,6 +2097,7 @@ client_players_Raw.prototype = {
 			return;
 		};
 		this.video.onpause = ($_=this.player,$bind($_,$_.onPause));
+		this.video.onratechange = ($_=this.player,$bind($_,$_.onRateChange));
 		this.playerEl.appendChild(this.video);
 	}
 	,removeVideo: function() {
@@ -2089,6 +2140,12 @@ client_players_Raw.prototype = {
 			return;
 		}
 		this.video.currentTime = time;
+	}
+	,getPlaybackRate: function() {
+		return this.video.playbackRate;
+	}
+	,setPlaybackRate: function(rate) {
+		this.video.playbackRate = rate;
 	}
 };
 var client_players_Youtube = function(main,player) {
@@ -2282,6 +2339,9 @@ client_players_Youtube.prototype = {
 				break;
 			}
 			return;
+		}, onPlaybackRateChange : function(e2) {
+			_gthis.player.onRateChange();
+			return;
 		}}});
 	}
 	,removeVideo: function() {
@@ -2316,6 +2376,12 @@ client_players_Youtube.prototype = {
 			return;
 		}
 		this.youtube.seekTo(time,true);
+	}
+	,getPlaybackRate: function() {
+		return this.youtube.getPlaybackRate();
+	}
+	,setPlaybackRate: function(rate) {
+		this.youtube.setPlaybackRate(rate);
 	}
 };
 var haxe_Log = function() { };
