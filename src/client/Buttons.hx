@@ -210,8 +210,7 @@ class Buttons {
 	}
 
 	static function onClick(el:Element, func:Any->Void):Void {
-		final isTouch = untyped __js__("'ontouchstart' in window");
-		if (!isTouch) el.onclick = func;
+		if (!Utils.isTouch()) el.onclick = func;
 		else el.ontouchend = func;
 	}
 

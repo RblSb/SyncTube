@@ -122,6 +122,7 @@ class Main {
 		}
 		final voteSkip = ge("#voteskip");
 		voteSkip.onclick = e -> {
+			if (Utils.isTouch() && !Browser.window.confirm(Lang.get("skipItemConfirm"))) return;
 			if (player.isListEmpty()) return;
 			final items = player.getItems();
 			final pos = player.getItemPos();

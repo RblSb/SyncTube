@@ -6,6 +6,10 @@ import js.Browser.window;
 
 class Utils {
 
+	public static function isTouch():Bool {
+		return js.Syntax.code("'ontouchstart' in window");
+	}
+
 	public static function prepend(parent:Element, child:Element):Void {
 		if (parent.firstChild == null) parent.appendChild(child);
 		else parent.insertBefore(child, parent.firstChild);

@@ -648,8 +648,7 @@ client_Buttons.onVideoResize = function() {
 	window.document.querySelector("#userlist").style.height = "" + height + "px";
 };
 client_Buttons.onClick = function(el,func) {
-	var isTouch = 'ontouchstart' in window;
-	if(!isTouch) {
+	if(!client_Utils.isTouch()) {
 		el.onclick = func;
 	} else {
 		el.ontouchend = func;
@@ -907,6 +906,9 @@ client_Main.prototype = {
 			return;
 		};
 		window.document.querySelector("#voteskip").onclick = function(e1) {
+			if(client_Utils.isTouch() && !window.confirm(Lang.get("skipItemConfirm"))) {
+				return;
+			}
 			if(_gthis.player.isListEmpty()) {
 				return;
 			}
@@ -1070,7 +1072,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 299, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 300, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1931,6 +1933,9 @@ client_Settings.write = function(data) {
 };
 var client_Utils = function() { };
 client_Utils.__name__ = true;
+client_Utils.isTouch = function() {
+	return 'ontouchstart' in window;
+};
 client_Utils.prepend = function(parent,child) {
 	if(parent.firstChild == null) {
 		parent.appendChild(child);

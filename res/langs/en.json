@@ -67,6 +67,7 @@
 	"acceptableEmbedCodesAre": "Acceptable embed codes are",
 	"customEmbedsCannotBeSynchronized": "CUSTOM EMBEDS CANNOT BE SYNCHRONIZED",
 	"save": "Save",
+	"skipItemConfirm": "Are you sure you want to skip current video?",
 	"clearPlaylistConfirm": "Are you sure you want to clear the playlist?",
 	"shufflePlaylistConfirm": "Are you sure you want to shuffle the playlist?",
 
