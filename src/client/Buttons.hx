@@ -12,8 +12,6 @@ import js.html.Event;
 
 class Buttons {
 
-	static final personalHistory:Array<String> = [];
-	static var personalHistoryId = -1;
 	static var split:Split;
 	static var settings:ClientSettings;
 
@@ -312,40 +310,16 @@ class Buttons {
 			}
 		}
 
-		final chatLine:InputElement = cast ge("#chatline");
-		chatLine.onkeydown = function(e:KeyboardEvent) {
-			switch (e.keyCode) {
-				case 13: // Enter
-					if (chatLine.value.length == 0) return;
-					main.send({
-						type: Message,
-						message: {
-							clientName: "",
-							text: chatLine.value
-						}
-					});
-					personalHistory.push(chatLine.value);
-					if (personalHistory.length > 50) personalHistory.shift();
-					personalHistoryId = -1;
-					chatLine.value = "";
-				case 38: // Up
-					personalHistoryId--;
-					if (personalHistoryId == -2) {
-						personalHistoryId = personalHistory.length - 1;
-						if (personalHistoryId == -1) return;
-					} else if (personalHistoryId == -1) personalHistoryId++;
-					chatLine.value = personalHistory[personalHistoryId];
-				case 40: // Down
-					if (personalHistoryId == -1) return;
-					personalHistoryId++;
-					if (personalHistoryId > personalHistory.length - 1) {
-						personalHistoryId = -1;
-						chatLine.value = "";
-						return;
-					}
-					chatLine.value = personalHistory[personalHistoryId];
-			}
-		}
+		new InputWithHistory(cast ge("#chatline"), 50, value -> {
+			main.send({
+				type: Message,
+				message: {
+					clientName: "",
+					text: value
+				}
+			});
+			return true;
+		});
 	}
 
 }

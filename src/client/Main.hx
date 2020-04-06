@@ -136,9 +136,10 @@ class Main {
 
 		ge("#queue_next").onclick = e -> addVideoUrl(false);
 		ge("#queue_end").onclick = e -> addVideoUrl(true);
-		ge("#mediaurl").onkeydown = (e:KeyboardEvent) -> {
-			if (e.keyCode == 13) addVideoUrl(true);
-		}
+		new InputWithHistory(cast ge("#mediaurl"), settings.latestLinks, 10, value -> {
+			addVideoUrl(true);
+			return true;
+		});
 
 		ge("#ce_queue_next").onclick = e -> addIframe(false);
 		ge("#ce_queue_end").onclick = e -> addIframe(true);
@@ -189,6 +190,8 @@ class Main {
 		final url = mediaUrl.value;
 		if (url.length == 0) return;
 		mediaUrl.value = "";
+		settings.latestLinks.push(url);
+		Settings.write(settings);
 		final url = ~/,(https?)/g.replace(url, "|$1");
 		final links = url.split("|");
 		handleUrlMasks(links);

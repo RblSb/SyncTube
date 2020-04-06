@@ -773,47 +773,66 @@ client_Buttons.initChatInput = function(main) {
 		}
 		return;
 	};
-	var chatLine = window.document.querySelector("#chatline");
-	chatLine.onkeydown = function(e2) {
-		switch(e2.keyCode) {
+	new client_InputWithHistory(window.document.querySelector("#chatline"),null,50,function(value) {
+		main.send({ type : "Message", message : { clientName : "", text : value}});
+		return true;
+	});
+};
+var client_InputWithHistory = function(element,history,maxItems,onEnter) {
+	this.historyId = -1;
+	this.element = element;
+	if(history != null) {
+		this.history = history;
+	} else {
+		this.history = [];
+	}
+	this.maxItems = maxItems;
+	this.onEnter = onEnter;
+	element.onkeydown = $bind(this,this.onKeyDown);
+};
+client_InputWithHistory.__name__ = true;
+client_InputWithHistory.prototype = {
+	onKeyDown: function(e) {
+		switch(e.keyCode) {
 		case 13:
-			if(chatLine.value.length == 0) {
+			if(this.element.value.length == 0) {
 				return;
 			}
-			main.send({ type : "Message", message : { clientName : "", text : chatLine.value}});
-			client_Buttons.personalHistory.push(chatLine.value);
-			if(client_Buttons.personalHistory.length > 50) {
-				client_Buttons.personalHistory.shift();
+			if(this.onEnter(this.element.value)) {
+				this.history.push(this.element.value);
 			}
-			client_Buttons.personalHistoryId = -1;
-			chatLine.value = "";
+			if(this.history.length > this.maxItems) {
+				this.history.shift();
+			}
+			this.historyId = -1;
+			this.element.value = "";
 			break;
 		case 38:
-			client_Buttons.personalHistoryId--;
-			if(client_Buttons.personalHistoryId == -2) {
-				client_Buttons.personalHistoryId = client_Buttons.personalHistory.length - 1;
-				if(client_Buttons.personalHistoryId == -1) {
+			this.historyId--;
+			if(this.historyId == -2) {
+				this.historyId = this.history.length - 1;
+				if(this.historyId == -1) {
 					return;
 				}
-			} else if(client_Buttons.personalHistoryId == -1) {
-				client_Buttons.personalHistoryId++;
+			} else if(this.historyId == -1) {
+				this.historyId++;
 			}
-			chatLine.value = client_Buttons.personalHistory[client_Buttons.personalHistoryId];
+			this.element.value = this.history[this.historyId];
 			break;
 		case 40:
-			if(client_Buttons.personalHistoryId == -1) {
+			if(this.historyId == -1) {
 				return;
 			}
-			client_Buttons.personalHistoryId++;
-			if(client_Buttons.personalHistoryId > client_Buttons.personalHistory.length - 1) {
-				client_Buttons.personalHistoryId = -1;
-				chatLine.value = "";
+			this.historyId++;
+			if(this.historyId > this.history.length - 1) {
+				this.historyId = -1;
+				this.element.value = "";
 				return;
 			}
-			chatLine.value = client_Buttons.personalHistory[client_Buttons.personalHistoryId];
+			this.element.value = this.history[this.historyId];
 			break;
 		}
-	};
+	}
 };
 var client_Main = function(host,port) {
 	this.matchNumbers = new EReg("^-?[0-9]+$","");
@@ -923,24 +942,22 @@ client_Main.prototype = {
 			_gthis.addVideoUrl(true);
 			return;
 		};
-		window.document.querySelector("#mediaurl").onkeydown = function(e4) {
-			if(e4.keyCode == 13) {
-				_gthis.addVideoUrl(true);
-			}
-			return;
-		};
-		window.document.querySelector("#ce_queue_next").onclick = function(e5) {
+		new client_InputWithHistory(window.document.querySelector("#mediaurl"),this.settings.latestLinks,10,function(value) {
+			_gthis.addVideoUrl(true);
+			return true;
+		});
+		window.document.querySelector("#ce_queue_next").onclick = function(e4) {
 			_gthis.addIframe(false);
 			return;
 		};
-		window.document.querySelector("#ce_queue_end").onclick = function(e6) {
+		window.document.querySelector("#ce_queue_end").onclick = function(e5) {
 			_gthis.addIframe(true);
 			return;
 		};
-		window.document.querySelector("#customembed-title").onkeydown = function(e7) {
-			if(e7.keyCode == 13) {
+		window.document.querySelector("#customembed-title").onkeydown = function(e6) {
+			if(e6.keyCode == 13) {
 				_gthis.addIframe(true);
-				e7.preventDefault();
+				e6.preventDefault();
 			}
 			return;
 		};
@@ -977,6 +994,8 @@ client_Main.prototype = {
 			return;
 		}
 		mediaUrl.value = "";
+		this.settings.latestLinks.push(url);
+		client_Settings.write(this.settings);
 		var _this_r = new RegExp(",(https?)","g".split("u").join(""));
 		var links = url.replace(_this_r,"|$1").split("|");
 		this.handleUrlMasks(links);
@@ -1072,7 +1091,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 300, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 303, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -3039,8 +3058,6 @@ js_Boot.__toStr = ({ }).toString;
 Lang.langs = new haxe_ds_StringMap();
 Lang.ids = ["en","ru"];
 Lang.lang = HxOverrides.substr(window.navigator.language,0,2).toLowerCase();
-client_Buttons.personalHistory = [];
-client_Buttons.personalHistoryId = -1;
 client_Settings.isSupported = false;
 client_players_Youtube.matchId = new EReg("v=([A-z0-9_-]+)","");
 client_players_Youtube.matchShort = new EReg("youtu.be/([A-z0-9_-]+)","");
