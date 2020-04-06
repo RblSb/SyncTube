@@ -770,6 +770,7 @@ client_Buttons.initChatInput = function(main) {
 	guestPass.onkeydown = function(e1) {
 		if(e1.keyCode == 13) {
 			main.userLogin(guestName.value,guestPass.value);
+			guestPass.value = "";
 		}
 		return;
 	};
@@ -1361,6 +1362,9 @@ client_Main.prototype = {
 		window.document.querySelector("#guestlogin").style.display = "none";
 		window.document.querySelector("#chatline").style.display = "none";
 		window.document.querySelector("#guestpassword").style.display = "block";
+		window.document.querySelector("#guestpass").type = "password";
+		window.document.querySelector("#guestpass_icon").classList.add("glyphicon-eye-open");
+		window.document.querySelector("#guestpass_icon").classList.remove("glyphicon-eye-close");
 	}
 	,updateClients: function(newClients) {
 		this.clients.length = 0;

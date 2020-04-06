@@ -307,7 +307,10 @@ class Buttons {
 
 		final guestPass:InputElement = cast ge("#guestpass");
 		guestPass.onkeydown = e -> {
-			if (e.keyCode == 13) main.userLogin(guestName.value, guestPass.value);
+			if (e.keyCode == 13) {
+				main.userLogin(guestName.value, guestPass.value);
+				guestPass.value = "";
+			}
 		}
 
 		final chatLine:InputElement = cast ge("#chatline");

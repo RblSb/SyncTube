@@ -560,6 +560,9 @@ class Main {
 		ge("#guestlogin").style.display = "none";
 		ge("#chatline").style.display = "none";
 		ge("#guestpassword").style.display = "block";
+		(cast ge("#guestpass") : InputElement).type = "password";
+		ge("#guestpass_icon").classList.add("glyphicon-eye-open");
+		ge("#guestpass_icon").classList.remove("glyphicon-eye-close");
 	}
 
 	function updateClients(newClients:Array<ClientData>):Void {
