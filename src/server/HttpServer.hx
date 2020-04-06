@@ -48,13 +48,9 @@ class HttpServer {
 		if (url == "/") url = "/index.html";
 		var filePath = dir + url;
 
-		final extension = Path.extension(filePath).toLowerCase();
-		final contentType = getMimeType(extension);
-
 		if (req.connection.remoteAddress == req.connection.localAddress
 			|| allowedLocalFiles[url]) {
-			final isExists = serveLocalFile(res, url, extension, contentType);
-			if (isExists) return;
+			if (serveLocalFile(res, url)) return;
 		}
 
 		if (!isChildOf(dir, filePath)) {
@@ -66,7 +62,12 @@ class HttpServer {
 
 		if (hasCustomRes) {
 			final path = customDir + url;
-			if (Fs.existsSync(path)) filePath = path;
+			if (Fs.existsSync(path)) {
+				filePath = path;
+				if (FileSystem.isDirectory(filePath)) {
+					filePath = Path.addTrailingSlash(filePath) + "index.html";
+				}
+			}
 		}
 
 		Fs.readFile(filePath, (err:Dynamic, data:Buffer) -> {
@@ -74,8 +75,9 @@ class HttpServer {
 				readFileError(err, res, filePath);
 				return;
 			}
-			res.setHeader("Content-Type", contentType);
-			if (extension == "html") {
+			final ext = Path.extension(filePath).toLowerCase();
+			res.setHeader("Content-Type", getMimeType(ext));
+			if (ext == "html") {
 				// replace ${textId} to localized strings
 				data = cast localizeHtml(data.toString(), req.headers["accept-language"]);
 			}
@@ -94,7 +96,8 @@ class HttpServer {
 		}
 	}
 
-	static function serveLocalFile(res:ServerResponse, filePath:String, ext:String, contentType:String):Bool {
+	static function serveLocalFile(res:ServerResponse, filePath:String):Bool {
+		final ext = Path.extension(filePath).toLowerCase();
 		if (ext != "mp4" && ext != "mp3" && ext != "wav") return false;
 		if (!Fs.existsSync(filePath)) return false;
 		allowedLocalFiles[filePath] = true;
@@ -103,7 +106,7 @@ class HttpServer {
 				readFileError(err, res, filePath);
 				return;
 			}
-			res.setHeader("Content-Type", contentType);
+			res.setHeader("Content-Type", getMimeType(ext));
 			res.end(data);
 		});
 		return true;

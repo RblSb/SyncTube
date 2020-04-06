@@ -775,6 +775,24 @@ haxe_io_Path.extension = function(path) {
 	}
 	return s.ext;
 };
+haxe_io_Path.addTrailingSlash = function(path) {
+	if(path.length == 0) {
+		return "/";
+	}
+	var c1 = path.lastIndexOf("/");
+	var c2 = path.lastIndexOf("\\");
+	if(c1 < c2) {
+		if(c2 != path.length - 1) {
+			return path + "\\";
+		} else {
+			return path;
+		}
+	} else if(c1 != path.length - 1) {
+		return path + "/";
+	} else {
+		return path;
+	}
+};
 haxe_io_Path.prototype = {
 	toString: function() {
 		return (this.dir == null ? "" : this.dir + (this.backslash ? "\\" : "/")) + this.file + (this.ext == null ? "" : "." + this.ext);
@@ -952,8 +970,6 @@ server_HttpServer.serveFiles = function(req,res) {
 		url = "/index.html";
 	}
 	var filePath = server_HttpServer.dir + url;
-	var extension = haxe_io_Path.extension(filePath).toLowerCase();
-	var contentType = server_HttpServer.getMimeType(extension);
 	var tmp;
 	if(req.connection.remoteAddress != req.connection.localAddress) {
 		var _this = server_HttpServer.allowedLocalFiles;
@@ -962,7 +978,7 @@ server_HttpServer.serveFiles = function(req,res) {
 		tmp = true;
 	}
 	if(tmp) {
-		if(server_HttpServer.serveLocalFile(res,url,extension,contentType)) {
+		if(server_HttpServer.serveLocalFile(res,url)) {
 			return;
 		}
 	}
@@ -976,6 +992,9 @@ server_HttpServer.serveFiles = function(req,res) {
 		var path = server_HttpServer.customDir + url;
 		if(js_node_Fs.existsSync(path)) {
 			filePath = path;
+			if(sys_FileSystem.isDirectory(filePath)) {
+				filePath = haxe_io_Path.addTrailingSlash(filePath) + "index.html";
+			}
 		}
 	}
 	js_node_Fs.readFile(filePath,function(err,data) {
@@ -983,8 +1002,10 @@ server_HttpServer.serveFiles = function(req,res) {
 			server_HttpServer.readFileError(err,res,filePath);
 			return;
 		}
-		res.setHeader("Content-Type",contentType);
-		if(extension == "html") {
+		var ext = haxe_io_Path.extension(filePath).toLowerCase();
+		var tmp2 = server_HttpServer.getMimeType(ext);
+		res.setHeader("Content-Type",tmp2);
+		if(ext == "html") {
 			data = server_HttpServer.localizeHtml(data.toString(),req.headers["accept-language"]);
 		}
 		res.end(data);
@@ -1000,7 +1021,8 @@ server_HttpServer.readFileError = function(err,res,filePath) {
 		res.end("Error getting the file: " + Std.string(err) + ".");
 	}
 };
-server_HttpServer.serveLocalFile = function(res,filePath,ext,contentType) {
+server_HttpServer.serveLocalFile = function(res,filePath) {
+	var ext = haxe_io_Path.extension(filePath).toLowerCase();
 	if(ext != "mp4" && ext != "mp3" && ext != "wav") {
 		return false;
 	}
@@ -1018,7 +1040,8 @@ server_HttpServer.serveLocalFile = function(res,filePath,ext,contentType) {
 			server_HttpServer.readFileError(err,res,filePath);
 			return;
 		}
-		res.setHeader("Content-Type",contentType);
+		var tmp = server_HttpServer.getMimeType(ext);
+		res.setHeader("Content-Type",tmp);
 		res.end(data);
 		return;
 	});
@@ -1877,6 +1900,13 @@ sys_FileSystem.exists = function(path) {
 		js_node_Fs.accessSync(path);
 		return true;
 	} catch( _ ) {
+		return false;
+	}
+};
+sys_FileSystem.isDirectory = function(path) {
+	try {
+		return js_node_Fs.statSync(path).isDirectory();
+	} catch( e ) {
 		return false;
 	}
 };
