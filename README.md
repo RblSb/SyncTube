@@ -21,7 +21,7 @@ Default channel example: http://synctube-example.herokuapp.com/
 
 ### Setup
 - Open `4200` port in your router settings (port is customizable)
-- `npm install ws` in this project folder ([NodeJS](https://nodejs.org) requred)
+- `npm install ws` in this project folder ([NodeJS](https://nodejs.org) required)
 - Run `node build/server.js`
 - Open showed "Local" link for yourself and send "Global" link to friends
 
