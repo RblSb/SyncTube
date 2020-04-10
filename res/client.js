@@ -2173,9 +2173,15 @@ client_players_Raw.prototype = {
 		this.video.currentTime = time;
 	}
 	,getPlaybackRate: function() {
+		if(this.video == null) {
+			return 1;
+		}
 		return this.video.playbackRate;
 	}
 	,setPlaybackRate: function(rate) {
+		if(this.video == null) {
+			return;
+		}
 		this.video.playbackRate = rate;
 	}
 };
@@ -2409,9 +2415,15 @@ client_players_Youtube.prototype = {
 		this.youtube.seekTo(time,true);
 	}
 	,getPlaybackRate: function() {
+		if(!this.isLoaded) {
+			return 1;
+		}
 		return this.youtube.getPlaybackRate();
 	}
 	,setPlaybackRate: function(rate) {
+		if(!this.isLoaded) {
+			return;
+		}
 		this.youtube.setPlaybackRate(rate);
 	}
 };

@@ -104,10 +104,12 @@ class Raw implements IPlayer {
 	}
 
 	public function getPlaybackRate():Float {
+		if (video == null) return 1;
 		return video.playbackRate;
 	}
 
 	public function setPlaybackRate(rate:Float):Void {
+		if (video == null) return;
 		video.playbackRate = rate;
 	}
 

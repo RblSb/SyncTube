@@ -243,10 +243,12 @@ class Youtube implements IPlayer {
 	}
 
 	public function getPlaybackRate():Float {
+		if (!isLoaded) return 1;
 		return youtube.getPlaybackRate();
 	}
 
 	public function setPlaybackRate(rate:Float):Void {
+		if (!isLoaded) return;
 		youtube.setPlaybackRate(rate);
 	}
 
