@@ -394,10 +394,8 @@ class Main {
 				final isCurrent = videoList[itemPos].url == url;
 				itemPos = videoList.removeItem(index, itemPos);
 				if (isCurrent && videoList.length > 0) {
-					Timer.delay(() -> {
-						broadcast(data);
-						restartWaitTimer();
-					}, VIDEO_SKIP_DELAY);
+					broadcast(data);
+					restartWaitTimer();
 				} else {
 					broadcast(data);
 				}
@@ -407,11 +405,9 @@ class Main {
 				if (videoList.length == 0) return;
 				final item = videoList[itemPos];
 				if (item.url != data.skipVideo.url) return;
-				Timer.delay(() -> {
-					itemPos = videoList.skipItem(itemPos);
-					if (videoList.length > 0) restartWaitTimer();
-					broadcast(data);
-				}, VIDEO_SKIP_DELAY);
+				itemPos = videoList.skipItem(itemPos);
+				if (videoList.length > 0) restartWaitTimer();
+				broadcast(data);
 
 			case Pause:
 				if (videoList.length == 0) return;
@@ -431,11 +427,13 @@ class Main {
 				if (videoList.length == 0) return;
 				if (videoTimer.getTime() > videoList[itemPos].duration - 0.01) {
 					videoTimer.stop();
-					onMessage(client, {
-						type: SkipVideo, skipVideo: {
-							url: videoList[itemPos].url
-						}
-					});
+					Timer.delay(() -> {
+						onMessage(client, {
+							type: SkipVideo, skipVideo: {
+								url: videoList[itemPos].url
+							}
+						});
+					}, VIDEO_SKIP_DELAY);
 					return;
 				}
 				final obj:WsEvent = {

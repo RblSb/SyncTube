@@ -1413,7 +1413,10 @@ server_Main.prototype = {
 			}
 			if(this.videoTimer.getTime() > this.videoList[this.itemPos].duration - 0.01) {
 				this.videoTimer.stop();
-				this.onMessage(client,{ type : "SkipVideo", skipVideo : { url : this.videoList[this.itemPos].url}});
+				haxe_Timer.delay(function() {
+					_gthis.onMessage(client,{ type : "SkipVideo", skipVideo : { url : _gthis.videoList[_gthis.itemPos].url}});
+					return;
+				},1000);
 				return;
 			}
 			var obj = { type : "GetTime", getTime : { time : this.videoTimer.getTime()}};
@@ -1458,16 +1461,23 @@ server_Main.prototype = {
 			}
 			client.name = name;
 			client.setGroupFlag(ClientGroup.User,true);
-			this.send(client,{ type : data.type, login : { isUnknownClient : true, clientName : client.name, clients : this.clientList()}});
+			var data1 = data.type;
+			var client1 = client.name;
+			var tmp = this.clientList();
+			this.send(client,{ type : data1, login : { isUnknownClient : true, clientName : client1, clients : tmp}});
 			this.sendClientList();
 			break;
 		case "LoginError":
 			break;
 		case "Logout":
 			var oldName = client.name;
-			client.name = "Guest " + (this.clients.indexOf(client) + 1);
+			var id = this.clients.indexOf(client) + 1;
+			client.name = "Guest " + id;
 			client.setGroupFlag(ClientGroup.User,false);
-			this.send(client,{ type : data.type, logout : { oldClientName : oldName, clientName : client.name, clients : this.clientList()}});
+			var data2 = data.type;
+			var client2 = client.name;
+			var tmp1 = this.clientList();
+			this.send(client,{ type : data2, logout : { oldClientName : oldName, clientName : client2, clients : tmp1}});
 			this.sendClientList();
 			break;
 		case "Message":
@@ -1539,11 +1549,8 @@ server_Main.prototype = {
 			var isCurrent = this.videoList[this.itemPos].url == url;
 			this.itemPos = _$VideoList_VideoList_$Impl_$.removeItem(this.videoList,index,this.itemPos);
 			if(isCurrent && this.videoList.length > 0) {
-				haxe_Timer.delay(function() {
-					_gthis.broadcast(data);
-					_gthis.restartWaitTimer();
-					return;
-				},1000);
+				this.broadcast(data);
+				this.restartWaitTimer();
 			} else {
 				this.broadcast(data);
 			}
@@ -1642,14 +1649,11 @@ server_Main.prototype = {
 			if(this.videoList[this.itemPos].url != data.skipVideo.url) {
 				return;
 			}
-			haxe_Timer.delay(function() {
-				_gthis.itemPos = _$VideoList_VideoList_$Impl_$.skipItem(_gthis.videoList,_gthis.itemPos);
-				if(_gthis.videoList.length > 0) {
-					_gthis.restartWaitTimer();
-				}
-				_gthis.broadcast(data);
-				return;
-			},1000);
+			this.itemPos = _$VideoList_VideoList_$Impl_$.skipItem(this.videoList,this.itemPos);
+			if(this.videoList.length > 0) {
+				this.restartWaitTimer();
+			}
+			this.broadcast(data);
 			break;
 		case "ToggleItemType":
 			_$VideoList_VideoList_$Impl_$.toggleItemType(this.videoList,data.toggleItemType.pos);
