@@ -1131,6 +1131,9 @@ client_Main.prototype = {
 				this.player.setTime(time,false);
 				return;
 			}
+			if(this.player.getDuration() < this.player.getTime()) {
+				return;
+			}
 			if(!data.getTime.paused) {
 				this.player.play();
 			} else {
@@ -1867,6 +1870,12 @@ client_Player.prototype = {
 			return;
 		}
 		this.player.pause();
+	}
+	,getDuration: function() {
+		if(this.itemPos >= this.items.length) {
+			return 0;
+		}
+		return this.items[this.itemPos].duration;
 	}
 	,getTime: function() {
 		if(this.player == null) {

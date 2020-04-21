@@ -324,6 +324,11 @@ class Player {
 		player.pause();
 	}
 
+	public function getDuration():Float {
+		if (itemPos >= items.length) return 0;
+		return items[itemPos].duration;
+	}
+
 	public function getTime():Float {
 		if (player == null) return 0;
 		return player.getTime();

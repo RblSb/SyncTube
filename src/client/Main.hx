@@ -386,6 +386,7 @@ class Main {
 					player.setTime(time, false);
 					return;
 				}
+				if (player.getDuration() < player.getTime()) return;
 				if (!data.getTime.paused) player.play();
 				else player.pause();
 				if (Math.abs(time - newTime) < synchThreshold) return;
