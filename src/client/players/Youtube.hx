@@ -13,33 +13,33 @@ using StringTools;
 
 class Youtube implements IPlayer {
 
-	static final matchId = ~/v=([A-z0-9_-]+)/;
-	static final matchShort = ~/youtu.be\/([A-z0-9_-]+)/;
-	static final matchEmbed = ~/embed\/([A-z0-9_-]+)/;
-	static final matchPlaylist = ~/youtube\.com.*list=([A-z0-9_-]+)/;
-	static final videosUrl = "https://www.googleapis.com/youtube/v3/videos";
-	static final playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
-	static final urlTitleDuration = "?part=snippet,contentDetails&fields=items(snippet/title,contentDetails/duration)";
-	static final urlVideoId = "?part=snippet&fields=items(snippet/resourceId/videoId)";
-	static var apiKey:String;
+	final matchId = ~/v=([A-z0-9_-]+)/;
+	final matchShort = ~/youtu.be\/([A-z0-9_-]+)/;
+	final matchEmbed = ~/embed\/([A-z0-9_-]+)/;
+	final matchPlaylist = ~/youtube\.com.*list=([A-z0-9_-]+)/;
+	final videosUrl = "https://www.googleapis.com/youtube/v3/videos";
+	final playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
+	final urlTitleDuration = "?part=snippet,contentDetails&fields=items(snippet/title,contentDetails/duration)";
+	final urlVideoId = "?part=snippet&fields=items(snippet/resourceId/videoId)";
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
+	var apiKey:String;
 	var video:Element;
 	var youtube:YoutubePlayer;
+	var tempYoutube:YoutubePlayer;
 	var isLoaded = false;
 
 	public function new(main:Main, player:Player) {
 		this.main = main;
 		this.player = player;
-		apiKey = main.getYoutubeApiKey();
 	}
 
-	public static function isYoutube(url:String):Bool {
+	public function isSupportedLink(url:String):Bool {
 		return extractVideoId(url) != "" || extractPlaylistId(url) != "";
 	}
 
-	static function extractVideoId(url:String):String {
+	function extractVideoId(url:String):String {
 		if (url.contains("youtu.be/")) {
 			matchShort.match(url);
 			return matchShort.matched(1);
@@ -52,7 +52,7 @@ class Youtube implements IPlayer {
 		return matchId.matched(1);
 	}
 
-	static function extractPlaylistId(url:String):String {
+	function extractPlaylistId(url:String):String {
 		if (!matchPlaylist.match(url)) return "";
 		return matchPlaylist.matched(1);
 	}
@@ -73,6 +73,7 @@ class Youtube implements IPlayer {
 	}
 
 	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
+		if (apiKey == null) apiKey = main.getYoutubeApiKey();
 		var id = extractVideoId(url);
 		if (id == "") {
 			getPlaylistVideoData(url, callback);
@@ -151,7 +152,7 @@ class Youtube implements IPlayer {
 		final video = document.createDivElement();
 		video.id = "temp-videoplayer";
 		Utils.prepend(playerEl, video);
-		youtube = new YoutubePlayer(video.id, {
+		tempYoutube = new YoutubePlayer(video.id, {
 			videoId: extractVideoId(url),
 			playerVars: {
 				modestbranding: 1,
@@ -162,7 +163,7 @@ class Youtube implements IPlayer {
 				onReady: e -> {
 					if (playerEl.contains(video)) playerEl.removeChild(video);
 					callback({
-						duration: youtube.getDuration()
+						duration: tempYoutube.getDuration()
 					});
 				},
 				onError: e -> {
@@ -180,6 +181,13 @@ class Youtube implements IPlayer {
 			YtInit.init(() -> loadVideo(item));
 			return;
 		}
+		if (youtube != null) {
+			youtube.loadVideoById({
+				videoId: extractVideoId(item.url)
+			});
+			return;
+		}
+		isLoaded = false;
 		video = document.createDivElement();
 		video.id = "videoplayer";
 		playerEl.appendChild(video);
@@ -190,11 +198,13 @@ class Youtube implements IPlayer {
 				autoplay: 1,
 				modestbranding: 1,
 				rel: 0,
-				showinfo: 0,
-				start: 0
+				showinfo: 0
 			},
 			events: {
-				onReady: e -> isLoaded = true,
+				onReady: e -> {
+					isLoaded = true;
+					youtube.pauseVideo();
+				},
 				onStateChange: e -> {
 					switch (e.data) {
 						case UNSTARTED:
@@ -211,13 +221,16 @@ class Youtube implements IPlayer {
 				},
 				onPlaybackRateChange: e -> {
 					player.onRateChange();
-				},
+				}
 			}
 		});
 	}
 
 	public function removeVideo():Void {
 		if (video == null) return;
+		isLoaded = false;
+		youtube.destroy();
+		youtube = null;
 		if (playerEl.contains(video)) playerEl.removeChild(video);
 		video = null;
 	}

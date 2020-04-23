@@ -9,10 +9,14 @@ import client.players.Iframe;
 import Types.VideoData;
 import Types.VideoItem;
 using StringTools;
+using Lambda;
 
 class Player {
 
 	final main:Main;
+	final players:Array<IPlayer>;
+	final iframePlayer:IPlayer;
+	final rawPlayer:IPlayer;
 	final items = new VideoList();
 	final videoItemsEl = ge("#queue");
 	final playerEl:Element = ge("#ytapiplayer");
@@ -25,6 +29,11 @@ class Player {
 
 	public function new(main:Main):Void {
 		this.main = main;
+		players = [
+			new Youtube(main, this)
+		];
+		iframePlayer = new Iframe(main, this);
+		rawPlayer = new Raw(main, this);
 		initItemButtons();
 	}
 
@@ -79,29 +88,27 @@ class Player {
 		setItemElementType(el, items[pos].isTemp);
 	}
 
-	function setPlayer(player:IPlayer):Void {
-		this.player = player;
+	function setPlayer(newPlayer:IPlayer):Void {
+		if (player != null && player != newPlayer) {
+			player.removeVideo();
+			// playerEl.textContent = "";
+		}
+		player = newPlayer;
 	}
 
 	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
-		// TODO P2 reuse player objects
-		if (Youtube.isYoutube(url)) {
-			new Youtube(main, this).getVideoData(url, callback);
-		} else {
-			new Raw(main, this).getVideoData(url, callback);
-		}
+		var player = players.find(player -> player.isSupportedLink(url));
+		if (player == null) player = rawPlayer;
+		player.getVideoData(url, callback);
 	}
 
 	public function setVideo(i:Int):Void {
 		if (!main.isSyncActive) return;
 		final item = items[i];
-		if (item.isIframe) {
-			setPlayer(new Iframe(main, this));
-		} else if (Youtube.isYoutube(item.url)) {
-			setPlayer(new Youtube(main, this));
-		} else {
-			setPlayer(new Raw(main, this));
-		}
+		var currentPlayer = players.find(p -> p.isSupportedLink(item.url));
+		if (currentPlayer != null) setPlayer(currentPlayer);
+		else if (item.isIframe) setPlayer(iframePlayer);
+		else setPlayer(rawPlayer);
 
 		final childs = videoItemsEl.children;
 		if (childs[itemPos] != null) {
@@ -111,7 +118,6 @@ class Player {
 		childs[itemPos].classList.add("queue_active");
 
 		currentSrc = item.url;
-		playerEl.textContent = "";
 		isLoaded = false;
 		player.loadVideo(item);
 		ge("#currenttitle").textContent = item.title;

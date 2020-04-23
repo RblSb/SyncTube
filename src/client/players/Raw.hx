@@ -10,16 +10,20 @@ import Types.VideoItem;
 
 class Raw implements IPlayer {
 
-	static var controlsHider:Timer;
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
+	var controlsHider:Timer;
 	var playAllowed = true;
 	var video:VideoElement;
 
 	public function new(main:Main, player:Player) {
 		this.main = main;
 		this.player = player;
+	}
+
+	public function isSupportedLink(url:String):Bool {
+		return true;
 	}
 
 	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
@@ -45,18 +49,21 @@ class Raw implements IPlayer {
 	}
 
 	public function loadVideo(item:VideoItem):Void {
+		final url = main.tryLocalIp(item.url);
+		if (video != null) {
+			video.src = url;
+			return;
+		}
 		video = document.createVideoElement();
 		video.id = "videoplayer";
-		final url = main.tryLocalIp(item.url);
 		video.src = url;
 		video.controls = true;
-		final isTouch = untyped __js__("'ontouchstart' in window");
 		if (controlsHider != null) controlsHider.stop();
-		if (!isTouch) controlsHider = Timer.delay(() -> {
+		if (!Utils.isTouch()) controlsHider = Timer.delay(() -> {
 			video.controls = false;
 		}, 3000);
 		video.onmousemove = e -> {
-			controlsHider.stop();
+			if (controlsHider != null) controlsHider.stop();
 			video.controls = true;
 			video.onmousemove = null;
 		}
