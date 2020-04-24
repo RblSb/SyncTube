@@ -954,7 +954,7 @@ client_Main.prototype = {
 		};
 		new client_InputWithHistory(window.document.querySelector("#mediaurl"),this.settings.latestLinks,10,function(value) {
 			_gthis.addVideoUrl(true);
-			return true;
+			return false;
 		});
 		window.document.querySelector("#ce_queue_next").onclick = function(e4) {
 			_gthis.addIframe(false);

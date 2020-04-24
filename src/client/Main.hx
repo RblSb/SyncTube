@@ -138,7 +138,7 @@ class Main {
 		ge("#queue_end").onclick = e -> addVideoUrl(true);
 		new InputWithHistory(cast ge("#mediaurl"), settings.latestLinks, 10, value -> {
 			addVideoUrl(true);
-			return true;
+			return false;
 		});
 
 		ge("#ce_queue_next").onclick = e -> addIframe(false);
