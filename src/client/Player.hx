@@ -90,6 +90,7 @@ class Player {
 
 	function setPlayer(newPlayer:IPlayer):Void {
 		if (player != null && player != newPlayer) {
+			JsApi.fireVideoRemoveEvents(items[itemPos]);
 			player.removeVideo();
 			// playerEl.textContent = "";
 		}
@@ -125,6 +126,7 @@ class Player {
 	}
 
 	public function removeVideo():Void {
+		JsApi.fireVideoRemoveEvents(items[itemPos]);
 		currentSrc = "";
 		player.removeVideo();
 		ge("#currenttitle").textContent = Lang.get("nothingPlaying");

@@ -877,6 +877,17 @@ client_JsApi.fireVideoChangeEvents = function(item) {
 	var _g1 = client_JsApi.videoChange;
 	while(_g < _g1.length) _g1[_g++](item);
 };
+client_JsApi.notifyOnVideoRemove = $hx_exports["client"]["JsApi"]["notifyOnVideoRemove"] = function(func) {
+	client_JsApi.videoRemove.push(func);
+};
+client_JsApi.removeFromVideoRemove = $hx_exports["client"]["JsApi"]["removeFromVideoRemove"] = function(func) {
+	HxOverrides.remove(client_JsApi.videoRemove,func);
+};
+client_JsApi.fireVideoRemoveEvents = function(item) {
+	var _g = 0;
+	var _g1 = client_JsApi.videoRemove;
+	while(_g < _g1.length) _g1[_g++](item);
+};
 var client_Main = function(host,port) {
 	this.matchNumbers = new EReg("^-?[0-9]+$","");
 	this.mask = new EReg("\\${([0-9]+)-([0-9]+)}","g");
@@ -1681,6 +1692,7 @@ client_Player.prototype = {
 	}
 	,setPlayer: function(newPlayer) {
 		if(this.player != null && this.player != newPlayer) {
+			client_JsApi.fireVideoRemoveEvents(this.items[this.itemPos]);
 			this.player.removeVideo();
 		}
 		this.player = newPlayer;
@@ -1722,6 +1734,7 @@ client_Player.prototype = {
 		window.document.querySelector("#currenttitle").textContent = item.title;
 	}
 	,removeVideo: function() {
+		client_JsApi.fireVideoRemoveEvents(this.items[this.itemPos]);
 		this.currentSrc = "";
 		this.player.removeVideo();
 		window.document.querySelector("#currenttitle").textContent = Lang.get("nothingPlaying");
@@ -3170,6 +3183,7 @@ Lang.langs = new haxe_ds_StringMap();
 Lang.ids = ["en","ru"];
 Lang.lang = HxOverrides.substr(window.navigator.language,0,2).toLowerCase();
 client_JsApi.videoChange = [];
+client_JsApi.videoRemove = [];
 client_Settings.isSupported = false;
 js_youtube_Youtube.isLoadedAPI = false;
 client_Main.main();
