@@ -192,7 +192,7 @@ class Main {
 		mediaUrl.value = "";
 		settings.latestLinks.push(url);
 		Settings.write(settings);
-		final url = ~/,(https?)/g.replace(url, "|$1");
+		final url = ~/, ?(https?)/g.replace(url, "|$1");
 		final links = url.split("|");
 		handleUrlMasks(links);
 		// if videos added as next, we need to load them in reverse order

@@ -1006,7 +1006,7 @@ client_Main.prototype = {
 		mediaUrl.value = "";
 		this.settings.latestLinks.push(url);
 		client_Settings.write(this.settings);
-		var _this_r = new RegExp(",(https?)","g".split("u").join(""));
+		var _this_r = new RegExp(", ?(https?)","g".split("u").join(""));
 		var links = url.replace(_this_r,"|$1").split("|");
 		this.handleUrlMasks(links);
 		if(!atEnd) {
