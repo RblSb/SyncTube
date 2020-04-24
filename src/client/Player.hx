@@ -120,6 +120,7 @@ class Player {
 		currentSrc = item.url;
 		isLoaded = false;
 		player.loadVideo(item);
+		JsApi.fireVideoChangeEvents(item);
 		ge("#currenttitle").textContent = item.title;
 	}
 
