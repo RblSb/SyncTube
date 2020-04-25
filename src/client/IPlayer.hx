@@ -8,6 +8,7 @@ interface IPlayer {
 	function getVideoData(url:String, callback:(data:VideoData)->Void):Void;
 	function loadVideo(item:VideoItem):Void;
 	function removeVideo():Void;
+	function isVideoLoaded():Bool;
 	function play():Void;
 	function pause():Void;
 	function getTime():Float;

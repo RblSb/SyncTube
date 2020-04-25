@@ -235,33 +235,31 @@ class Youtube implements IPlayer {
 		video = null;
 	}
 
+	public function isVideoLoaded():Bool {
+		return isLoaded;
+	}
+
 	public function play():Void {
-		if (!isLoaded) return;
 		youtube.playVideo();
 	}
 
 	public function pause():Void {
-		if (!isLoaded) return;
 		youtube.pauseVideo();
 	}
 
 	public function getTime():Float {
-		if (!isLoaded) return 0;
 		return youtube.getCurrentTime();
 	}
 
 	public function setTime(time:Float):Void {
-		if (!isLoaded) return;
 		youtube.seekTo(time, true);
 	}
 
 	public function getPlaybackRate():Float {
-		if (!isLoaded) return 1;
 		return youtube.getPlaybackRate();
 	}
 
 	public function setPlaybackRate(rate:Float):Void {
-		if (!isLoaded) return;
 		youtube.setPlaybackRate(rate);
 	}
 

@@ -27,7 +27,7 @@ class Raw implements IPlayer {
 	}
 
 	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
-		var title = url.substr(url.lastIndexOf('/') + 1);
+		var title = url.substr(url.lastIndexOf("/") + 1);
 		final matchName = ~/^(.+)\./;
 		if (matchName.match(title)) title = matchName.matched(1);
 		else title = Lang.get("rawVideo");
@@ -52,21 +52,13 @@ class Raw implements IPlayer {
 		final url = main.tryLocalIp(item.url);
 		if (video != null) {
 			video.src = url;
+			restartControlsHider();
 			return;
 		}
 		video = document.createVideoElement();
 		video.id = "videoplayer";
 		video.src = url;
-		video.controls = true;
-		if (controlsHider != null) controlsHider.stop();
-		if (!Utils.isTouch()) controlsHider = Timer.delay(() -> {
-			video.controls = false;
-		}, 3000);
-		video.onmousemove = e -> {
-			if (controlsHider != null) controlsHider.stop();
-			video.controls = true;
-			video.onmousemove = null;
-		}
+		restartControlsHider();
 		video.oncanplaythrough = player.onCanBePlayed;
 		video.onseeking = player.onSetTime;
 		video.onplay = e -> {
@@ -78,14 +70,31 @@ class Raw implements IPlayer {
 		playerEl.appendChild(video);
 	}
 
+	function restartControlsHider():Void {
+		if (Utils.isTouch()) return;
+		video.controls = true;
+		if (controlsHider != null) controlsHider.stop();
+		controlsHider = Timer.delay(() -> {
+			video.controls = false;
+		}, 3000);
+		video.onmousemove = e -> {
+			if (controlsHider != null) controlsHider.stop();
+			video.controls = true;
+			video.onmousemove = null;
+		}
+	}
+
 	public function removeVideo():Void {
 		if (video == null) return;
 		playerEl.removeChild(video);
 		video = null;
 	}
 
+	public function isVideoLoaded():Bool {
+		return video != null;
+	}
+
 	public function play():Void {
-		if (video == null) return;
 		if (!playAllowed) return;
 		final promise = video.play();
 		if (promise == null) return;
@@ -96,27 +105,22 @@ class Raw implements IPlayer {
 	}
 
 	public function pause():Void {
-		if (video == null) return;
 		video.pause();
 	}
 
 	public function getTime():Float {
-		if (video == null) return 0;
 		return video.currentTime;
 	}
 
 	public function setTime(time:Float):Void {
-		if (video == null) return;
 		video.currentTime = time;
 	}
 
 	public function getPlaybackRate():Float {
-		if (video == null) return 1;
 		return video.playbackRate;
 	}
 
 	public function setPlaybackRate(rate:Float):Void {
-		if (video == null) return;
 		video.playbackRate = rate;
 	}
 

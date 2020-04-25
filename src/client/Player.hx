@@ -21,7 +21,6 @@ class Player {
 	final videoItemsEl = ge("#queue");
 	final playerEl:Element = ge("#ytapiplayer");
 	var player:Null<IPlayer>;
-	var currentSrc = "";
 	var itemPos = 0;
 	var isLoaded = false;
 	var skipSetTime = false;
@@ -118,7 +117,6 @@ class Player {
 		itemPos = i;
 		childs[itemPos].classList.add("queue_active");
 
-		currentSrc = item.url;
 		isLoaded = false;
 		player.loadVideo(item);
 		JsApi.fireVideoChangeEvents(item);
@@ -127,7 +125,6 @@ class Player {
 
 	public function removeVideo():Void {
 		JsApi.fireVideoRemoveEvents(items[itemPos]);
-		currentSrc = "";
 		player.removeVideo();
 		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
 	}
@@ -261,11 +258,12 @@ class Player {
 	}
 
 	public function setItems(list:Array<VideoItem>, ?pos:Int):Void {
+		final currentUrl = itemPos >= items.length ? "" : items[itemPos].url;
 		clearItems();
 		if (pos != null) itemPos = pos;
 		if (list.length == 0) return;
 		for (video in list) addVideoItem(video, true);
-		if (currentSrc != items[itemPos].url) setVideo(itemPos);
+		if (currentUrl != items[itemPos].url) setVideo(itemPos);
 		else videoItemsEl.children[itemPos].classList.add("queue_active");
 	}
 
@@ -321,43 +319,49 @@ class Player {
 		return playerEl.children.length != 0;
 	}
 
+	public function getDuration():Float {
+		if (itemPos >= items.length) return 0;
+		return items[itemPos].duration;
+	}
+
 	public function play():Void {
 		if (!main.isSyncActive) return;
 		if (player == null) return;
+		if (!player.isVideoLoaded()) return;
 		player.play();
 	}
 
 	public function pause():Void {
 		if (!main.isSyncActive) return;
 		if (player == null) return;
+		if (!player.isVideoLoaded()) return;
 		player.pause();
-	}
-
-	public function getDuration():Float {
-		if (itemPos >= items.length) return 0;
-		return items[itemPos].duration;
 	}
 
 	public function getTime():Float {
 		if (player == null) return 0;
+		if (!player.isVideoLoaded()) return 0;
 		return player.getTime();
 	}
 
 	public function setTime(time:Float, isLocal = true):Void {
 		if (!main.isSyncActive) return;
 		if (player == null) return;
+		if (!player.isVideoLoaded()) return;
 		skipSetTime = isLocal;
 		player.setTime(time);
 	}
 
 	public function getPlaybackRate():Float {
 		if (player == null) return 1;
+		if (!player.isVideoLoaded()) return 1;
 		return player.getPlaybackRate();
 	}
 
 	public function setPlaybackRate(rate:Float, isLocal = true):Void {
 		if (!main.isSyncActive) return;
 		if (player == null) return;
+		if (!player.isVideoLoaded()) return;
 		skipSetRate = isLocal;
 		player.setPlaybackRate(rate);
 	}

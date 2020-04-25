@@ -262,8 +262,16 @@ class Buttons {
 		final swapLayoutBtn = ge("#swapLayoutBtn");
 		swapLayoutBtn.onclick = e -> {
 			final p = ge("#main");
-			p.insertBefore(p.children[2], p.children[0]);
-			p.insertBefore(p.children[2], p.children[1]);
+			if (ge("#main").firstElementChild == ge("#chatwrap")) {
+				// do not remove videowrap with insertBefore
+				// because this will recreate iframe-based players
+				p.appendChild(p.removeChild(p.children[1])); // gutter
+				p.appendChild(p.removeChild(p.children[0])); // chat
+				p.appendChild(p.removeChild(p.children[1])); // clear
+			} else {
+				p.insertBefore(p.children[2], p.children[0]);
+				p.insertBefore(p.children[2], p.children[1]);
+			}
 			final p = ge("#controlsrow");
 			p.insertBefore(p.children[1], p.children[0]);
 			final p = ge("#playlistrow");

@@ -35,7 +35,7 @@ class Iframe implements IPlayer {
 		removeVideo();
 		video = document.createDivElement();
 		video.id = "videoplayer";
-		video.innerHTML = item.url;
+		video.innerHTML = item.url; // actually data
 		if (video.firstChild.nodeName != "IFRAME"
 			&& video.firstChild.nodeName != "OBJECT") {
 			// TODO move to getVideoData too
@@ -52,6 +52,10 @@ class Iframe implements IPlayer {
 		if (video == null) return;
 		playerEl.removeChild(video);
 		video = null;
+	}
+
+	public function isVideoLoaded():Bool {
+		return video != null;
 	}
 
 	public function play():Void {}
