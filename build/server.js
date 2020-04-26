@@ -1414,9 +1414,15 @@ server_Main.prototype = {
 			if(this.videoList.length == 0) {
 				return;
 			}
-			if(this.videoTimer.getTime() > this.videoList[this.itemPos].duration - 0.01) {
-				this.videoTimer.stop();
+			var maxTime = this.videoList[this.itemPos].duration - 0.01;
+			if(this.videoTimer.getTime() > maxTime) {
+				this.videoTimer.pause();
+				this.videoTimer.setTime(maxTime);
+				var currentLength = this.videoList.length;
 				haxe_Timer.delay(function() {
+					if(_gthis.videoList.length != currentLength) {
+						return;
+					}
 					_gthis.onMessage(client,{ type : "SkipVideo", skipVideo : { url : _gthis.videoList[_gthis.itemPos].url}});
 					return;
 				},1000);
@@ -1429,8 +1435,9 @@ server_Main.prototype = {
 			if(this.videoTimer.getRate() != 1) {
 				if(!ClientTools.hasLeader(this.clients)) {
 					this.videoTimer.setRate(1);
+				} else {
+					obj.getTime.rate = this.videoTimer.getRate();
 				}
-				obj.getTime.rate = this.videoTimer.getRate();
 			}
 			this.send(client,obj);
 			break;

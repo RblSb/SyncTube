@@ -426,9 +426,13 @@ class Main {
 
 			case GetTime:
 				if (videoList.length == 0) return;
-				if (videoTimer.getTime() > videoList[itemPos].duration - 0.01) {
-					videoTimer.stop();
+				final maxTime = videoList[itemPos].duration - 0.01;
+				if (videoTimer.getTime() > maxTime) {
+					videoTimer.pause();
+					videoTimer.setTime(maxTime);
+					final currentLength = videoList.length;
 					Timer.delay(() -> {
+						if (videoList.length != currentLength) return;
 						onMessage(client, {
 							type: SkipVideo, skipVideo: {
 								url: videoList[itemPos].url
@@ -445,7 +449,7 @@ class Main {
 				if (videoTimer.isPaused()) obj.getTime.paused = true;
 				if (videoTimer.getRate() != 1) {
 					if (!clients.hasLeader()) videoTimer.setRate(1);
-					obj.getTime.rate = videoTimer.getRate();
+					else obj.getTime.rate = videoTimer.getRate();
 				}
 				send(client, obj);
 
