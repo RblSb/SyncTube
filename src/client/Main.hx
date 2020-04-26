@@ -510,7 +510,7 @@ class Main {
 			});
 		}
 		for (emote in config.emotes) {
-			final tag = emote.image.endsWith("mp4") ? 'video autoplay="" loop=""' : "img";
+			final tag = emote.image.endsWith("mp4") ? 'video autoplay="" loop="" muted=""' : "img";
 			filters.push({
 				regex: new EReg("(^| )" + escapeRegExp(emote.name) + "(?!\\S)", "g"),
 				replace: '$1<$tag class="channel-emote" src="${emote.image}" title="${emote.name}"/>'
@@ -656,8 +656,17 @@ class Main {
 			}
 		}
 		textDiv.innerHTML = text;
-
 		final isInChatEnd = msgBuf.scrollTop + msgBuf.clientHeight >= msgBuf.scrollHeight - 1;
+
+		if (isInChatEnd) { // scroll chat to end after images loaded
+			for (img in textDiv.getElementsByTagName("img")) {
+				img.onload = onChatImageLoaded;
+			}
+			for (video in textDiv.getElementsByTagName("video")) {
+				video.onloadedmetadata = onChatVideoLoaded;
+			}
+		}
+
 		userDiv.appendChild(tstamp);
 		userDiv.appendChild(nameDiv);
 		userDiv.appendChild(textDiv);
@@ -678,6 +687,24 @@ class Main {
 			}
 			onBlinkTab.run();
 		}
+	}
+
+	function onChatImageLoaded(e:Event):Void {
+		scrollChatToEnd();
+		(cast e.target : Element).onload = null;
+	}
+
+	function onChatVideoLoaded(e:Event):Void {
+		// for some time default video size is 300x150px
+		Timer.delay(() -> {
+			scrollChatToEnd();
+			(cast e.target : Element).onloadedmetadata = null;
+		}, 100);
+	}
+
+	public function scrollChatToEnd():Void {
+		final msgBuf = ge("#messagebuffer");
+		msgBuf.scrollTop = msgBuf.scrollHeight;
 	}
 
 	final matchNumbers = ~/^-?[0-9]+$/;

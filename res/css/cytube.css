@@ -101,11 +101,16 @@
   max-height: 75px;
   cursor: pointer;
 }
-.channel-emote, .chat-img {
+.channel-emote {
   max-width: 150px;
   max-height: 150px;
 }
+.chat-img {
+  max-width: 200px;
+  max-height: 200px;
+}
 video.channel-emote, video.chat-img {
+  background-color: transparent;
   /* Fixes default video tag size in chat when tab unloads videos in background */
   /* (some browsers optimization i guess) */
   height: 150px;

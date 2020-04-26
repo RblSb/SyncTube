@@ -71,8 +71,8 @@ class Raw implements IPlayer {
 	}
 
 	function restartControlsHider():Void {
-		if (Utils.isTouch()) return;
 		video.controls = true;
+		if (Utils.isTouch()) return;
 		if (controlsHider != null) controlsHider.stop();
 		controlsHider = Timer.delay(() -> {
 			video.controls = false;

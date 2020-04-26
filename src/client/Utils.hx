@@ -10,6 +10,12 @@ class Utils {
 		return js.Syntax.code("'ontouchstart' in window");
 	}
 
+	public static function nodeFromString(div:String):Element {
+		final wrapper = document.createDivElement();
+		wrapper.innerHTML = div;
+		return wrapper.firstElementChild;
+	}
+
 	public static function prepend(parent:Element, child:Element):Void {
 		if (parent.firstChild == null) parent.appendChild(child);
 		else parent.insertBefore(child, parent.firstChild);

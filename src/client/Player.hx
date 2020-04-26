@@ -1,7 +1,6 @@
 package client;
 
 import js.html.Element;
-import js.Browser.document;
 import client.Main.ge;
 import client.players.Raw;
 import client.players.Youtube;
@@ -180,7 +179,7 @@ class Player {
 
 	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
 		final url = item.url.htmlEscape(true);
-		final itemEl = nodeFromString(
+		final itemEl = Utils.nodeFromString(
 			'<li class="queue_entry pluid-0" title="${Lang.get("addedBy")}: ${item.author}">
 				<a class="qe_title" href="$url" target="_blank">${item.title.htmlEscape()}</a>
 				<span class="qe_time">${duration(item.duration)}</span>
@@ -295,12 +294,6 @@ class Player {
 		var time = 0.0;
 		for (item in items) time += item.duration;
 		return duration(time);
-	}
-
-	function nodeFromString(div:String):Element {
-		final wrapper = document.createDivElement();
-		wrapper.innerHTML = div;
-		return wrapper.firstElementChild;
 	}
 
 	public function isListEmpty():Bool {

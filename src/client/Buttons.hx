@@ -90,6 +90,7 @@ class Buttons {
 			settings.isExtendedPlayer = isExtended;
 			writeSplitSize();
 			window.dispatchEvent(new Event("resize"));
+			main.scrollChatToEnd();
 		}
 		if (settings.isExtendedPlayer) extendPlayer.onclick();
 
@@ -281,6 +282,7 @@ class Buttons {
 			initSplit();
 			swapLayoutBtn.blur();
 			hideMenus();
+			main.scrollChatToEnd();
 		}
 		if (settings.isSwapped) swapLayoutBtn.onclick();
 		final removeBtn = ge("#removeVideoBtn");

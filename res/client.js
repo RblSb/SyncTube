@@ -530,7 +530,9 @@ client_Buttons.init = function(main) {
 		client_Buttons.split.setSizes(sizes);
 		client_Buttons.settings.isExtendedPlayer = isExtended;
 		client_Buttons.writeSplitSize();
-		return window.dispatchEvent(new Event("resize"));
+		window.dispatchEvent(new Event("resize"));
+		main.scrollChatToEnd();
+		return;
 	};
 	if(client_Buttons.settings.isExtendedPlayer) {
 		extendPlayer.onclick();
@@ -749,6 +751,7 @@ client_Buttons.initNavBar = function(main) {
 		client_Buttons.initSplit();
 		swapLayoutBtn.blur();
 		client_Buttons.hideMenus();
+		main.scrollChatToEnd();
 		return;
 	};
 	if(client_Buttons.settings.isSwapped) {
@@ -1389,7 +1392,7 @@ client_Main.prototype = {
 		while(_g2 < _g3.length) {
 			var emote = _g3[_g2];
 			++_g2;
-			var tag = StringTools.endsWith(emote.image,"mp4") ? "video autoplay=\"\" loop=\"\"" : "img";
+			var tag = StringTools.endsWith(emote.image,"mp4") ? "video autoplay=\"\" loop=\"\" muted=\"\"" : "img";
 			this.filters.push({ regex : new EReg("(^| )" + this.escapeRegExp(emote.name) + "(?!\\S)","g"), replace : "$1<" + tag + " class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>"});
 		}
 		window.document.querySelector("#smilesbtn").classList.remove("active");
@@ -1549,6 +1552,14 @@ client_Main.prototype = {
 		}
 		textDiv.innerHTML = text;
 		var isInChatEnd = msgBuf.scrollTop + msgBuf.clientHeight >= msgBuf.scrollHeight - 1;
+		if(isInChatEnd) {
+			var _g2 = 0;
+			var _g11 = textDiv.getElementsByTagName("img");
+			while(_g2 < _g11.length) _g11[_g2++].onload = $bind(this,this.onChatImageLoaded);
+			var _g21 = 0;
+			var _g3 = textDiv.getElementsByTagName("video");
+			while(_g21 < _g3.length) _g3[_g21++].onloadedmetadata = $bind(this,this.onChatVideoLoaded);
+		}
 		userDiv.appendChild(tstamp);
 		userDiv.appendChild(nameDiv);
 		userDiv.appendChild(textDiv);
@@ -1571,6 +1582,21 @@ client_Main.prototype = {
 			};
 			this.onBlinkTab.run();
 		}
+	}
+	,onChatImageLoaded: function(e) {
+		this.scrollChatToEnd();
+		e.target.onload = null;
+	}
+	,onChatVideoLoaded: function(e) {
+		var _gthis = this;
+		haxe_Timer.delay(function() {
+			_gthis.scrollChatToEnd();
+			return e.target.onloadedmetadata = null;
+		},100);
+	}
+	,scrollChatToEnd: function() {
+		var msgBuf = window.document.querySelector("#messagebuffer");
+		msgBuf.scrollTop = msgBuf.scrollHeight;
 	}
 	,handleCommands: function(text) {
 		if(text == "clear") {
@@ -1782,7 +1808,7 @@ client_Player.prototype = {
 	}
 	,addVideoItem: function(item,atEnd) {
 		var url = StringTools.htmlEscape(item.url,true);
-		var itemEl = this.nodeFromString("<li class=\"queue_entry pluid-0\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("setNext") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
+		var itemEl = client_Utils.nodeFromString("<li class=\"queue_entry pluid-0\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("setNext") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
 		_$VideoList_VideoList_$Impl_$.addItem(this.items,item,atEnd,this.itemPos);
 		this.setItemElementType(itemEl,item.isTemp);
 		if(atEnd) {
@@ -1906,11 +1932,6 @@ client_Player.prototype = {
 		var _g1 = this.items;
 		while(_g < _g1.length) time += _g1[_g++].duration;
 		return this.duration(time);
-	}
-	,nodeFromString: function(div) {
-		var wrapper = window.document.createElement("div");
-		wrapper.innerHTML = div;
-		return wrapper.firstElementChild;
 	}
 	,isListEmpty: function() {
 		return this.items.length == 0;
@@ -2052,6 +2073,11 @@ var client_Utils = function() { };
 client_Utils.__name__ = true;
 client_Utils.isTouch = function() {
 	return 'ontouchstart' in window;
+};
+client_Utils.nodeFromString = function(div) {
+	var wrapper = window.document.createElement("div");
+	wrapper.innerHTML = div;
+	return wrapper.firstElementChild;
 };
 client_Utils.prepend = function(parent,child) {
 	if(parent.firstChild == null) {
@@ -2235,10 +2261,10 @@ client_players_Raw.prototype = {
 	}
 	,restartControlsHider: function() {
 		var _gthis = this;
+		this.video.controls = true;
 		if(client_Utils.isTouch()) {
 			return;
 		}
-		this.video.controls = true;
 		if(this.controlsHider != null) {
 			this.controlsHider.stop();
 		}
