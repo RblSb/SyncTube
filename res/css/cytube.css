@@ -109,12 +109,6 @@
   max-width: 200px;
   max-height: 200px;
 }
-video.channel-emote, video.chat-img {
-  background-color: transparent;
-  /* Fixes default video tag size in chat when tab unloads videos in background */
-  /* (some browsers optimization i guess) */
-  height: 150px;
-}
 
 /*
 #userpl_list li {

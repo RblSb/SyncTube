@@ -7,10 +7,12 @@ import js.html.MouseEvent;
 import js.html.KeyboardEvent;
 import js.html.Event;
 import js.html.Element;
+import js.html.VideoElement;
 import js.html.InputElement;
 import js.html.WebSocket;
 import js.Browser;
 import js.Browser.document;
+import js.Browser.window;
 import Client.ClientData;
 import Types.VideoData;
 import Types.Config;
@@ -122,7 +124,7 @@ class Main {
 		}
 		final voteSkip = ge("#voteskip");
 		voteSkip.onclick = e -> {
-			if (Utils.isTouch() && !Browser.window.confirm(Lang.get("skipItemConfirm"))) return;
+			if (Utils.isTouch() && !window.confirm(Lang.get("skipItemConfirm"))) return;
 			if (player.isListEmpty()) return;
 			final items = player.getItems();
 			final pos = player.getItemPos();
@@ -549,7 +551,7 @@ class Main {
 		ge("#guestpassword").style.display = "none";
 		ge("#chatline").style.display = "none";
 		ge("#exitBtn").textContent = Lang.get("login");
-		Browser.window.dispatchEvent(new Event("resize"));
+		window.dispatchEvent(new Event("resize"));
 	}
 
 	function hideGuestLoginPanel():Void {
@@ -558,7 +560,7 @@ class Main {
 		ge("#chatline").style.display = "block";
 		ge("#exitBtn").textContent = Lang.get("exit");
 		if (isAdmin()) ge("#clearchatbtn").style.display = "inline-block";
-		Browser.window.dispatchEvent(new Event("resize"));
+		window.dispatchEvent(new Event("resize"));
 	}
 
 	function showGuestPasswordPanel():Void {
@@ -694,12 +696,21 @@ class Main {
 		(cast e.target : Element).onload = null;
 	}
 
+	var emoteMaxSize:Null<Int>;
+
 	function onChatVideoLoaded(e:Event):Void {
-		// for some time default video size is 300x150px
-		Timer.delay(() -> {
-			scrollChatToEnd();
-			(cast e.target : Element).onloadedmetadata = null;
-		}, 100);
+		final el:VideoElement = cast e.target;
+		if (emoteMaxSize == null) {
+			emoteMaxSize = Std.parseInt(window.getComputedStyle(el).getPropertyValue("max-width"));
+		}
+		// fixes default video tag size in chat when tab unloads videos in background
+		// (some browsers optimization i guess)
+		final max = emoteMaxSize;
+		final ratio = Math.min(max / el.videoWidth, max / el.videoHeight);
+		el.style.width = '${el.videoWidth * ratio}px';
+		el.style.height = '${el.videoHeight * ratio}px';
+		scrollChatToEnd();
+		el.onloadedmetadata = null;
 	}
 
 	public function scrollChatToEnd():Void {

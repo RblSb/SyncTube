@@ -1154,7 +1154,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 303, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 305, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1588,11 +1588,16 @@ client_Main.prototype = {
 		e.target.onload = null;
 	}
 	,onChatVideoLoaded: function(e) {
-		var _gthis = this;
-		haxe_Timer.delay(function() {
-			_gthis.scrollChatToEnd();
-			return e.target.onloadedmetadata = null;
-		},100);
+		var el = e.target;
+		if(this.emoteMaxSize == null) {
+			this.emoteMaxSize = Std.parseInt(window.getComputedStyle(el).getPropertyValue("max-width"));
+		}
+		var max = this.emoteMaxSize;
+		var ratio = Math.min(max / el.videoWidth,max / el.videoHeight);
+		el.style.width = "" + el.videoWidth * ratio + "px";
+		el.style.height = "" + el.videoHeight * ratio + "px";
+		this.scrollChatToEnd();
+		el.onloadedmetadata = null;
 	}
 	,scrollChatToEnd: function() {
 		var msgBuf = window.document.querySelector("#messagebuffer");
