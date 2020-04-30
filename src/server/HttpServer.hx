@@ -4,6 +4,9 @@ import sys.FileSystem;
 import js.node.Buffer;
 import haxe.io.Path;
 import js.node.Fs;
+import js.node.Https;
+import js.node.Http;
+import js.node.Url;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import js.node.Path as JsPath;
@@ -57,6 +60,11 @@ class HttpServer {
 			res.statusCode = 500;
 			var rel = JsPath.relative(dir, filePath);
 			res.end('Error getting the file: No access to $rel.');
+			return;
+		}
+
+		if (url.startsWith("/proxy")) {
+			if (!proxyUrl(req, res)) res.end('Cannot proxy ${req.url}');
 			return;
 		}
 
@@ -124,6 +132,29 @@ class HttpServer {
 			return Lang.get(lang, key);
 		});
 		return data;
+	}
+
+	static function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
+		final url = req.url.replace("/proxy?url=", "");
+		final url = Url.parse(js.Node.global.decodeURI(url));
+		if (url.host == req.headers["host"]) return false;
+		final options = {
+			host: url.host,
+			port: Std.parseInt(url.port),
+			path: url.path,
+			method: req.method,
+			// headers: req.headers
+		};
+		final request = url.protocol == "https:" ? Https.request : Http.request;
+		final proxy = request(options, proxyRes -> {
+			res.writeHead(proxyRes.statusCode, proxyRes.headers);
+			proxyRes.pipe(res, {end: true});
+		});
+		proxy.on("error", err -> {
+			res.end('Proxy error for ${url.href}');
+		});
+		req.pipe(proxy, {end: true});
+		return true;
 	}
 
 	static function isChildOf(parent:String, child:String):Bool {

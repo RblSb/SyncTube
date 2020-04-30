@@ -399,6 +399,25 @@ Std.__name__ = true;
 Std.string = function(s) {
 	return js_Boot.__string_rec(s,"");
 };
+Std.parseInt = function(x) {
+	if(x != null) {
+		var _g = 0;
+		var _g1 = x.length;
+		while(_g < _g1) {
+			var i = _g++;
+			var c = x.charCodeAt(i);
+			if(c <= 8 || c >= 14 && c != 32 && c != 45) {
+				var v = parseInt(x, (x[(i + 1)]=="x" || x[(i + 1)]=="X") ? 16 : 10);
+				if(isNaN(v)) {
+					return null;
+				} else {
+					return v;
+				}
+			}
+		}
+	}
+	return null;
+};
 Std.random = function(x) {
 	if(x <= 0) {
 		return 0;
@@ -906,9 +925,11 @@ js_Boot.__string_rec = function(o,s) {
 };
 var js_node_Fs = require("fs");
 var js_node_Http = require("http");
+var js_node_Https = require("https");
 var js_node_Os = require("os");
 var js_node_Path = require("path");
 var js_node_Readline = require("readline");
+var js_node_Url = require("url");
 var js_npm_ws_Server = require("ws").Server;
 var server_ConsoleInput = function(main) {
 	this.main = main;
@@ -988,6 +1009,12 @@ server_HttpServer.serveFiles = function(req,res) {
 		res.end(tmp1);
 		return;
 	}
+	if(StringTools.startsWith(url,"/proxy")) {
+		if(!server_HttpServer.proxyUrl(req,res)) {
+			res.end("Cannot proxy " + req.url);
+		}
+		return;
+	}
 	if(server_HttpServer.hasCustomRes) {
 		var path = server_HttpServer.customDir + url;
 		if(js_node_Fs.existsSync(path)) {
@@ -1058,6 +1085,24 @@ server_HttpServer.localizeHtml = function(data,lang) {
 		return Lang.get(lang,key);
 	});
 	return data;
+};
+server_HttpServer.proxyUrl = function(req,res) {
+	var url = StringTools.replace(req.url,"/proxy?url=","");
+	var url1 = js_node_Url.parse(global.decodeURI(url));
+	if(url1.host == req.headers["host"]) {
+		return false;
+	}
+	var options = { host : url1.host, port : Std.parseInt(url1.port), path : url1.path, method : req.method};
+	var proxy = (url1.protocol == "https:" ? js_node_Https.request : js_node_Http.request)(options,function(proxyRes) {
+		res.writeHead(proxyRes.statusCode,proxyRes.headers);
+		return proxyRes.pipe(res,{ end : true});
+	});
+	proxy.on("error",function(err) {
+		res.end("Proxy error for " + url1.href);
+		return;
+	});
+	req.pipe(proxy,{ end : true});
+	return true;
 };
 server_HttpServer.isChildOf = function(parent,child) {
 	var rel = js_node_Path.relative(parent,child);
@@ -1782,7 +1827,7 @@ server_Main.prototype = {
 var server_Utils = function() { };
 server_Utils.__name__ = true;
 server_Utils.getGlobalIp = function(callback) {
-	js_node_Http.get("http://myexternalip.com/raw",function(r) {
+	js_node_Https.get("https://myexternalip.com/raw",function(r) {
 		r.setEncoding("utf8");
 		return r.on("data",callback);
 	}).on("error",function(e) {
