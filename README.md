@@ -28,6 +28,9 @@ Default channel example: http://synctube-example.herokuapp.com/
 ### Configuration
 It's just works, but you can also check [user/ folder](/user/README.md) for server settings and additional customization.
 
+### Plugins
+- [octosubs](https://github.com/RblSb/SyncTube-octosubs) - `ASS`/`SSA` subtitles support
+
 ### How to use
 - Login with any nickname
 - Add your video url with "plus" button below (youtube or direct link to mp4 for example)
