@@ -858,14 +858,32 @@ client_InputWithHistory.prototype = {
 var client_JsApi = function() { };
 client_JsApi.__name__ = true;
 client_JsApi.addPlugin = $hx_exports["client"]["JsApi"]["addPlugin"] = function(id,onLoaded) {
-	client_JsApi.addScriptToHead("/plugins/" + id + "/index.js",onLoaded);
+	client_JsApi.initPluginsSpace();
+	client_JsApi.addScriptToHead("/plugins/" + id + "/index.js",function() {
+		var obj = { api : client_JsApi, id : id, path : "/plugins/" + id};
+		if(window.synctube[id] == null) {
+			window.console.error("Plugin \"" + id + "\" not found");
+		} else {
+			new synctube[id](obj);
+			if(onLoaded != null) {
+				onLoaded();
+			}
+		}
+		return;
+	});
+};
+client_JsApi.initPluginsSpace = function() {
+	var w = window;
+	if(w.synctube == null) {
+		w.synctube = { };
+	}
 };
 client_JsApi.addScriptToHead = $hx_exports["client"]["JsApi"]["addScriptToHead"] = function(url,onLoaded) {
 	var script = window.document.createElement("script");
 	script.type = "text/javascript";
 	script.onload = onLoaded;
 	script.src = url;
-	window.document.getElementsByTagName("head")[0].appendChild(script);
+	window.document.head.appendChild(script);
 };
 client_JsApi.hasScriptInHead = $hx_exports["client"]["JsApi"]["hasScriptInHead"] = function(url) {
 	var _g = 0;

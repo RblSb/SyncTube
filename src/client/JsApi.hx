@@ -2,6 +2,8 @@ package client;
 
 import Types.VideoItem;
 import js.Browser.document;
+import js.Browser.window;
+import js.Syntax;
 
 private typedef VideoChangeFunc = (item:VideoItem)->Void;
 
@@ -12,7 +14,25 @@ class JsApi {
 
 	@:expose
 	static function addPlugin(id:String, ?onLoaded:()->Void):Void {
-		addScriptToHead('/plugins/$id/index.js', onLoaded);
+		initPluginsSpace();
+		addScriptToHead('/plugins/$id/index.js', () -> {
+			final obj = {
+				api: JsApi,
+				id: id,
+				path: '/plugins/$id'
+			}
+			if (untyped window.synctube[id] == null) {
+				window.console.error('Plugin "$id" not found');
+			} else {
+				Syntax.code("new synctube[id]({0})", obj);
+				if (onLoaded != null) onLoaded();
+			}
+		});
+	}
+
+	static function initPluginsSpace():Void {
+		final w:Dynamic = window;
+		if (w.synctube == null) w.synctube = {};
 	}
 
 	@:expose
@@ -21,7 +41,7 @@ class JsApi {
 		script.type = "text/javascript";
 		script.onload = onLoaded;
 		script.src = url;
-		document.getElementsByTagName("head")[0].appendChild(script);
+		document.head.appendChild(script);
 	}
 
 	@:expose
