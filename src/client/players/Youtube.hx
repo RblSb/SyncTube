@@ -96,9 +96,21 @@ class Youtube implements IPlayer {
 			for (item in items) {
 				final title:String = item.snippet.title;
 				final duration:String = item.contentDetails.duration;
-				// TODO duration is PT0S for streams
+				final duration = convertTime(duration);
+				// duration is PT0S for streams
+				if (duration == 0) {
+					callback({
+						duration: 99 * 60 * 60,
+						title: title,
+						url: '<iframe src="https://www.youtube.com/embed/$id" frameborder="0"
+								allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+								allowfullscreen></iframe>',
+						isIframe: true
+					});
+					return;
+				}
 				callback({
-					duration: convertTime(duration),
+					duration: duration,
 					title: title,
 					url: url
 				});

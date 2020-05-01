@@ -1133,23 +1133,38 @@ client_Main.prototype = {
 			if(data.url == null) {
 				data.url = url;
 			}
-			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : false}, atEnd : atEnd}});
+			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : data.isIframe == true}, atEnd : atEnd}});
 			callback();
 			return;
 		});
 	}
 	,addIframe: function(atEnd) {
+		var _gthis = this;
 		var iframeCode = window.document.querySelector("#customembed-content");
 		var iframe = iframeCode.value;
 		if(iframe.length == 0) {
 			return;
 		}
 		iframeCode.value = "";
-		var mediaName = window.document.querySelector("#customembed-title");
-		var name = mediaName.value.length == 0 ? "Custom Media" : mediaName.value;
-		mediaName.value = "";
+		var mediaTitle = window.document.querySelector("#customembed-title");
+		var title = mediaTitle.value;
+		mediaTitle.value = "";
 		var isTemp = window.document.querySelector("#customembed").querySelector(".add-temp").checked;
-		this.send({ type : "AddVideo", addVideo : { item : { url : iframe, title : name, author : this.personal.name, duration : 356400, isTemp : isTemp, isIframe : true}, atEnd : atEnd}});
+		this.player.getIframeData(iframe,function(data) {
+			if(data.duration == 0) {
+				var tmp = Lang.get("addVideoError");
+				_gthis.serverMessage(4,tmp);
+				return;
+			}
+			if(title.length > 0) {
+				data.title = title;
+			}
+			if(data.url == null) {
+				data.url = iframe;
+			}
+			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : true}, atEnd : atEnd}});
+			return;
+		});
 	}
 	,toggleVideoElement: function() {
 		if(this.player.hasVideo()) {
@@ -1182,7 +1197,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 305, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 325, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1770,6 +1785,9 @@ client_Player.prototype = {
 		}
 		player.getVideoData(url,callback);
 	}
+	,getIframeData: function(iframe,callback) {
+		this.iframePlayer.getVideoData(iframe,callback);
+	}
 	,setVideo: function(i) {
 		if(!this.main.isSyncActive) {
 			return;
@@ -2189,15 +2207,31 @@ client_players_Iframe.prototype = {
 	isSupportedLink: function(url) {
 		return true;
 	}
-	,getVideoData: function(url,callback) {
-		callback({ duration : 356400, title : "Custom Media"});
+	,getVideoData: function(data,callback) {
+		var iframe = window.document.createElement("div");
+		iframe.innerHTML = data;
+		if(this.isValidIframe(iframe)) {
+			callback({ duration : 356400});
+		} else {
+			callback({ duration : 0});
+		}
+	}
+	,isValidIframe: function(iframe) {
+		if(iframe.children.length != 1) {
+			return false;
+		}
+		if(iframe.firstChild.nodeName != "IFRAME") {
+			return iframe.firstChild.nodeName == "OBJECT";
+		} else {
+			return true;
+		}
 	}
 	,loadVideo: function(item) {
 		this.removeVideo();
 		this.video = window.document.createElement("div");
 		this.video.id = "videoplayer";
 		this.video.innerHTML = item.url;
-		if(this.video.firstChild.nodeName != "IFRAME" && this.video.firstChild.nodeName != "OBJECT") {
+		if(!this.isValidIframe(this.video)) {
 			this.video = null;
 			return;
 		}
@@ -2441,8 +2475,12 @@ client_players_Youtube.prototype = {
 				var item = items[_g];
 				++_g;
 				var title = item.snippet.title;
-				var tmp = _gthis.convertTime(item.contentDetails.duration);
-				callback({ duration : tmp, title : title, url : url});
+				var duration = _gthis.convertTime(item.contentDetails.duration);
+				if(duration == 0) {
+					callback({ duration : 356400, title : title, url : "<iframe src=\"https://www.youtube.com/embed/" + id + "\" frameborder=\"0\"\n\t\t\t\t\t\t\t\tallow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\"\n\t\t\t\t\t\t\t\tallowfullscreen></iframe>", isIframe : true});
+					return;
+				}
+				callback({ duration : duration, title : title, url : url});
 			}
 			return;
 		};
@@ -2511,7 +2549,7 @@ client_players_Youtube.prototype = {
 			callback({ duration : tmp});
 			return;
 		}, onError : function(e1) {
-			haxe_Log.trace("Error " + e1.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 171, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
+			haxe_Log.trace("Error " + e1.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 183, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}

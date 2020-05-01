@@ -101,6 +101,10 @@ class Player {
 		player.getVideoData(url, callback);
 	}
 
+	public function getIframeData(iframe:String, callback:(data:VideoData)->Void):Void {
+		iframePlayer.getVideoData(iframe, callback);
+	}
+
 	public function setVideo(i:Int):Void {
 		if (!main.isSyncActive) return;
 		final item = items[i];

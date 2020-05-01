@@ -5,7 +5,8 @@ import Client.ClientData;
 typedef VideoData = {
 	duration:Float,
 	?title:String,
-	?url:String
+	?url:String,
+	?isIframe:Bool
 }
 
 typedef Config = {

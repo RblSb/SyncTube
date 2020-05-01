@@ -250,7 +250,7 @@ class Main {
 						author: personal.name,
 						duration: data.duration,
 						isTemp: isTemp,
-						isIframe: false
+						isIframe: data.isIframe == true
 					},
 					atEnd: atEnd
 			}});
@@ -263,23 +263,31 @@ class Main {
 		final iframe = iframeCode.value;
 		if (iframe.length == 0) return;
 		iframeCode.value = "";
-		final mediaName:InputElement = cast ge("#customembed-title");
-		final name = mediaName.value.length == 0 ? "Custom Media" : mediaName.value;
-		mediaName.value = "";
+		final mediaTitle:InputElement = cast ge("#customembed-title");
+		final title = mediaTitle.value;
+		mediaTitle.value = "";
 		final checkbox:InputElement = cast ge("#customembed").querySelector(".add-temp");
 		final isTemp = checkbox.checked;
-		send({
-			type: AddVideo, addVideo: {
-				item: {
-					url: iframe,
-					title: name,
-					author: personal.name,
-					duration: 99 * 60 * 60,
-					isTemp: isTemp,
-					isIframe: true
-				},
-				atEnd: atEnd
-		}});
+		player.getIframeData(iframe, (data:VideoData) -> {
+			if (data.duration == 0) {
+				serverMessage(4, Lang.get("addVideoError"));
+				return;
+			}
+			if (title.length > 0) data.title = title;
+			if (data.url == null) data.url = iframe;
+			send({
+				type: AddVideo, addVideo: {
+					item: {
+						url: data.url,
+						title: data.title,
+						author: personal.name,
+						duration: data.duration,
+						isTemp: isTemp,
+						isIframe: true
+					},
+					atEnd: atEnd
+			}});
+		});
 	}
 
 	public function toggleVideoElement():Bool {

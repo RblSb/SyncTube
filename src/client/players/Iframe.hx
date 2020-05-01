@@ -24,11 +24,20 @@ class Iframe implements IPlayer {
 		return true;
 	}
 
-	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
-		callback({
-			duration: 99 * 60 * 60,
-			title: "Custom Media"
-		});
+	public function getVideoData(data:String, callback:(data:VideoData)->Void):Void {
+		final iframe = document.createDivElement();
+		iframe.innerHTML = data;
+		if (isValidIframe(iframe)) {
+			callback({duration: 99 * 60 * 60});
+		} else {
+			callback({duration: 0});
+		}
+	}
+
+	function isValidIframe(iframe:Element):Bool {
+		if (iframe.children.length != 1) return false;
+		return (iframe.firstChild.nodeName == "IFRAME"
+			|| iframe.firstChild.nodeName == "OBJECT");
 	}
 
 	public function loadVideo(item:VideoItem):Void {
@@ -36,9 +45,7 @@ class Iframe implements IPlayer {
 		video = document.createDivElement();
 		video.id = "videoplayer";
 		video.innerHTML = item.url; // actually data
-		if (video.firstChild.nodeName != "IFRAME"
-			&& video.firstChild.nodeName != "OBJECT") {
-			// TODO move to getVideoData too
+		if (!isValidIframe(video)) {
 			video = null;
 			return;
 		}
