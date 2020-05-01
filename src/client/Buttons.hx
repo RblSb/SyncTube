@@ -249,16 +249,6 @@ class Buttons {
 			exitBtn.blur();
 			hideMenus();
 		}
-		final synchThresholdBtn = ge("#synchThresholdBtn");
-		synchThresholdBtn.onclick = e -> {
-			var secs = main.synchThreshold + 1;
-			if (secs > 5) secs = 1;
-			main.setSynchThreshold(secs);
-			updateSynchThresholdBtn(main);
-			synchThresholdBtn.blur();
-		}
-		final secs = main.synchThreshold;
-		synchThresholdBtn.innerText += ': ${secs}s';
 
 		final swapLayoutBtn = ge("#swapLayoutBtn");
 		swapLayoutBtn.onclick = e -> {
@@ -293,6 +283,18 @@ class Buttons {
 			removeBtn.blur();
 			hideMenus();
 		}
+	}
+
+	public static function initTextButtons(main:Main):Void {
+		final synchThresholdBtn = ge("#synchThresholdBtn");
+		synchThresholdBtn.onclick = e -> {
+			var secs = main.synchThreshold + 1;
+			if (secs > 5) secs = 1;
+			main.setSynchThreshold(secs);
+			updateSynchThresholdBtn(main);
+			synchThresholdBtn.blur();
+		}
+		updateSynchThresholdBtn(main);
 	}
 
 	static function hideMenus():Void {

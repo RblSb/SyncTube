@@ -717,20 +717,8 @@ client_Buttons.initNavBar = function(main) {
 		client_Buttons.hideMenus();
 		return;
 	};
-	var synchThresholdBtn = window.document.querySelector("#synchThresholdBtn");
-	synchThresholdBtn.onclick = function(e4) {
-		var secs = main.settings.synchThreshold + 1;
-		if(secs > 5) {
-			secs = 1;
-		}
-		main.setSynchThreshold(secs);
-		client_Buttons.updateSynchThresholdBtn(main);
-		synchThresholdBtn.blur();
-		return;
-	};
-	synchThresholdBtn.innerText += ": " + main.settings.synchThreshold + "s";
 	var swapLayoutBtn = window.document.querySelector("#swapLayoutBtn");
-	swapLayoutBtn.onclick = function(e5) {
+	swapLayoutBtn.onclick = function(e4) {
 		var p = window.document.querySelector("#main");
 		if(window.document.querySelector("#main").firstElementChild == window.document.querySelector("#chatwrap")) {
 			p.appendChild(p.removeChild(p.children[1]));
@@ -758,7 +746,7 @@ client_Buttons.initNavBar = function(main) {
 		swapLayoutBtn.onclick();
 	}
 	var removeBtn = window.document.querySelector("#removeVideoBtn");
-	removeBtn.onclick = function(e6) {
+	removeBtn.onclick = function(e5) {
 		if(main.toggleVideoElement() || main.isListEmpty()) {
 			removeBtn.innerText = Lang.get("removeVideo");
 		} else {
@@ -768,6 +756,20 @@ client_Buttons.initNavBar = function(main) {
 		client_Buttons.hideMenus();
 		return;
 	};
+};
+client_Buttons.initTextButtons = function(main) {
+	var synchThresholdBtn = window.document.querySelector("#synchThresholdBtn");
+	synchThresholdBtn.onclick = function(e) {
+		var secs = main.settings.synchThreshold + 1;
+		if(secs > 5) {
+			secs = 1;
+		}
+		main.setSynchThreshold(secs);
+		client_Buttons.updateSynchThresholdBtn(main);
+		synchThresholdBtn.blur();
+		return;
+	};
+	client_Buttons.updateSynchThresholdBtn(main);
 };
 client_Buttons.hideMenus = function() {
 	var menus = window.document.querySelectorAll(".dropdown-menu");
@@ -940,7 +942,7 @@ var client_Main = function(host,port) {
 	if(port == "") {
 		port = "80";
 	}
-	client_Settings.init({ version : 1, name : "", hash : "", isExtendedPlayer : false, chatSize : 40, playerSize : 60, synchThreshold : 2, isSwapped : false, isUserListHidden : false, latestLinks : []});
+	client_Settings.init({ version : 1, name : "", hash : "", isExtendedPlayer : false, chatSize : 40, playerSize : 60, synchThreshold : 2, isSwapped : false, isUserListHidden : false, latestLinks : []},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
 	this.initListeners();
 	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
@@ -954,6 +956,7 @@ var client_Main = function(host,port) {
 		return;
 	};
 	Lang.init("langs",function() {
+		client_Buttons.initTextButtons(_gthis);
 		_gthis.openWebSocket(host,port);
 		return;
 	});
@@ -963,7 +966,14 @@ client_Main.main = function() {
 	new client_Main();
 };
 client_Main.prototype = {
-	requestTime: function() {
+	settingsPatcher: function(data,version) {
+		if(version == 1) {
+			throw new js__$Boot_HaxeError("skipped version " + version);
+		} else {
+			throw new js__$Boot_HaxeError("skipped version " + version);
+		}
+	}
+	,requestTime: function() {
 		if(!this.isSyncActive) {
 			return;
 		}

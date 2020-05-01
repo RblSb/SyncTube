@@ -22,6 +22,7 @@ using ClientTools;
 
 class Main {
 
+	static inline var SETTINGS_VERSION = 1;
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
 	public var synchThreshold(get, never):Int;
@@ -49,7 +50,7 @@ class Main {
 		if (port == "") port = "80";
 
 		final defaults:ClientSettings = {
-			version: 1,
+			version: SETTINGS_VERSION,
 			name: "",
 			hash: "",
 			isExtendedPlayer: false,
@@ -60,7 +61,7 @@ class Main {
 			isUserListHidden: false,
 			latestLinks: []
 		}
-		Settings.init(defaults);
+		Settings.init(defaults, settingsPatcher);
 		settings = Settings.read();
 
 		initListeners();
@@ -74,12 +75,23 @@ class Main {
 			}
 		}
 		Lang.init("langs", () -> {
+			Buttons.initTextButtons(this);
 			openWebSocket(host, port);
 		});
 	}
 
 	inline function get_synchThreshold():Int {
 		return settings.synchThreshold;
+	}
+
+	function settingsPatcher(data:Any, version:Int):Any {
+		switch (version) {
+			// case 1:
+			// 	final data:ClientSettings = data;
+			case SETTINGS_VERSION, _:
+				throw 'skipped version $version';
+		}
+		return data;
 	}
 
 	function requestTime():Void {
