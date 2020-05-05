@@ -274,6 +274,7 @@ class Main {
 				return;
 			}
 			if (title.length > 0) data.title = title;
+			if (data.title == null) data.title = "Custom Media";
 			if (data.url == null) data.url = iframe;
 			send({
 				type: AddVideo, addVideo: {
