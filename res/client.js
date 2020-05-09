@@ -1568,7 +1568,6 @@ client_Main.prototype = {
 		window.document.querySelector("#messagebuffer").textContent = "";
 	}
 	,addMessage: function(name,text,time) {
-		var _gthis = this;
 		var msgBuf = window.document.querySelector("#messagebuffer");
 		var userDiv = window.document.createElement("div");
 		userDiv.className = "chat-msg-" + name;
@@ -1617,16 +1616,8 @@ client_Main.prototype = {
 		if(name == this.personal.name) {
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
-		if(window.document.hidden && this.onBlinkTab == null) {
-			this.onBlinkTab = new haxe_Timer(1000);
-			this.onBlinkTab.run = function() {
-				if(StringTools.startsWith(window.document.title,_gthis.pageTitle)) {
-					return window.document.title = "*Chat*";
-				} else {
-					return window.document.title = _gthis.getPageTitle();
-				}
-			};
-			this.onBlinkTab.run();
+		if(this.onBlinkTab == null) {
+			this.blinkTabWithTitle("*Chat*");
 		}
 	}
 	,onChatImageLoaded: function(e) {
@@ -1658,6 +1649,24 @@ client_Main.prototype = {
 		if(this.matchNumbers.match(text)) {
 			this.send({ type : "Rewind", rewind : { time : Std.parseInt(text)}});
 		}
+	}
+	,blinkTabWithTitle: function(title) {
+		var _gthis = this;
+		if(!window.document.hidden) {
+			return;
+		}
+		if(this.onBlinkTab != null) {
+			this.onBlinkTab.stop();
+		}
+		this.onBlinkTab = new haxe_Timer(1000);
+		this.onBlinkTab.run = function() {
+			if(StringTools.startsWith(window.document.title,_gthis.pageTitle)) {
+				return window.document.title = title;
+			} else {
+				return window.document.title = _gthis.getPageTitle();
+			}
+		};
+		this.onBlinkTab.run();
 	}
 	,setLeaderButton: function(flag) {
 		var leaderBtn = window.document.querySelector("#leader_btn");
@@ -1773,9 +1782,12 @@ client_Player.prototype = {
 		this.setItemElementType(this.videoItemsEl.children[pos],this.items[pos].isTemp);
 	}
 	,setPlayer: function(newPlayer) {
-		if(this.player != null && this.player != newPlayer) {
-			client_JsApi.fireVideoRemoveEvents(this.items[this.itemPos]);
-			this.player.removeVideo();
+		if(this.player != newPlayer) {
+			if(this.player != null) {
+				client_JsApi.fireVideoRemoveEvents(this.items[this.itemPos]);
+				this.player.removeVideo();
+			}
+			this.main.blinkTabWithTitle("*Video*");
 		}
 		this.player = newPlayer;
 	}

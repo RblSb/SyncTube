@@ -87,10 +87,12 @@ class Player {
 	}
 
 	function setPlayer(newPlayer:IPlayer):Void {
-		if (player != null && player != newPlayer) {
-			JsApi.fireVideoRemoveEvents(items[itemPos]);
-			player.removeVideo();
-			// playerEl.textContent = "";
+		if (player != newPlayer) {
+			if (player != null) {
+				JsApi.fireVideoRemoveEvents(items[itemPos]);
+				player.removeVideo();
+			}
+			main.blinkTabWithTitle("*Video*");
 		}
 		player = newPlayer;
 	}

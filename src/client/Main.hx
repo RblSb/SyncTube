@@ -701,15 +701,7 @@ class Main {
 		if (name == personal.name) {
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
-		if (document.hidden && onBlinkTab == null) {
-			onBlinkTab = new Timer(1000);
-			onBlinkTab.run = () -> {
-				if (document.title.startsWith(pageTitle))
-					document.title = "*Chat*";
-				else document.title = getPageTitle();
-			}
-			onBlinkTab.run();
-		}
+		if (onBlinkTab == null) blinkTabWithTitle("*Chat*");
 	}
 
 	function onChatImageLoaded(e:Event):Void {
@@ -751,6 +743,18 @@ class Main {
 				time: Std.parseInt(text)
 			}});
 		}
+	}
+
+	public function blinkTabWithTitle(title:String):Void {
+		if (!document.hidden) return;
+		if (onBlinkTab != null) onBlinkTab.stop();
+		onBlinkTab = new Timer(1000);
+		onBlinkTab.run = () -> {
+			if (document.title.startsWith(pageTitle))
+				document.title = title;
+			else document.title = getPageTitle();
+		}
+		onBlinkTab.run();
 	}
 
 	function setLeaderButton(flag:Bool):Void {
