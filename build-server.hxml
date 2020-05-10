@@ -1,5 +1,6 @@
 -lib hxnodejs
 -lib hxnodejs-ws
+-lib json2object
 # Client libs for completion
 -lib youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
 -lib utest

@@ -11,6 +11,7 @@ import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
 import js.node.http.IncomingMessage;
 import js.node.Http;
+import json2object.JsonParser;
 import Client.ClientData;
 import Types.Config;
 import Types.Permission;
@@ -36,6 +37,7 @@ class Main {
 	final userList:UserList;
 	final clients:Array<Client> = [];
 	final freeIds:Array<Int> = [];
+	final wsEventParser = new JsonParser<WsEvent>();
 	final consoleInput:ConsoleInput;
 	final videoList = new VideoList();
 	final videoTimer = new VideoTimer();
@@ -261,7 +263,13 @@ class Main {
 		sendClientList();
 
 		ws.on("message", data -> {
-			onMessage(client, Json.parse(data));
+			final obj = wsEventParser.fromJson(data);
+			if (wsEventParser.errors.length > 0) {
+				trace('Wrong request for type "${obj.type}":');
+				trace(wsEventParser.errors.toString());
+				return;
+			}
+			onMessage(client, obj);
 		});
 		ws.on("close", err -> {
 			trace('Client ${client.name} disconnected');
