@@ -3843,6 +3843,7 @@ server_VideoTimer.prototype = {
 	}
 	,setTime: function(secs) {
 		this.startTime = Date.now() / 1000 - secs;
+		this.rateStartTime = Date.now() / 1000;
 		if(this.isPaused()) {
 			this.pause();
 		}

@@ -2,13 +2,15 @@ package test.tests;
 
 import haxe.PosInfos;
 import utest.Assert;
+import utest.Test;
+import utest.Async;
 import haxe.Timer;
 import server.VideoTimer;
 
-class TestTimer extends utest.Test {
+class TestTimer extends Test {
 
 	@:timeout(500)
-	function testMain(async:utest.Async) {
+	function testMain(async:Async) {
 		final timer = new VideoTimer();
 		timer.start();
 		Timer.delay(() -> {
@@ -29,12 +31,19 @@ class TestTimer extends utest.Test {
 			Assert.equals(0, timer.getTime());
 			Assert.equals(true, timer.isPaused());
 			Assert.equals(false, timer.isStarted);
-			async.done();
+			timer.start();
+			timer.setRate(3);
 		}, 300);
+		Timer.delay(() -> {
+			almostEq(0.3, timer.getTime());
+			timer.setTime(0.1);
+			almostEq(0.1, timer.getTime());
+			async.done();
+		}, 400);
 	}
 
 	@:timeout(500)
-	function testRate(async:utest.Async) {
+	function testRate(async:Async) {
 		final timer = new VideoTimer();
 		timer.start();
 		timer.setRate(2);
@@ -65,7 +74,7 @@ class TestTimer extends utest.Test {
 	}
 
 	@:timeout(500)
-	function testRatePause(async:utest.Async) {
+	function testRatePause(async:Async) {
 		final timer = new VideoTimer();
 		timer.start();
 		timer.setRate(2);
@@ -98,7 +107,7 @@ class TestTimer extends utest.Test {
 	}
 
 	@:timeout(500)
-	function testPauseRate(async:utest.Async) {
+	function testPauseRate(async:Async) {
 		final timer = new VideoTimer();
 		timer.start();
 		timer.setTime(100);
@@ -129,7 +138,7 @@ class TestTimer extends utest.Test {
 	}
 
 	@:timeout(500)
-	function testBigRate(async:utest.Async) {
+	function testBigRate(async:Async) {
 		final timer = new VideoTimer();
 		timer.start();
 		timer.setRate(3);

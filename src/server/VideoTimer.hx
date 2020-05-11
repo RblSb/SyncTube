@@ -46,6 +46,7 @@ class VideoTimer {
 
 	public function setTime(secs:Float):Void {
 		startTime = stamp() - secs;
+		rateStartTime = stamp();
 		if (isPaused()) pause();
 	}
 
