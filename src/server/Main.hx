@@ -12,6 +12,7 @@ import js.npm.ws.WebSocket;
 import js.node.http.IncomingMessage;
 import js.node.Http;
 import json2object.JsonParser;
+import json2object.ErrorUtils;
 import Client.ClientData;
 import Types.Config;
 import Types.Permission;
@@ -265,8 +266,11 @@ class Main {
 		ws.on("message", data -> {
 			final obj = wsEventParser.fromJson(data);
 			if (wsEventParser.errors.length > 0) {
-				trace('Wrong request for type "${obj.type}":');
-				trace(wsEventParser.errors.toString());
+				final line = 'Wrong request for type "${obj.type}":';
+				final errorLines = ErrorUtils.convertErrorArray(wsEventParser.errors);
+				final errors = '$line\n$errorLines';
+				trace(errors);
+				serverMessage(client, errors);
 				return;
 			}
 			onMessage(client, obj);
