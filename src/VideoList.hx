@@ -39,10 +39,12 @@ abstract VideoList(Array<VideoItem>) from Array<VideoItem> to Array<VideoItem> {
 		else this.insert(itemPos + 1, item);
 	}
 
-	public function setNextItem(pos:Int, itemPos:Int):Void {
+	public function setNextItem(pos:Int, itemPos:Int):Int {
 		final next = this[pos];
 		this.remove(next);
+		if (pos < itemPos) itemPos--;
 		this.insert(itemPos + 1, next);
+		return itemPos;
 	}
 
 	public function toggleItemType(pos:Int):Void {

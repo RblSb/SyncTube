@@ -73,7 +73,7 @@ class Player {
 	}
 
 	public function setNextItem(pos:Int):Void {
-		items.setNextItem(pos, itemPos);
+		itemPos = items.setNextItem(pos, itemPos);
 
 		final next = videoItemsEl.children[pos];
 		videoItemsEl.removeChild(next);

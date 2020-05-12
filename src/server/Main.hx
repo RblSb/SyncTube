@@ -519,7 +519,7 @@ class Main {
 				if (!checkPermission(client, ChangeOrderPerm)) return;
 				final pos = data.setNextItem.pos;
 				if (pos == itemPos || pos == itemPos + 1) return;
-				videoList.setNextItem(pos, itemPos);
+				itemPos = videoList.setNextItem(pos, itemPos);
 				broadcast(data);
 
 			case ToggleItemType:

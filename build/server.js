@@ -2046,7 +2046,11 @@ _$VideoList_VideoList_$Impl_$.addItem = function(this1,item,atEnd,itemPos) {
 _$VideoList_VideoList_$Impl_$.setNextItem = function(this1,pos,itemPos) {
 	var next = this1[pos];
 	HxOverrides.remove(this1,next);
+	if(pos < itemPos) {
+		--itemPos;
+	}
 	this1.splice(itemPos + 1,0,next);
+	return itemPos;
 };
 _$VideoList_VideoList_$Impl_$.toggleItemType = function(this1,pos) {
 	this1[pos].isTemp = !this1[pos].isTemp;
@@ -3644,7 +3648,7 @@ server_Main.prototype = {
 			if(pos == this.itemPos || pos == this.itemPos + 1) {
 				return;
 			}
-			_$VideoList_VideoList_$Impl_$.setNextItem(this.videoList,pos,this.itemPos);
+			this.itemPos = _$VideoList_VideoList_$Impl_$.setNextItem(this.videoList,pos,this.itemPos);
 			this.broadcast(data);
 			break;
 		case "SetRate":
