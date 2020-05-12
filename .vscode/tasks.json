@@ -19,7 +19,8 @@
 			},
 			"presentation": {
 				"clear": true
-			}
+			},
+			"dependsOn": "${command:workbench.action.terminal.clear}"
 		},
 		{
 			"label": "Run tests",

@@ -1,12 +1,12 @@
 package server;
 
-import js.node.Https;
+import js.node.Http;
 import js.node.Os;
 
 class Utils {
 
 	public static function getGlobalIp(callback:(ip:String)->Void):Void {
-		Https.get("https://myexternalip.com/raw", r -> {
+		Http.get("http://myexternalip.com/raw", r -> {
 			r.setEncoding("utf8");
 			r.on("data", callback);
 		}).on("error", e -> {

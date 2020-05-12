@@ -6,7 +6,7 @@ import haxe.io.Path;
 import js.node.Fs;
 import js.node.Https;
 import js.node.Http;
-import js.node.Url;
+import js.node.url.URL;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import js.node.Path as JsPath;
@@ -136,12 +136,12 @@ class HttpServer {
 
 	static function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
 		final url = req.url.replace("/proxy?url=", "");
-		final url = Url.parse(js.Node.global.decodeURI(url));
+		final url = new URL(js.Node.global.decodeURI(url));
 		if (url.host == req.headers["host"]) return false;
 		final options = {
 			host: url.host,
 			port: Std.parseInt(url.port),
-			path: url.path,
+			path: url.pathname + url.search,
 			method: req.method,
 			// headers: req.headers
 		};
