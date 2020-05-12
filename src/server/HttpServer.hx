@@ -135,6 +135,7 @@ class HttpServer {
 	}
 
 	static function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
+		final content = {"type": mimeTypes['ttf'], "forbidden": false};
 		final url = req.url.replace("/proxy?url=", "");
 		final url = Url.parse(js.Node.global.decodeURI(url));
 		if (url.host == req.headers["host"]) return false;
@@ -147,13 +148,24 @@ class HttpServer {
 		};
 		final request = url.protocol == "https:" ? Https.request : Http.request;
 		final proxy = request(options, proxyRes -> {
-			res.writeHead(proxyRes.statusCode, proxyRes.headers);
+			var contentType: String = proxyRes.headers['content-type'];
+			content.type = contentType.split(";")[0];
+			if (contentType.contains(mimeTypes['html']) ||
+				contentType.contains(mimeTypes['js']) ||
+				contentType.contains(mimeTypes['css'])) {
+					content.forbidden = true;
+					trace("Forbidden: " + content.type);
+				}
 			proxyRes.pipe(res, {end: true});
+			res.writeHead(proxyRes.statusCode, proxyRes.headers);
 		});
 		proxy.on("error", err -> {
 			res.end('Proxy error for ${url.href}');
 		});
-		req.pipe(proxy, {end: true});
+		if (!content.forbidden) {
+			req.pipe(proxy, {end: true});
+		}
+		trace(content.forbidden);
 		return true;
 	}
 
