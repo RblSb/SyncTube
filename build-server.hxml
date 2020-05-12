@@ -3,6 +3,7 @@
 -lib json2object
 # Client libs for completion
 -lib youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
+-lib hls.js-extern:git:https://github.com/grosmar/hls.js-haxe-extern.git
 -lib utest
 -cp src
 --main server.Main

@@ -1,5 +1,6 @@
 package client.players;
 
+import js.hlsjs.Hls;
 import haxe.Timer;
 import js.html.Element;
 import js.html.VideoElement;
@@ -7,15 +8,18 @@ import js.Browser.document;
 import client.Main.ge;
 import Types.VideoData;
 import Types.VideoItem;
+using StringTools;
 
 class Raw implements IPlayer {
 
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
+	final matchName = ~/^(.+)\.(.+)/;
 	var controlsHider:Timer;
 	var playAllowed = true;
 	var video:VideoElement;
+	var isHlsLoaded = false;
 
 	public function new(main:Main, player:Player) {
 		this.main = main;
@@ -28,9 +32,13 @@ class Raw implements IPlayer {
 
 	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
 		var title = url.substr(url.lastIndexOf("/") + 1);
-		final matchName = ~/^(.+)\./;
 		if (matchName.match(title)) title = matchName.matched(1);
 		else title = Lang.get("rawVideo");
+		final isHls = matchName.matched(2).contains("m3u8");
+		if (isHls && !isHlsLoaded) {
+			loadHlsPlugin(() -> getVideoData(url, callback));
+			return;
+		}
 
 		final video = document.createVideoElement();
 		video.src = url;
@@ -46,12 +54,33 @@ class Raw implements IPlayer {
 			});
 		}
 		Utils.prepend(playerEl, video);
+		if (isHls) initHlsSource(video, url);
+	}
+
+	function loadHlsPlugin(callback:()->Void):Void {
+		JsApi.addScriptToHead("https://cdn.jsdelivr.net/npm/hls.js@latest", () -> {
+			isHlsLoaded = true;
+			callback();
+		});
+	}
+
+	function initHlsSource(video:VideoElement, url:String):Void {
+		if (!Hls.isSupported()) return;
+		final hls = new Hls();
+		hls.loadSource(url);
+		hls.attachMedia(video);
 	}
 
 	public function loadVideo(item:VideoItem):Void {
 		final url = main.tryLocalIp(item.url);
+		final isHls = item.url.contains("m3u8");
+		if (isHls && !isHlsLoaded) {
+			loadHlsPlugin(() -> loadVideo(item));
+			return;
+		}
 		if (video != null) {
 			video.src = url;
+			if (isHls) initHlsSource(video, url);
 			restartControlsHider();
 			return;
 		}
@@ -68,6 +97,7 @@ class Raw implements IPlayer {
 		video.onpause = player.onPause;
 		video.onratechange = player.onRateChange;
 		playerEl.appendChild(video);
+		if (isHls) initHlsSource(video, url);
 	}
 
 	function restartControlsHider():Void {

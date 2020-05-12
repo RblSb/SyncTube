@@ -36,7 +36,7 @@ class JsApi {
 	}
 
 	@:expose
-	static function addScriptToHead(url:String, ?onLoaded:()->Void):Void {
+	public static function addScriptToHead(url:String, ?onLoaded:()->Void):Void {
 		var script = document.createScriptElement();
 		script.type = "text/javascript";
 		script.onload = onLoaded;

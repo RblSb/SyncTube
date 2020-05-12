@@ -15,8 +15,8 @@ Default channel example: http://synctube-example.herokuapp.com/
 - Reworked Modern theme
 
 ### Supported players
-- Youtube (videos and playlists)
-- Raw mp4 videos (or any other media format supported in browser)
+- Youtube (videos, streams and playlists)
+- Raw mp4 videos and m3u8 playlists (or any other media format supported in browser)
 - Iframes (without sync)
 
 ### Setup

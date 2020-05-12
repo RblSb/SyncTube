@@ -1,4 +1,5 @@
 -lib youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
+-lib hls.js-extern:git:https://github.com/grosmar/hls.js-haxe-extern.git
 -cp src
 --main client.Main
 -D analyzer-optimize

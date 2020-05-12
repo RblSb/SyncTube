@@ -2281,7 +2281,9 @@ client_players_Iframe.prototype = {
 	}
 };
 var client_players_Raw = function(main,player) {
+	this.isHlsLoaded = false;
 	this.playAllowed = true;
+	this.matchName = new EReg("^(.+)\\.(.+)","");
 	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.main = main;
 	this.player = player;
@@ -2293,12 +2295,20 @@ client_players_Raw.prototype = {
 	}
 	,getVideoData: function(url,callback) {
 		var _gthis = this;
-		var title = HxOverrides.substr(url,url.lastIndexOf("/") + 1,null);
-		var matchName = new EReg("^(.+)\\.","");
-		if(matchName.match(title)) {
-			title = matchName.matched(1);
+		var pos = url.lastIndexOf("/") + 1;
+		var title = HxOverrides.substr(url,pos,null);
+		if(this.matchName.match(title)) {
+			title = this.matchName.matched(1);
 		} else {
 			title = Lang.get("rawVideo");
+		}
+		var isHls = this.matchName.matched(2).indexOf("m3u8") != -1;
+		if(isHls && !this.isHlsLoaded) {
+			this.loadHlsPlugin(function() {
+				_gthis.getVideoData(url,callback);
+				return;
+			});
+			return;
 		}
 		var video = window.document.createElement("video");
 		video.src = url;
@@ -2317,12 +2327,42 @@ client_players_Raw.prototype = {
 			return;
 		};
 		client_Utils.prepend(this.playerEl,video);
+		if(isHls) {
+			this.initHlsSource(video,url);
+		}
+	}
+	,loadHlsPlugin: function(callback) {
+		var _gthis = this;
+		client_JsApi.addScriptToHead("https://cdn.jsdelivr.net/npm/hls.js@latest",function() {
+			_gthis.isHlsLoaded = true;
+			callback();
+			return;
+		});
+	}
+	,initHlsSource: function(video,url) {
+		if(!Hls.isSupported()) {
+			return;
+		}
+		var hls = new Hls();
+		hls.loadSource(url);
+		hls.attachMedia(video);
 	}
 	,loadVideo: function(item) {
 		var _gthis = this;
 		var url = this.main.tryLocalIp(item.url);
+		var isHls = item.url.indexOf("m3u8") != -1;
+		if(isHls && !this.isHlsLoaded) {
+			this.loadHlsPlugin(function() {
+				_gthis.loadVideo(item);
+				return;
+			});
+			return;
+		}
 		if(this.video != null) {
 			this.video.src = url;
+			if(isHls) {
+				this.initHlsSource(this.video,url);
+			}
 			this.restartControlsHider();
 			return;
 		}
@@ -2340,6 +2380,9 @@ client_players_Raw.prototype = {
 		this.video.onpause = ($_=this.player,$bind($_,$_.onPause));
 		this.video.onratechange = ($_=this.player,$bind($_,$_.onRateChange));
 		this.playerEl.appendChild(this.video);
+		if(isHls) {
+			this.initHlsSource(this.video,url);
+		}
 	}
 	,restartControlsHider: function() {
 		var _gthis = this;
@@ -3266,6 +3309,8 @@ js_Browser.createXMLHttpRequest = function() {
 	}
 	throw new js__$Boot_HaxeError("Unable to create XMLHttpRequest object.");
 };
+var js_hlsjs_HlsConfig = function() { };
+js_hlsjs_HlsConfig.__name__ = true;
 var js_youtube_Youtube = function() { };
 js_youtube_Youtube.__name__ = true;
 js_youtube_Youtube.init = function(onAPIReady) {
