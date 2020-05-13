@@ -38,12 +38,14 @@ class HttpServer {
 	static var customDir:String;
 	static var hasCustomRes = false;
 	static var allowedLocalFiles:Map<String, Bool> = [];
+	static var allowLocalRequests = false;
 
-	public static function init(dir:String, ?customDir:String):Void {
+	public static function init(dir:String, ?customDir:String, allowLocalRequests:Bool):Void {
 		HttpServer.dir = dir;
 		if (customDir == null) return;
 		HttpServer.customDir = customDir;
 		hasCustomRes = FileSystem.exists(customDir);
+		HttpServer.allowLocalRequests = allowLocalRequests;
 	}
 
 	public static function serveFiles(req:IncomingMessage, res:ServerResponse):Void {
@@ -51,7 +53,7 @@ class HttpServer {
 		if (url == "/") url = "/index.html";
 		var filePath = dir + url;
 
-		if (req.connection.remoteAddress == req.connection.localAddress
+		if (allowLocalRequests && req.connection.remoteAddress == req.connection.localAddress
 			|| allowedLocalFiles[url]) {
 			if (serveLocalFile(res, url)) return;
 		}

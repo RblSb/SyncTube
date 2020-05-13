@@ -1415,7 +1415,7 @@ JsonParser_$52.__name__ = true;
 JsonParser_$52.__super__ = json2object_reader_BaseParser;
 JsonParser_$52.prototype = $extend(json2object_reader_BaseParser.prototype,{
 	onIncorrectType: function(pos,variable) {
-		this.errors.push(json2object_Error.IncorrectType(variable,"{ youtubeApiKey : String, userVideoLimit : Int, totalVideoLimit : Int, templateUrl : String, serverChatHistory : Int, ?salt : Null<String>, port : Int, permissions : { user : Array<Permission>, leader : Array<Permission>, guest : Array<Permission>, admin : Array<Permission> }, maxMessageLength : Int, maxLoginLength : Int, filters : Array<Filter>, emotes : Array<Emote>, channelName : String }",pos));
+		this.errors.push(json2object_Error.IncorrectType(variable,"{ youtubeApiKey : String, userVideoLimit : Int, totalVideoLimit : Int, templateUrl : String, serverChatHistory : Int, ?salt : Null<String>, port : Int, permissions : { user : Array<Permission>, leader : Array<Permission>, guest : Array<Permission>, admin : Array<Permission> }, maxMessageLength : Int, maxLoginLength : Int, localAdmins : Bool, filters : Array<Filter>, emotes : Array<Emote>, channelName : String }",pos));
 		json2object_reader_BaseParser.prototype.onIncorrectType.call(this,pos,variable);
 	}
 	,loadJsonNull: function(pos,variable) {
@@ -1423,7 +1423,7 @@ JsonParser_$52.prototype = $extend(json2object_reader_BaseParser.prototype,{
 	}
 	,loadJsonObject: function(o,pos,variable) {
 		var assigned = new haxe_ds_StringMap();
-		this.objectSetupAssign(assigned,["channelName","emotes","filters","maxLoginLength","maxMessageLength","permissions","port","salt","serverChatHistory","templateUrl","totalVideoLimit","userVideoLimit","youtubeApiKey"],[false,false,false,false,false,false,false,true,false,false,false,false,false]);
+		this.objectSetupAssign(assigned,["channelName","emotes","filters","localAdmins","maxLoginLength","maxMessageLength","permissions","port","salt","serverChatHistory","templateUrl","totalVideoLimit","userVideoLimit","youtubeApiKey"],[false,false,false,false,false,false,false,false,true,false,false,false,false,false]);
 		this.value = this.getAuto();
 		var _g = 0;
 		while(_g < o.length) {
@@ -1438,6 +1438,9 @@ JsonParser_$52.prototype = $extend(json2object_reader_BaseParser.prototype,{
 				break;
 			case "filters":
 				this.value.filters = this.loadObjectField(($_=new JsonParser_$57(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"filters",assigned,this.value.filters,pos);
+				break;
+			case "localAdmins":
+				this.value.localAdmins = this.loadObjectField(($_=new JsonParser_$38(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"localAdmins",assigned,this.value.localAdmins,pos);
 				break;
 			case "maxLoginLength":
 				this.value.maxLoginLength = this.loadObjectField(($_=new JsonParser_$42(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"maxLoginLength",assigned,this.value.maxLoginLength,pos);
@@ -1476,7 +1479,7 @@ JsonParser_$52.prototype = $extend(json2object_reader_BaseParser.prototype,{
 		this.objectErrors(assigned,pos);
 	}
 	,getAuto: function() {
-		return { channelName : new JsonParser_$36([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), emotes : new JsonParser_$56([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), filters : new JsonParser_$57([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), maxLoginLength : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), maxMessageLength : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), permissions : new JsonParser_$58([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), port : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), salt : new JsonParser_$48([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), serverChatHistory : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), templateUrl : new JsonParser_$36([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), totalVideoLimit : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), userVideoLimit : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), youtubeApiKey : new JsonParser_$36([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1)))};
+		return { channelName : new JsonParser_$36([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), emotes : new JsonParser_$56([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), filters : new JsonParser_$57([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), localAdmins : new JsonParser_$38([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), maxLoginLength : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), maxMessageLength : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), permissions : new JsonParser_$58([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), port : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), salt : new JsonParser_$48([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), serverChatHistory : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), templateUrl : new JsonParser_$36([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), totalVideoLimit : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), userVideoLimit : new JsonParser_$42([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), youtubeApiKey : new JsonParser_$36([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1)))};
 	}
 	,__class__: JsonParser_$52
 });
@@ -3170,13 +3173,14 @@ server_ConsoleInput.prototype = {
 };
 var server_HttpServer = function() { };
 server_HttpServer.__name__ = true;
-server_HttpServer.init = function(dir,customDir) {
+server_HttpServer.init = function(dir,customDir,allowLocalRequests) {
 	server_HttpServer.dir = dir;
 	if(customDir == null) {
 		return;
 	}
 	server_HttpServer.customDir = customDir;
 	server_HttpServer.hasCustomRes = sys_FileSystem.exists(customDir);
+	server_HttpServer.allowLocalRequests = allowLocalRequests;
 };
 server_HttpServer.serveFiles = function(req,res) {
 	var url = req.url;
@@ -3185,7 +3189,7 @@ server_HttpServer.serveFiles = function(req,res) {
 	}
 	var filePath = server_HttpServer.dir + url;
 	var tmp;
-	if(req.connection.remoteAddress != req.connection.localAddress) {
+	if(!(server_HttpServer.allowLocalRequests && req.connection.remoteAddress == req.connection.localAddress)) {
 		var _this = server_HttpServer.allowedLocalFiles;
 		tmp = __map_reserved[url] != null ? _this.getReserved(url) : _this.h[url];
 	} else {
@@ -3364,7 +3368,7 @@ var server_Main = function() {
 		return;
 	});
 	var dir = "" + this.rootDir + "/res";
-	server_HttpServer.init(dir,"" + this.rootDir + "/user/res");
+	server_HttpServer.init(dir,"" + this.rootDir + "/user/res",this.config.localAdmins);
 	Lang.init("" + dir + "/langs");
 	var server1 = js_node_Http.createServer(function(req,res) {
 		server_HttpServer.serveFiles(req,res);
@@ -3554,7 +3558,7 @@ server_Main.prototype = {
 		var name = "Guest " + (id + 1);
 		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 240, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
-		client.setGroupFlag(ClientGroup.Admin,req.connection.localAddress == ip);
+		client.setGroupFlag(ClientGroup.Admin,this.config.localAdmins && req.connection.localAddress == ip);
 		this.clients.push(client);
 		if(this.clients.length == 1 && this.videoList.length > 0) {
 			if(this.videoTimer.isPaused()) {
@@ -4321,6 +4325,7 @@ server_HttpServer.mimeTypes = (function($this) {
 }(this));
 server_HttpServer.hasCustomRes = false;
 server_HttpServer.allowedLocalFiles = new haxe_ds_StringMap();
+server_HttpServer.allowLocalRequests = false;
 server_HttpServer.matchLang = new EReg("^[A-z]+","");
 server_HttpServer.matchVarString = new EReg("\\${([A-z_]+)}","g");
 server_Main.main();

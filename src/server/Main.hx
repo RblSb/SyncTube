@@ -87,7 +87,7 @@ class Main {
 		});
 
 		final dir = '$rootDir/res';
-		HttpServer.init(dir, '$rootDir/user/res');
+		HttpServer.init(dir, '$rootDir/user/res', config.localAdmins);
 		Lang.init('$dir/langs');
 
 		final server = Http.createServer((req, res) -> {
@@ -238,7 +238,7 @@ class Main {
 		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
 		final name = 'Guest ${id + 1}';
 		trace('$name connected ($ip)');
-		final isAdmin = req.connection.localAddress == ip;
+		final isAdmin = config.localAdmins && req.connection.localAddress == ip;
 		final client = new Client(ws, req, id, name, 0);
 		client.isAdmin = isAdmin;
 		clients.push(client);

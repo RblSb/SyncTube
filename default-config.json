@@ -6,6 +6,7 @@
 	"serverChatHistory": 50,
 	"totalVideoLimit": 0,
 	"userVideoLimit": 0,
+	"localAdmins": true,
 	"templateUrl": "https://youtube.com/watch?v=iY1QHpp6iEE",
 	"youtubeApiKey": "AIzaSyDTk1OPRI9cDkAK_BKsBcv10DQCHse-QaA",
 	"permissions": {

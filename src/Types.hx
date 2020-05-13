@@ -17,6 +17,7 @@ typedef Config = {
 	serverChatHistory:Int,
 	totalVideoLimit:Int,
 	userVideoLimit:Int,
+	localAdmins:Bool,
 	templateUrl:String,
 	youtubeApiKey:String,
 	permissions:{
