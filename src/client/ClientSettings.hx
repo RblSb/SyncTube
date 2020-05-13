@@ -10,5 +10,6 @@ typedef ClientSettings = {
 	synchThreshold:Int,
 	isSwapped:Bool,
 	isUserListHidden:Bool,
-	latestLinks:Array<String>
+	latestLinks:Array<String>,
+	hotkeysEnabled:Bool
 }

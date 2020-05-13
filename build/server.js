@@ -3285,7 +3285,9 @@ server_HttpServer.proxyUrl = function(req,res) {
 	if(url1.host == req.headers["host"]) {
 		return false;
 	}
-	var proxy = (url1.protocol == "https:" ? js_node_Https.request : js_node_Http.request)({ host : url1.host, port : Std.parseInt(url1.port), path : url1.pathname + url1.search, method : req.method},function(proxyRes) {
+	var url2 = url1.host;
+	var options = Std.parseInt(url1.port);
+	var proxy = (url1.protocol == "https:" ? js_node_Https.request : js_node_Http.request)({ host : url2, port : options, path : url1.pathname + url1.search, method : req.method},function(proxyRes) {
 		res.writeHead(proxyRes.statusCode,proxyRes.headers);
 		return proxyRes.pipe(res,{ end : true});
 	});

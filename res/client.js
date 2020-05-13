@@ -764,25 +764,95 @@ client_Buttons.initNavBar = function(main) {
 client_Buttons.initTextButtons = function(main) {
 	var synchThresholdBtn = window.document.querySelector("#synchThresholdBtn");
 	synchThresholdBtn.onclick = function(e) {
-		var secs = main.settings.synchThreshold + 1;
+		var secs = client_Buttons.settings.synchThreshold + 1;
 		if(secs > 5) {
 			secs = 1;
 		}
 		main.setSynchThreshold(secs);
-		client_Buttons.updateSynchThresholdBtn(main);
+		client_Buttons.updateSynchThresholdBtn();
 		synchThresholdBtn.blur();
 		return;
 	};
-	client_Buttons.updateSynchThresholdBtn(main);
+	client_Buttons.updateSynchThresholdBtn();
+	var hotkeysBtn = window.document.querySelector("#hotkeysBtn");
+	hotkeysBtn.onclick = function(e1) {
+		client_Buttons.settings.hotkeysEnabled = !client_Buttons.settings.hotkeysEnabled;
+		client_Settings.write(client_Buttons.settings);
+		client_Buttons.updateHotkeysBtn();
+		hotkeysBtn.blur();
+		return;
+	};
+	client_Buttons.updateHotkeysBtn();
+};
+client_Buttons.initHotkeys = function(main,player) {
+	window.document.querySelector("#mediarefresh").title += " (Alt-R)";
+	window.document.querySelector("#voteskip").title += " (Alt-S)";
+	window.document.querySelector("#getplaylist").title += " (Alt-C)";
+	window.document.querySelector("#fullscreenbtn").title += " (Alt-F)";
+	window.document.querySelector("#leader_btn").title += " (Alt-L)";
+	window.onkeydown = function(e) {
+		if(!client_Buttons.settings.hotkeysEnabled) {
+			return;
+		}
+		var target = e.target;
+		if(target.isContentEditable) {
+			return;
+		}
+		var tagName = target.tagName;
+		if(tagName == "INPUT" || tagName == "TEXTAREA") {
+			return;
+		}
+		var key = e.keyCode;
+		if(key == 8) {
+			e.preventDefault();
+		}
+		if(!e.altKey) {
+			return;
+		}
+		switch(key) {
+		case 67:
+			window.document.querySelector("#getplaylist").onclick();
+			break;
+		case 70:
+			window.document.querySelector("#fullscreenbtn").onclick();
+			break;
+		case 76:
+			window.document.querySelector("#leader_btn").onclick();
+			break;
+		case 80:
+			if((main.personal.group & 2) == 0) {
+				haxe_Timer.delay(function() {
+					player.pause();
+					return;
+				},500);
+			}
+			window.document.querySelector("#leader_btn").onclick();
+			break;
+		case 82:
+			window.document.querySelector("#mediarefresh").onclick();
+			break;
+		case 83:
+			window.document.querySelector("#voteskip").onclick();
+			break;
+		default:
+			return;
+		}
+		e.preventDefault();
+	};
 };
 client_Buttons.hideMenus = function() {
 	var menus = window.document.querySelectorAll(".dropdown-menu");
 	var _g = 0;
 	while(_g < menus.length) menus[_g++].style.display = "";
 };
-client_Buttons.updateSynchThresholdBtn = function(main) {
-	var tmp = "" + Lang.get("synchThreshold") + ": " + main.settings.synchThreshold;
+client_Buttons.updateSynchThresholdBtn = function() {
+	var tmp = "" + Lang.get("synchThreshold") + ": " + client_Buttons.settings.synchThreshold;
 	window.document.querySelector("#synchThresholdBtn").innerText = tmp + "s";
+};
+client_Buttons.updateHotkeysBtn = function() {
+	var text = Lang.get("hotkeys");
+	var state = client_Buttons.settings.hotkeysEnabled ? Lang.get("on") : Lang.get("off");
+	window.document.querySelector("#hotkeysBtn").innerText = "" + text + ": " + state;
 };
 client_Buttons.initChatInput = function(main) {
 	var guestName = window.document.querySelector("#guestname");
@@ -946,7 +1016,7 @@ var client_Main = function(host,port) {
 	if(port == "") {
 		port = "80";
 	}
-	client_Settings.init({ version : 1, name : "", hash : "", isExtendedPlayer : false, chatSize : 40, playerSize : 60, synchThreshold : 2, isSwapped : false, isUserListHidden : false, latestLinks : []},$bind(this,this.settingsPatcher));
+	client_Settings.init({ version : 2, name : "", hash : "", isExtendedPlayer : false, chatSize : 40, playerSize : 60, synchThreshold : 2, isSwapped : false, isUserListHidden : false, latestLinks : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
 	this.initListeners();
 	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
@@ -961,6 +1031,7 @@ var client_Main = function(host,port) {
 	};
 	Lang.init("langs",function() {
 		client_Buttons.initTextButtons(_gthis);
+		client_Buttons.initHotkeys(_gthis,_gthis.player);
 		_gthis.openWebSocket(host,port);
 		return;
 	});
@@ -971,11 +1042,16 @@ client_Main.main = function() {
 };
 client_Main.prototype = {
 	settingsPatcher: function(data,version) {
-		if(version == 1) {
+		switch(version) {
+		case 1:
+			data.hotkeysEnabled = true;
+			break;
+		case 2:
 			throw new js__$Boot_HaxeError("skipped version " + version);
-		} else {
+		default:
 			throw new js__$Boot_HaxeError("skipped version " + version);
 		}
+		return data;
 	}
 	,requestTime: function() {
 		if(!this.isSyncActive) {
@@ -1204,7 +1280,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 326, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 324, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1235,10 +1311,11 @@ client_Main.prototype = {
 			if(this.player.getPlaybackRate() != data.getTime.rate) {
 				this.player.setPlaybackRate(data.getTime.rate);
 			}
+			var synchThreshold = this.settings.synchThreshold;
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
 			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
-				if(Math.abs(time - newTime) < this.settings.synchThreshold) {
+				if(Math.abs(time - newTime) < synchThreshold) {
 					return;
 				}
 				this.player.setTime(time,false);
@@ -1252,7 +1329,7 @@ client_Main.prototype = {
 			} else {
 				this.player.pause();
 			}
-			if(Math.abs(time - newTime) < this.settings.synchThreshold) {
+			if(Math.abs(time - newTime) < synchThreshold) {
 				return;
 			}
 			this.player.setTime(newTime);
@@ -1329,9 +1406,10 @@ client_Main.prototype = {
 			this.player.setPlaybackRate(data.setRate.rate);
 			break;
 		case "SetTime":
+			var synchThreshold1 = this.settings.synchThreshold;
 			var newTime1 = data.setTime.time;
 			var time1 = this.player.getTime();
-			if(Math.abs(time1 - newTime1) < this.settings.synchThreshold) {
+			if(Math.abs(time1 - newTime1) < synchThreshold1) {
 				return;
 			}
 			this.player.setTime(newTime1);

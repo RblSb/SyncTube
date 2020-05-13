@@ -288,13 +288,54 @@ class Buttons {
 	public static function initTextButtons(main:Main):Void {
 		final synchThresholdBtn = ge("#synchThresholdBtn");
 		synchThresholdBtn.onclick = e -> {
-			var secs = main.synchThreshold + 1;
+			var secs = settings.synchThreshold + 1;
 			if (secs > 5) secs = 1;
 			main.setSynchThreshold(secs);
-			updateSynchThresholdBtn(main);
+			updateSynchThresholdBtn();
 			synchThresholdBtn.blur();
 		}
-		updateSynchThresholdBtn(main);
+		updateSynchThresholdBtn();
+
+		final hotkeysBtn = ge("#hotkeysBtn");
+		hotkeysBtn.onclick = e -> {
+			settings.hotkeysEnabled = !settings.hotkeysEnabled;
+			Settings.write(settings);
+			updateHotkeysBtn();
+			hotkeysBtn.blur();
+		}
+		updateHotkeysBtn();
+	}
+
+	public static function initHotkeys(main:Main, player:Player):Void {
+		ge("#mediarefresh").title += " (Alt-R)";
+		ge("#voteskip").title += " (Alt-S)";
+		ge("#getplaylist").title += " (Alt-C)";
+		ge("#fullscreenbtn").title += " (Alt-F)";
+		ge("#leader_btn").title += " (Alt-L)";
+		window.onkeydown = function(e:KeyboardEvent) {
+			if (!settings.hotkeysEnabled) return;
+			final target:Element = cast e.target;
+			if (target.isContentEditable) return;
+			final tagName = target.tagName;
+			if (tagName == "INPUT" || tagName == "TEXTAREA") return;
+			final key:KeyCode = cast e.keyCode;
+			if (key == Backspace) e.preventDefault();
+			if (!e.altKey) return;
+			switch (key) {
+				case R: ge("#mediarefresh").onclick();
+				case S: ge("#voteskip").onclick();
+				case C: ge("#getplaylist").onclick();
+				case F: ge("#fullscreenbtn").onclick();
+				case L: ge("#leader_btn").onclick();
+				case P:
+					if (!main.isLeader()) {
+						Timer.delay(() -> player.pause(), 500);
+					}
+					ge("#leader_btn").onclick();
+				default: return;
+			}
+			e.preventDefault();
+		}
 	}
 
 	static function hideMenus():Void {
@@ -302,10 +343,16 @@ class Buttons {
 		for (menu in menus) menu.style.display = "";
 	}
 
-	static function updateSynchThresholdBtn(main:Main):Void {
+	static function updateSynchThresholdBtn():Void {
 		final text = Lang.get("synchThreshold");
-		final secs = main.synchThreshold;
+		final secs = settings.synchThreshold;
 		ge("#synchThresholdBtn").innerText = '$text: ${secs}s';
+	}
+
+	static function updateHotkeysBtn():Void {
+		final text = Lang.get("hotkeys");
+		final state = settings.hotkeysEnabled ? Lang.get("on") : Lang.get("off");
+		ge("#hotkeysBtn").innerText = '$text: $state';
 	}
 
 	static function initChatInput(main:Main):Void {

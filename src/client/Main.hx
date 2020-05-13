@@ -22,10 +22,9 @@ using ClientTools;
 
 class Main {
 
-	static inline var SETTINGS_VERSION = 1;
+	static inline var SETTINGS_VERSION = 2;
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
-	public var synchThreshold(get, never):Int;
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
 	final host:String;
@@ -59,7 +58,8 @@ class Main {
 			synchThreshold: 2,
 			isSwapped: false,
 			isUserListHidden: false,
-			latestLinks: []
+			latestLinks: [],
+			hotkeysEnabled: true
 		}
 		Settings.init(defaults, settingsPatcher);
 		settings = Settings.read();
@@ -76,18 +76,16 @@ class Main {
 		}
 		Lang.init("langs", () -> {
 			Buttons.initTextButtons(this);
+			Buttons.initHotkeys(this, player);
 			openWebSocket(host, port);
 		});
 	}
 
-	inline function get_synchThreshold():Int {
-		return settings.synchThreshold;
-	}
-
 	function settingsPatcher(data:Any, version:Int):Any {
 		switch (version) {
-			// case 1:
-			// 	final data:ClientSettings = data;
+			case 1:
+				final data:ClientSettings = data;
+				data.hotkeysEnabled = true;
 			case SETTINGS_VERSION, _:
 				throw 'skipped version $version';
 		}
@@ -400,6 +398,7 @@ class Main {
 					player.setPlaybackRate(data.getTime.rate);
 				}
 
+				final synchThreshold = settings.synchThreshold;
 				final newTime = data.getTime.time;
 				final time = player.getTime();
 				if (isLeader()) {
@@ -416,6 +415,7 @@ class Main {
 				player.setTime(newTime);
 
 			case SetTime:
+				final synchThreshold = settings.synchThreshold;
 				final newTime = data.setTime.time;
 				final time = player.getTime();
 				if (Math.abs(time - newTime) < synchThreshold) return;
