@@ -1000,6 +1000,7 @@ var client_Main = function(host,port) {
 	this.globalIp = "";
 	this.pageTitle = window.document.title;
 	this.clients = [];
+	this.forceSyncNextTick = false;
 	this.isSyncActive = true;
 	var _gthis = this;
 	this.player = new client_Player(this);
@@ -1280,7 +1281,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 324, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 325, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1314,12 +1315,15 @@ client_Main.prototype = {
 			var synchThreshold = this.settings.synchThreshold;
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
-			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
+			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0 && !this.forceSyncNextTick) {
 				if(Math.abs(time - newTime) < synchThreshold) {
 					return;
 				}
 				this.player.setTime(time,false);
 				return;
+			}
+			if(this.player.isVideoLoaded()) {
+				this.forceSyncNextTick = false;
 			}
 			if(this.player.getDuration() < this.player.getTime()) {
 				return;
@@ -1438,6 +1442,9 @@ client_Main.prototype = {
 		case "VideoLoaded":
 			this.player.setTime(0);
 			this.player.play();
+			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0 && !this.player.isVideoLoaded()) {
+				this.forceSyncNextTick = true;
+			}
 			break;
 		}
 	}
@@ -2054,8 +2061,13 @@ client_Player.prototype = {
 		if(this.items.length == 0) {
 			return;
 		}
+		var time = this.getTime();
 		this.removeVideo();
 		this.setVideo(this.itemPos);
+		if((this.main.personal.group & 2) != 0) {
+			this.setTime(time);
+			this.main.forceSyncNextTick = true;
+		}
 	}
 	,duration: function(time) {
 		var h = time / 60 / 60 | 0;
@@ -2098,6 +2110,9 @@ client_Player.prototype = {
 			return 0;
 		}
 		return this.items[this.itemPos].duration;
+	}
+	,isVideoLoaded: function() {
+		return this.player.isVideoLoaded();
 	}
 	,play: function() {
 		if(!this.main.isSyncActive) {

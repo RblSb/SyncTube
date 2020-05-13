@@ -25,6 +25,7 @@ class Main {
 	static inline var SETTINGS_VERSION = 2;
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
+	public var forceSyncNextTick = false;
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
 	final host:String;
@@ -371,6 +372,8 @@ class Main {
 			case VideoLoaded:
 				player.setTime(0);
 				player.play();
+				// try to sync leader after with GetTime events
+				if (isLeader() && !player.isVideoLoaded()) forceSyncNextTick = true;
 
 			case RemoveVideo:
 				player.removeItem(data.removeVideo.url);
@@ -401,13 +404,14 @@ class Main {
 				final synchThreshold = settings.synchThreshold;
 				final newTime = data.getTime.time;
 				final time = player.getTime();
-				if (isLeader()) {
+				if (isLeader() && !forceSyncNextTick) {
 					// if video is loading on leader
 					// move other clients back in time
 					if (Math.abs(time - newTime) < synchThreshold) return;
 					player.setTime(time, false);
 					return;
 				}
+				if (player.isVideoLoaded()) forceSyncNextTick = false;
 				if (player.getDuration() < player.getTime()) return;
 				if (!data.getTime.paused) player.play();
 				else player.pause();

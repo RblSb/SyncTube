@@ -280,8 +280,14 @@ class Player {
 
 	public function refresh():Void {
 		if (items.length == 0) return;
+		final time = getTime();
 		removeVideo();
 		setVideo(itemPos);
+		// restore server time for leader with next GetTime
+		if (main.isLeader()) {
+			setTime(time);
+			main.forceSyncNextTick = true;
+		}
 	}
 
 	function duration(time:Float):String {
@@ -321,6 +327,10 @@ class Player {
 	public function getDuration():Float {
 		if (itemPos >= items.length) return 0;
 		return items[itemPos].duration;
+	}
+
+	public function isVideoLoaded():Bool {
+		return player.isVideoLoaded();
 	}
 
 	public function play():Void {
