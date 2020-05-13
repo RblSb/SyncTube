@@ -200,7 +200,7 @@ body {
   font-size:14px;
   line-height:1.42857143;
   color:#c8c8c8;
-  background-color: #272b30;
+  background-color: #21252A;
 }
 input, button, textarea {
   font-family:inherit;
@@ -995,7 +995,7 @@ a:hover, a:focus {
 }
 .queue_entry {
   background-color: #16191C;
-  border-color: #2c2e31;
+  border-color: #242628;
 }
 .queue_entry.queue_active {
   background-color: #1f2224;
