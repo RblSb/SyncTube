@@ -1,14 +1,17 @@
 package server;
 
-import js.node.Http;
+import js.node.Https;
 import js.node.Os;
 
 class Utils {
 
 	public static function getGlobalIp(callback:(ip:String)->Void):Void {
-		Http.get("http://myexternalip.com/raw", r -> {
+		// untyped to skip second null argument for node < v10
+		Https.get(untyped "https://myexternalip.com/raw", r -> {
 			r.setEncoding("utf8");
-			r.on("data", callback);
+			final data = new StringBuf();
+			r.on("data", chunk -> data.add(chunk));
+			r.on("end", _ -> callback(data.toString()));
 		}).on("error", e -> {
 			trace("Warning: connection error, server is local.");
 			callback("127.0.0.1");

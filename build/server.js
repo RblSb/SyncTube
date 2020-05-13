@@ -4029,11 +4029,19 @@ server_Main.prototype = {
 var server_Utils = function() { };
 server_Utils.__name__ = true;
 server_Utils.getGlobalIp = function(callback) {
-	js_node_Http.get("http://myexternalip.com/raw",null,function(r) {
+	js_node_Https.get("https://myexternalip.com/raw",function(r) {
 		r.setEncoding("utf8");
-		return r.on("data",callback);
+		var data_b = "";
+		r.on("data",function(chunk) {
+			data_b += Std.string(chunk);
+			return;
+		});
+		return r.on("end",function(_) {
+			callback(data_b);
+			return;
+		});
 	}).on("error",function(e) {
-		haxe_Log.trace("Warning: connection error, server is local.",{ fileName : "src/server/Utils.hx", lineNumber : 13, className : "server.Utils", methodName : "getGlobalIp"});
+		haxe_Log.trace("Warning: connection error, server is local.",{ fileName : "src/server/Utils.hx", lineNumber : 16, className : "server.Utils", methodName : "getGlobalIp"});
 		callback("127.0.0.1");
 		return;
 	});
