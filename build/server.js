@@ -1881,55 +1881,6 @@ Lambda.exists = function(it,f) {
 	}
 	return false;
 };
-var haxe_IMap = function() { };
-haxe_IMap.__name__ = true;
-haxe_IMap.__isInterface__ = true;
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-haxe_ds_StringMap.__name__ = true;
-haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
-haxe_ds_StringMap.prototype = {
-	setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-	,existsReserved: function(key) {
-		if(this.rh == null) {
-			return false;
-		}
-		return this.rh.hasOwnProperty("$" + key);
-	}
-	,keys: function() {
-		return HxOverrides.iter(this.arrayKeys());
-	}
-	,arrayKeys: function() {
-		var out = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) {
-			out.push(key);
-		}
-		}
-		if(this.rh != null) {
-			for( var key in this.rh ) {
-			if(key.charCodeAt(0) == 36) {
-				out.push(key.substr(1));
-			}
-			}
-		}
-		return out;
-	}
-	,__class__: haxe_ds_StringMap
-};
 var Lang = function() { };
 Lang.__name__ = true;
 Lang.request = function(path,callback) {
@@ -2152,6 +2103,9 @@ _$VideoList_VideoList_$Impl_$.itemsByUser = function(this1,client) {
 	}
 	return i;
 };
+var haxe_IMap = function() { };
+haxe_IMap.__name__ = true;
+haxe_IMap.__isInterface__ = true;
 var haxe_Log = function() { };
 haxe_Log.__name__ = true;
 haxe_Log.formatOutput = function(v,infos) {
@@ -2334,6 +2288,52 @@ haxe_crypto_Sha256.prototype = {
 		return str.toLowerCase();
 	}
 	,__class__: haxe_crypto_Sha256
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+haxe_ds_StringMap.__name__ = true;
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
+	setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+	,existsReserved: function(key) {
+		if(this.rh == null) {
+			return false;
+		}
+		return this.rh.hasOwnProperty("$" + key);
+	}
+	,keys: function() {
+		return HxOverrides.iter(this.arrayKeys());
+	}
+	,arrayKeys: function() {
+		var out = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) {
+			out.push(key);
+		}
+		}
+		if(this.rh != null) {
+			for( var key in this.rh ) {
+			if(key.charCodeAt(0) == 36) {
+				out.push(key.substr(1));
+			}
+			}
+		}
+		return out;
+	}
+	,__class__: haxe_ds_StringMap
 };
 var haxe_io_Bytes = function(data) {
 	this.length = data.byteLength;
@@ -3166,7 +3166,7 @@ server_ConsoleInput.prototype = {
 			this.main.exit();
 			return;
 		} else {
-			haxe_Log.trace("Unknown command \"" + line + "\". List:\n/addAdmin name password | Adds channel admin\n/exit | Exit process",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 53, className : "server.ConsoleInput", methodName : "parseLine"});
+			haxe_Log.trace("Unknown command \"" + line + "\". List:\r\n/addAdmin name password | Adds channel admin\r\n/exit | Exit process",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 53, className : "server.ConsoleInput", methodName : "parseLine"});
 		}
 	}
 	,__class__: server_ConsoleInput
@@ -3289,9 +3289,7 @@ server_HttpServer.proxyUrl = function(req,res) {
 	if(url1.host == req.headers["host"]) {
 		return false;
 	}
-	var url2 = url1.host;
-	var options = Std.parseInt(url1.port);
-	var proxy = (url1.protocol == "https:" ? js_node_Https.request : js_node_Http.request)({ host : url2, port : options, path : url1.pathname + url1.search, method : req.method},function(proxyRes) {
+	var proxy = (url1.protocol == "https:" ? js_node_Https.request : js_node_Http.request)({ host : url1.host, port : Std.parseInt(url1.port), path : url1.pathname + url1.search, method : req.method},function(proxyRes) {
 		res.writeHead(proxyRes.statusCode,proxyRes.headers);
 		return proxyRes.pipe(res,{ end : true});
 	});
@@ -3731,8 +3729,7 @@ server_Main.prototype = {
 			break;
 		case "Logout":
 			var oldName = client.name;
-			var id = this.clients.indexOf(client) + 1;
-			client.name = "Guest " + id;
+			client.name = "Guest " + (this.clients.indexOf(client) + 1);
 			client.setGroupFlag(ClientGroup.User,false);
 			var data2 = data.type;
 			var client2 = client.name;
@@ -3753,7 +3750,7 @@ server_Main.prototype = {
 			}
 			data.message.text = text;
 			data.message.clientName = client.name;
-			var time = "[" + HxOverrides.dateStr(new Date()).split(" ")[1] + "] ";
+			var time = HxOverrides.dateStr(new Date()).split(" ")[1];
 			this.messages.push({ text : text, name : client.name, time : time});
 			if(this.messages.length > this.config.serverChatHistory) {
 				this.messages.shift();
@@ -4209,7 +4206,6 @@ sys_FileSystem.createDirectory = function(path) {
 function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); else return o.iterator(); }
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;
-var __map_reserved = {};
 if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 String.prototype.__class__ = String;
 String.__name__ = true;
@@ -4222,6 +4218,7 @@ var Float = Number;
 var Bool = Boolean;
 var Class = { };
 var Enum = { };
+var __map_reserved = {};
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
 }});

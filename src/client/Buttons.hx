@@ -12,23 +12,28 @@ import js.html.Event;
 
 class Buttons {
 
-	static var split:Split;
+	//static var split:Split;
 	static var settings:ClientSettings;
 
 	public static function init(main:Main):Void {
 		settings = main.settings;
 		window.onresize = onVideoResize;
-		initSplit();
+		//initSplit();
 		initChatInput(main);
-		initNavBar(main);
 
 		final passIcon = ge("#guestpass_icon");
 		passIcon.onclick = e -> {
-			final isOpen = passIcon.classList.toggle("glyphicon-eye-open");
-			passIcon.classList.toggle("glyphicon-eye-close");
+			final isOpen = passIcon.classList.toggle("eye-open");
+			passIcon.classList.toggle("eye-close");
 			final pass:InputElement = cast ge("#guestpass");
-			if (isOpen) pass.type = "password";
-			else pass.type = "text";
+			if (isOpen) {
+				pass.type = "password";
+				passIcon.setAttribute("name", "eye");
+			}
+			else {
+				pass.type = "text";
+				passIcon.setAttribute("name", "eye-off");
+			}
 		}
 
 		final smilesBtn = ge("#smilesbtn");
@@ -36,7 +41,7 @@ class Buttons {
 			final smilesWrap = ge("#smileswrap");
 			if (smilesWrap.children.length == 0) return;
 			final isActive = smilesBtn.classList.toggle("active");
-			if (isActive) smilesWrap.style.display = "block";
+			if (isActive) smilesWrap.style.display = "grid";
 			else smilesWrap.style.display = "none";
 			if (smilesWrap.firstElementChild.dataset.src == null) return;
 			for (child in smilesWrap.children) {
@@ -69,45 +74,36 @@ class Buttons {
 
 		final userlistToggle = ge("#userlisttoggle");
 		userlistToggle.onclick = e -> {
-			final isHidden = userlistToggle.classList.toggle("glyphicon-chevron-right");
-			userlistToggle.classList.toggle("glyphicon-chevron-down");
+			final icon = userlistToggle.firstElementChild;
+			final isHidden = userlistToggle.classList.toggle("chevron-right");
+			userlistToggle.classList.toggle("chevron-down");
 			final style = ge("#userlist").style;
-			if (isHidden) style.display = "none";
-			else style.display = "block";
+			if (isHidden) {
+				style.display = "none";
+				icon.setAttribute("name", "chevron-forward");
+			}
+			else {
+				style.display = "block";
+				icon.setAttribute("name", "chevron-down");
+			}
 			settings.isUserListHidden = isHidden;
 			Settings.write(settings);
 		}
 		ge("#usercount").onclick = userlistToggle.onclick;
 		if (settings.isUserListHidden) userlistToggle.onclick();
 
-		final extendPlayer = ge("#extendplayer");
-		extendPlayer.onclick = e -> {
-			final isExtended = extendPlayer.classList.toggle("active");
-			final sizes = isExtended ? [20, 80] : [40, 60];
-			ge("#userlist").style.width = isExtended ? "80px" : "90px";
-			if (settings.isSwapped) sizes.reverse();
-			split.setSizes(sizes);
-			settings.isExtendedPlayer = isExtended;
-			writeSplitSize();
-			window.dispatchEvent(new Event("resize"));
-			main.scrollChatToEnd();
-		}
-		if (settings.isExtendedPlayer) extendPlayer.onclick();
-
 		final toggleSynch = ge("#togglesynch");
 		toggleSynch.onclick = e -> {
 			final icon = toggleSynch.firstElementChild;
 			if (main.isSyncActive) {
-				if (!window.confirm(Lang.get("toggleSynchConfirm"))) return;
+				if (!window.confirm(Lang.get("playerSynchConfirm"))) return;
 				main.isSyncActive = false;
 				icon.style.color = "rgba(238, 72, 67, 0.75)";
-				icon.classList.add("glyphicon-pause");
-				icon.classList.remove("glyphicon-play");
+				icon.setAttribute("name", "pause");
 			} else {
 				main.isSyncActive = true;
 				icon.style.color = "";
-				icon.classList.add("glyphicon-play");
-				icon.classList.remove("glyphicon-pause");
+				icon.setAttribute("name", "play");
 				main.send({type: UpdatePlaylist});
 			}
 		}
@@ -125,21 +121,19 @@ class Buttons {
 			final text = main.getPlaylistLinks().join(",");
 			Utils.copyToClipboard(text);
 			final icon = getPlaylist.firstElementChild;
-			icon.classList.remove("glyphicon-link");
-			icon.classList.add("glyphicon-ok");
+			icon.setAttribute("name", "checkmark");
 			Timer.delay(() -> {
-				icon.classList.add("glyphicon-link");
-				icon.classList.remove("glyphicon-ok");
+			icon.setAttribute("name", "link");
 			}, 2000);
 		}
 		final clearPlaylist = ge("#clearplaylist");
 		clearPlaylist.onclick = e -> {
-			if (!window.confirm(Lang.get("clearPlaylistConfirm"))) return;
+			if (!window.confirm(Lang.get("playlistClearConfirm"))) return;
 			main.send({type: ClearPlaylist});
 		}
 		final shufflePlaylist = ge("#shuffleplaylist");
 		shufflePlaylist.onclick = e -> {
-			if (!window.confirm(Lang.get("shufflePlaylistConfirm"))) return;
+			if (!window.confirm(Lang.get("playlistShuffleConfirm"))) return;
 			main.send({type: ShufflePlaylist});
 		}
 		final lockPlaylist = ge("#lockplaylist");
@@ -153,6 +147,16 @@ class Buttons {
 		final showCustomEmbed = ge("#showcustomembed");
 		showCustomEmbed.onclick = e -> showPlayerGroup(showCustomEmbed);
 
+		final showOptions = ge("#showoptions");
+		showOptions.onclick = e -> collapse(showOptions);
+
+		final exitBtn = ge("#exitBtn");
+		exitBtn.onclick = e -> {
+			if (main.isUser()) main.send({type: Logout});
+			else ge("#guestname").focus();
+			collapse(showOptions);
+			exitBtn.blur();
+		}
 		ge("#insert_template").onclick = e -> {
 			final input:InputElement = cast ge("#mediaurl");
 			input.value = main.getTemplateUrl();
@@ -173,10 +177,16 @@ class Buttons {
 		ge(el.dataset.target).classList.toggle("collapse");
 	}
 
-	static function initSplit():Void {
+	static function collapse(el:Element):Void {
+		el.classList.toggle("collapsed");
+		el.classList.toggle("active");
+		ge(el.dataset.target).classList.toggle("collapse");
+	}
+
+	/*static function initSplit():Void {
 		if (split != null) split.destroy();
-		final divs = ["#chatwrap", "#videowrap"];
-		final sizes = [settings.chatSize, settings.playerSize];
+		final divs = ["#video", "#chat"];
+		final sizes = [settings.playerSize, settings.chatSize];
 		if (settings.isSwapped) {
 			divs.reverse();
 			sizes.reverse();
@@ -196,16 +206,11 @@ class Buttons {
 	static function writeSplitSize():Void {
 		final sizes = split.getSizes();
 		if (settings.isSwapped) sizes.reverse();
-		settings.chatSize = sizes[0];
-		settings.playerSize = sizes[1];
 		Settings.write(settings);
-	}
+	}*/
 
 	static function onVideoResize():Void {
 		final player = ge("#ytapiplayer");
-		final height = player.offsetHeight - ge("#chatline").offsetHeight;
-		ge("#messagebuffer").style.height = '${height}px';
-		ge("#userlist").style.height = '${height}px';
 	}
 
 	static function onClick(el:Element, func:Any->Void):Void {
@@ -213,79 +218,7 @@ class Buttons {
 		else el.ontouchend = func;
 	}
 
-	static function initNavBar(main:Main):Void {
-		final toggleMenu = ge("#toggleMenu");
-		final onclick = e -> {
-			ge("#nav-collapsible").classList.toggle("in");
-		}
-		onClick(toggleMenu, onclick);
-
-		final classes:Array<Element> = cast document.querySelectorAll(".dropdown-toggle");
-		for (klass in classes) {
-			klass.onclick = e -> {
-				final isActive = klass.classList.toggle("focus");
-				hideMenus();
-				final menu = klass.parentElement.querySelector(".dropdown-menu");
-				if (isActive) menu.style.display = "block";
-				else menu.style.display = "none";
-			}
-			klass.onmouseover = klass.onclick;
-		}
-		final classes:Array<Element> = cast document.querySelectorAll(".dropdown");
-		for (klass in classes) {
-			klass.onmouseleave = e -> {
-				final toggle:Element = cast klass.querySelector(".dropdown-toggle");
-				toggle.classList.remove("focus");
-				toggle.blur();
-				final menu = klass.querySelector(".dropdown-menu");
-				menu.style.display = "";
-			}
-		}
-
-		final exitBtn = ge("#exitBtn");
-		exitBtn.onclick = e -> {
-			if (main.isUser()) main.send({type: Logout});
-			else ge("#guestname").focus();
-			exitBtn.blur();
-			hideMenus();
-		}
-
-		final swapLayoutBtn = ge("#swapLayoutBtn");
-		swapLayoutBtn.onclick = e -> {
-			final p = ge("#main");
-			if (ge("#main").firstElementChild == ge("#chatwrap")) {
-				// do not remove videowrap with insertBefore
-				// because this will recreate iframe-based players
-				p.appendChild(p.removeChild(p.children[1])); // gutter
-				p.appendChild(p.removeChild(p.children[0])); // chat
-				p.appendChild(p.removeChild(p.children[1])); // clear
-			} else {
-				p.insertBefore(p.children[2], p.children[0]);
-				p.insertBefore(p.children[2], p.children[1]);
-			}
-			final p = ge("#controlsrow");
-			p.insertBefore(p.children[1], p.children[0]);
-			final p = ge("#playlistrow");
-			p.insertBefore(p.children[1], p.children[0]);
-			settings.isSwapped = ge("#main").firstElementChild == ge("#videowrap");
-			Settings.write(settings);
-			initSplit();
-			swapLayoutBtn.blur();
-			hideMenus();
-			main.scrollChatToEnd();
-		}
-		if (settings.isSwapped) swapLayoutBtn.onclick();
-		final removeBtn = ge("#removeVideoBtn");
-		removeBtn.onclick = e -> {
-			final has = main.toggleVideoElement();
-			if (has || main.isListEmpty()) removeBtn.innerText = Lang.get("removeVideo");
-			else removeBtn.innerText = Lang.get("addVideo");
-			removeBtn.blur();
-			hideMenus();
-		}
-	}
-
-	public static function initTextButtons(main:Main):Void {
+	public static function initOptions(main:Main):Void {
 		final synchThresholdBtn = ge("#synchThresholdBtn");
 		synchThresholdBtn.onclick = e -> {
 			var secs = settings.synchThreshold + 1;
@@ -304,6 +237,34 @@ class Buttons {
 			hotkeysBtn.blur();
 		}
 		updateHotkeysBtn();
+
+		final removeBtn = ge("#removeVideoBtn");
+		removeBtn.onclick = e -> {
+			final has = main.toggleVideoElement();
+			if (has || main.isListEmpty()) removeBtn.innerText = Lang.get("removeVideo");
+			else removeBtn.innerText = Lang.get("addVideo");
+			removeBtn.blur();
+		}
+
+		final swapLayoutBtn = ge("#swapLayoutBtn");
+		swapLayoutBtn.onclick = e -> {
+			final p = ge("body");
+			final template = "1fr 4px 384px";
+			final templateRev = "384px 4px 1fr";
+			if (ge("body").classList.contains("swap")) {
+				p.classList.remove("swap");
+				p.style.gridTemplateColumns = template;
+			} else {
+				p.classList.add("swap");
+				p.style.gridTemplateColumns = templateRev;
+			}
+			settings.isSwapped = ge("body").firstElementChild == ge("#chat");
+			Settings.write(settings);
+			//initSplit();
+			swapLayoutBtn.blur();
+			main.scrollChatToEnd();
+		}
+		if (settings.isSwapped) swapLayoutBtn.onclick();
 	}
 
 	public static function initHotkeys(main:Main, player:Player):Void {
@@ -336,11 +297,6 @@ class Buttons {
 			}
 			e.preventDefault();
 		}
-	}
-
-	static function hideMenus():Void {
-		final menus:Array<Element> = cast document.querySelectorAll(".dropdown-menu");
-		for (menu in menus) menu.style.display = "";
 	}
 
 	static function updateSynchThresholdBtn():Void {

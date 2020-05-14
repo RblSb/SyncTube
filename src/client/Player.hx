@@ -131,7 +131,7 @@ class Player {
 	public function removeVideo():Void {
 		JsApi.fireVideoRemoveEvents(items[itemPos]);
 		player.removeVideo();
-		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
+		ge("#currenttitle").textContent = Lang.get("playerTitle");
 	}
 
 	public function onCanBePlayed():Void {
@@ -186,24 +186,17 @@ class Player {
 	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
 		final url = item.url.htmlEscape(true);
 		final itemEl = Utils.nodeFromString(
-			'<li class="queue_entry pluid-0" title="${Lang.get("addedBy")}: ${item.author}">
-				<a class="qe_title" href="$url" target="_blank">${item.title.htmlEscape()}</a>
-				<span class="qe_time">${duration(item.duration)}</span>
-				<div class="qe_clear"></div>
-				<div class="btn-group">
-					<button class="btn btn-xs btn-default qbtn-play">
-						<span class="glyphicon glyphicon-play"></span>${Lang.get("play")}
-					</button>
-					<button class="btn btn-xs btn-default qbtn-next">
-						<span class="glyphicon glyphicon-share-alt"></span>${Lang.get("setNext")}
-					</button>
-					<button class="btn btn-xs btn-default qbtn-tmp">
-						<span class="glyphicon glyphicon-flag"></span>
-					</button>
-					<button class="btn btn-xs btn-default qbtn-delete">
-						<span class="glyphicon glyphicon-trash"></span>${Lang.get("delete")}
-					</button>
-				</div>
+			'<li class="queue_entry info" title="${Lang.get("addedBy")}: ${item.author}">
+				<header>
+					<span class="qe_time">${duration(item.duration)}</span>
+					<h4><a class="qe_title" href="$url" target="_blank">${item.title.htmlEscape()}</a></h4>
+				</header>
+				<span class="controls">
+					<button class="qbtn-play" title="${Lang.get("queuePlay")}"><ion-icon name="play"></ion-icon></button>
+					<button class="qbtn-next" title="${Lang.get("queueNext")}"><ion-icon name="arrow-up"></ion-icon></button>
+					<button class="qbtn-tmp"><ion-icon name="flag"></ion-icon></button>
+					<button class="qbtn-delete" title="${Lang.get("delete")}"><ion-icon name="close"></ion-icon></button>
+				</span>
 			</li>'
 		);
 		items.addItem(item, atEnd, itemPos);
@@ -215,9 +208,16 @@ class Player {
 
 	function setItemElementType(item:Element, isTemp:Bool):Void {
 		final text = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
-		item.querySelector(".qbtn-tmp").innerHTML = '<span class="glyphicon glyphicon-flag"></span>$text';
-		if (isTemp) item.classList.add("queue_temp");
-		else item.classList.remove("queue_temp");
+		if (isTemp){
+			item.classList.add("queue_temp");
+			item.querySelector(".qbtn-tmp").innerHTML = '<ion-icon name="lock-open" title"$text"></ion-icon>';
+			item.querySelector(".qbtn-tmp").setAttribute("title", Lang.get("makePermanent"));
+		}
+		else {
+			item.classList.remove("queue_temp");
+			item.querySelector(".qbtn-tmp").innerHTML = '<ion-icon name="lock-closed" title="$text"></ion-icon>';
+			item.querySelector(".qbtn-tmp").setAttribute("title", Lang.get("makeTemporary"));
+		}
 	}
 
 	public function removeItem(url:String):Void {
@@ -254,7 +254,7 @@ class Player {
 	}
 
 	function updateCounters():Void {
-		ge("#plcount").textContent = '${items.length} ${Lang.get("videos")}';
+		ge("#plcount").textContent = '${items.length} ${Lang.get("playlistCount")}';
 		ge("#pllength").textContent = totalDuration();
 	}
 

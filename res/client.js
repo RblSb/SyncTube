@@ -138,25 +138,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-haxe_ds_StringMap.__name__ = true;
-haxe_ds_StringMap.prototype = {
-	setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-};
 var Lang = function() { };
 Lang.__name__ = true;
 Lang.request = function(path,callback) {
@@ -442,19 +423,20 @@ client_Buttons.__name__ = true;
 client_Buttons.init = function(main) {
 	client_Buttons.settings = main.settings;
 	window.onresize = client_Buttons.onVideoResize;
-	client_Buttons.initSplit();
 	client_Buttons.initChatInput(main);
-	client_Buttons.initNavBar(main);
 	var passIcon = window.document.querySelector("#guestpass_icon");
 	passIcon.onclick = function(e) {
-		var isOpen = passIcon.classList.toggle("glyphicon-eye-open");
-		passIcon.classList.toggle("glyphicon-eye-close");
+		var isOpen = passIcon.classList.toggle("eye-open");
+		passIcon.classList.toggle("eye-close");
 		var pass = window.document.querySelector("#guestpass");
 		if(isOpen) {
-			return pass.type = "password";
+			pass.type = "password";
+			passIcon.setAttribute("name","eye");
 		} else {
-			return pass.type = "text";
+			pass.type = "text";
+			passIcon.setAttribute("name","eye-off");
 		}
+		return;
 	};
 	var smilesBtn = window.document.querySelector("#smilesbtn");
 	smilesBtn.onclick = function(e1) {
@@ -463,7 +445,7 @@ client_Buttons.init = function(main) {
 			return;
 		}
 		if(smilesBtn.classList.toggle("active")) {
-			smilesWrap.style.display = "block";
+			smilesWrap.style.display = "grid";
 		} else {
 			smilesWrap.style.display = "none";
 		}
@@ -507,13 +489,16 @@ client_Buttons.init = function(main) {
 	};
 	var userlistToggle = window.document.querySelector("#userlisttoggle");
 	userlistToggle.onclick = function(e4) {
-		var isHidden = userlistToggle.classList.toggle("glyphicon-chevron-right");
-		userlistToggle.classList.toggle("glyphicon-chevron-down");
+		var icon = userlistToggle.firstElementChild;
+		var isHidden = userlistToggle.classList.toggle("chevron-right");
+		userlistToggle.classList.toggle("chevron-down");
 		var style = window.document.querySelector("#userlist").style;
 		if(isHidden) {
 			style.display = "none";
+			icon.setAttribute("name","chevron-forward");
 		} else {
 			style.display = "block";
+			icon.setAttribute("name","chevron-down");
 		}
 		client_Buttons.settings.isUserListHidden = isHidden;
 		client_Settings.write(client_Buttons.settings);
@@ -523,94 +508,88 @@ client_Buttons.init = function(main) {
 	if(client_Buttons.settings.isUserListHidden) {
 		userlistToggle.onclick();
 	}
-	var extendPlayer = window.document.querySelector("#extendplayer");
-	extendPlayer.onclick = function(e5) {
-		var isExtended = extendPlayer.classList.toggle("active");
-		var sizes = isExtended ? [20,80] : [40,60];
-		window.document.querySelector("#userlist").style.width = isExtended ? "80px" : "90px";
-		if(client_Buttons.settings.isSwapped) {
-			sizes.reverse();
-		}
-		client_Buttons.split.setSizes(sizes);
-		client_Buttons.settings.isExtendedPlayer = isExtended;
-		client_Buttons.writeSplitSize();
-		window.dispatchEvent(new Event("resize"));
-		main.scrollChatToEnd();
-		return;
-	};
-	if(client_Buttons.settings.isExtendedPlayer) {
-		extendPlayer.onclick();
-	}
 	var toggleSynch = window.document.querySelector("#togglesynch");
-	toggleSynch.onclick = function(e6) {
-		var icon = toggleSynch.firstElementChild;
+	toggleSynch.onclick = function(e5) {
+		var icon1 = toggleSynch.firstElementChild;
 		if(main.isSyncActive) {
-			if(!window.confirm(Lang.get("toggleSynchConfirm"))) {
+			if(!window.confirm(Lang.get("playerSynchConfirm"))) {
 				return;
 			}
 			main.isSyncActive = false;
-			icon.style.color = "rgba(238, 72, 67, 0.75)";
-			icon.classList.add("glyphicon-pause");
-			icon.classList.remove("glyphicon-play");
+			icon1.style.color = "rgba(238, 72, 67, 0.75)";
+			icon1.setAttribute("name","pause");
 		} else {
 			main.isSyncActive = true;
-			icon.style.color = "";
-			icon.classList.add("glyphicon-play");
-			icon.classList.remove("glyphicon-pause");
+			icon1.style.color = "";
+			icon1.setAttribute("name","play");
 			main.send({ type : "UpdatePlaylist"});
 		}
 		return;
 	};
-	window.document.querySelector("#mediarefresh").onclick = function(e7) {
+	window.document.querySelector("#mediarefresh").onclick = function(e6) {
 		main.refreshPlayer();
 		return;
 	};
-	window.document.querySelector("#fullscreenbtn").onclick = function(e8) {
+	window.document.querySelector("#fullscreenbtn").onclick = function(e7) {
 		return client_Utils.toggleFullScreen(window.document.querySelector("#ytapiplayer"));
 	};
 	var getPlaylist = window.document.querySelector("#getplaylist");
-	getPlaylist.onclick = function(e9) {
+	getPlaylist.onclick = function(e8) {
 		client_Utils.copyToClipboard(main.getPlaylistLinks().join(","));
-		var icon1 = getPlaylist.firstElementChild;
-		icon1.classList.remove("glyphicon-link");
-		icon1.classList.add("glyphicon-ok");
+		var icon2 = getPlaylist.firstElementChild;
+		icon2.setAttribute("name","checkmark");
 		return haxe_Timer.delay(function() {
-			icon1.classList.add("glyphicon-link");
-			icon1.classList.remove("glyphicon-ok");
+			icon2.setAttribute("name","link");
 			return;
 		},2000);
 	};
-	window.document.querySelector("#clearplaylist").onclick = function(e10) {
-		if(!window.confirm(Lang.get("clearPlaylistConfirm"))) {
+	window.document.querySelector("#clearplaylist").onclick = function(e9) {
+		if(!window.confirm(Lang.get("playlistClearConfirm"))) {
 			return;
 		}
 		main.send({ type : "ClearPlaylist"});
 		return;
 	};
-	window.document.querySelector("#shuffleplaylist").onclick = function(e11) {
-		if(!window.confirm(Lang.get("shufflePlaylistConfirm"))) {
+	window.document.querySelector("#shuffleplaylist").onclick = function(e10) {
+		if(!window.confirm(Lang.get("playlistShuffleConfirm"))) {
 			return;
 		}
 		main.send({ type : "ShufflePlaylist"});
 		return;
 	};
-	window.document.querySelector("#lockplaylist").onclick = function(e12) {
+	window.document.querySelector("#lockplaylist").onclick = function(e11) {
 		if((main.personal.group & 4) != 0) {
 			main.send({ type : "TogglePlaylistLock"});
 		}
 		return;
 	};
 	var showMediaUrl = window.document.querySelector("#showmediaurl");
-	showMediaUrl.onclick = function(e13) {
+	showMediaUrl.onclick = function(e12) {
 		client_Buttons.showPlayerGroup(showMediaUrl);
 		return;
 	};
 	var showCustomEmbed = window.document.querySelector("#showcustomembed");
-	showCustomEmbed.onclick = function(e14) {
+	showCustomEmbed.onclick = function(e13) {
 		client_Buttons.showPlayerGroup(showCustomEmbed);
 		return;
 	};
-	window.document.querySelector("#insert_template").onclick = function(e15) {
+	var showOptions = window.document.querySelector("#showoptions");
+	showOptions.onclick = function(e14) {
+		client_Buttons.collapse(showOptions);
+		return;
+	};
+	var exitBtn = window.document.querySelector("#exitBtn");
+	exitBtn.onclick = function(e15) {
+		if((main.personal.group & 1) != 0) {
+			main.send({ type : "Logout"});
+		} else {
+			window.document.querySelector("#guestname").focus();
+		}
+		client_Buttons.collapse(showOptions);
+		exitBtn.blur();
+		return;
+	};
+	window.document.querySelector("#insert_template").onclick = function(e16) {
 		var input = window.document.querySelector("#mediaurl");
 		input.value = main.getTemplateUrl();
 		input.focus();
@@ -634,134 +613,15 @@ client_Buttons.showPlayerGroup = function(el) {
 	el.classList.toggle("active");
 	window.document.querySelector(el.dataset.target).classList.toggle("collapse");
 };
-client_Buttons.initSplit = function() {
-	if(client_Buttons.split != null) {
-		client_Buttons.split.destroy();
-	}
-	var divs = ["#chatwrap","#videowrap"];
-	var sizes = [client_Buttons.settings.chatSize,client_Buttons.settings.playerSize];
-	if(client_Buttons.settings.isSwapped) {
-		divs.reverse();
-		sizes.reverse();
-	}
-	client_Buttons.split = new Split(divs,{ sizes : sizes, onDragEnd : function() {
-		window.dispatchEvent(new Event("resize"));
-		client_Buttons.writeSplitSize();
-		return;
-	}, minSize : 185, snapOffset : 0});
-	window.dispatchEvent(new Event("resize"));
-};
-client_Buttons.writeSplitSize = function() {
-	var sizes = client_Buttons.split.getSizes();
-	if(client_Buttons.settings.isSwapped) {
-		sizes.reverse();
-	}
-	client_Buttons.settings.chatSize = sizes[0];
-	client_Buttons.settings.playerSize = sizes[1];
-	client_Settings.write(client_Buttons.settings);
+client_Buttons.collapse = function(el) {
+	el.classList.toggle("collapsed");
+	el.classList.toggle("active");
+	window.document.querySelector(el.dataset.target).classList.toggle("collapse");
 };
 client_Buttons.onVideoResize = function() {
-	var height = window.document.querySelector("#ytapiplayer").offsetHeight - window.document.querySelector("#chatline").offsetHeight;
-	window.document.querySelector("#messagebuffer").style.height = "" + height + "px";
-	window.document.querySelector("#userlist").style.height = "" + height + "px";
+	window;
 };
-client_Buttons.onClick = function(el,func) {
-	if(!client_Utils.isTouch()) {
-		el.onclick = func;
-	} else {
-		el.ontouchend = func;
-	}
-};
-client_Buttons.initNavBar = function(main) {
-	var onclick = function(e) {
-		return window.document.querySelector("#nav-collapsible").classList.toggle("in");
-	};
-	client_Buttons.onClick(window.document.querySelector("#toggleMenu"),onclick);
-	var classes = window.document.querySelectorAll(".dropdown-toggle");
-	var _g = 0;
-	while(_g < classes.length) {
-		var klass = [classes[_g]];
-		++_g;
-		klass[0].onclick = (function(klass1) {
-			return function(e1) {
-				var isActive = klass1[0].classList.toggle("focus");
-				client_Buttons.hideMenus();
-				var menu = klass1[0].parentElement.querySelector(".dropdown-menu");
-				if(isActive) {
-					return menu.style.display = "block";
-				} else {
-					return menu.style.display = "none";
-				}
-			};
-		})(klass);
-		klass[0].onmouseover = klass[0].onclick;
-	}
-	var classes1 = window.document.querySelectorAll(".dropdown");
-	var _g1 = 0;
-	while(_g1 < classes1.length) {
-		var klass2 = [classes1[_g1]];
-		++_g1;
-		klass2[0].onmouseleave = (function(klass3) {
-			return function(e2) {
-				var toggle = klass3[0].querySelector(".dropdown-toggle");
-				toggle.classList.remove("focus");
-				toggle.blur();
-				return klass3[0].querySelector(".dropdown-menu").style.display = "";
-			};
-		})(klass2);
-	}
-	var exitBtn = window.document.querySelector("#exitBtn");
-	exitBtn.onclick = function(e3) {
-		if((main.personal.group & 1) != 0) {
-			main.send({ type : "Logout"});
-		} else {
-			window.document.querySelector("#guestname").focus();
-		}
-		exitBtn.blur();
-		client_Buttons.hideMenus();
-		return;
-	};
-	var swapLayoutBtn = window.document.querySelector("#swapLayoutBtn");
-	swapLayoutBtn.onclick = function(e4) {
-		var p = window.document.querySelector("#main");
-		if(window.document.querySelector("#main").firstElementChild == window.document.querySelector("#chatwrap")) {
-			p.appendChild(p.removeChild(p.children[1]));
-			p.appendChild(p.removeChild(p.children[0]));
-			p.appendChild(p.removeChild(p.children[1]));
-		} else {
-			p.insertBefore(p.children[2],p.children[0]);
-			p.insertBefore(p.children[2],p.children[1]);
-		}
-		var p1 = window.document.querySelector("#controlsrow");
-		p1.insertBefore(p1.children[1],p1.children[0]);
-		var p2 = window.document.querySelector("#playlistrow");
-		p2.insertBefore(p2.children[1],p2.children[0]);
-		var tmp = window.document.querySelector("#main").firstElementChild;
-		var tmp1 = window.document.querySelector("#videowrap");
-		client_Buttons.settings.isSwapped = tmp == tmp1;
-		client_Settings.write(client_Buttons.settings);
-		client_Buttons.initSplit();
-		swapLayoutBtn.blur();
-		client_Buttons.hideMenus();
-		main.scrollChatToEnd();
-		return;
-	};
-	if(client_Buttons.settings.isSwapped) {
-		swapLayoutBtn.onclick();
-	}
-	var removeBtn = window.document.querySelector("#removeVideoBtn");
-	removeBtn.onclick = function(e5) {
-		if(main.toggleVideoElement() || main.isListEmpty()) {
-			removeBtn.innerText = Lang.get("removeVideo");
-		} else {
-			removeBtn.innerText = Lang.get("addVideo");
-		}
-		removeBtn.blur();
-		client_Buttons.hideMenus();
-		return;
-	};
-};
-client_Buttons.initTextButtons = function(main) {
+client_Buttons.initOptions = function(main) {
 	var synchThresholdBtn = window.document.querySelector("#synchThresholdBtn");
 	synchThresholdBtn.onclick = function(e) {
 		var secs = client_Buttons.settings.synchThreshold + 1;
@@ -783,6 +643,35 @@ client_Buttons.initTextButtons = function(main) {
 		return;
 	};
 	client_Buttons.updateHotkeysBtn();
+	var removeBtn = window.document.querySelector("#removeVideoBtn");
+	removeBtn.onclick = function(e2) {
+		if(main.toggleVideoElement() || main.isListEmpty()) {
+			removeBtn.innerText = Lang.get("removeVideo");
+		} else {
+			removeBtn.innerText = Lang.get("addVideo");
+		}
+		removeBtn.blur();
+		return;
+	};
+	var swapLayoutBtn = window.document.querySelector("#swapLayoutBtn");
+	swapLayoutBtn.onclick = function(e3) {
+		var p = window.document.querySelector("body");
+		if(window.document.querySelector("body").classList.contains("swap")) {
+			p.classList.remove("swap");
+			p.style.gridTemplateColumns = "1fr 4px 384px";
+		} else {
+			p.classList.add("swap");
+			p.style.gridTemplateColumns = "384px 4px 1fr";
+		}
+		client_Buttons.settings.isSwapped = window.document.querySelector("body").firstElementChild == window.document.querySelector("#chat");
+		client_Settings.write(client_Buttons.settings);
+		swapLayoutBtn.blur();
+		main.scrollChatToEnd();
+		return;
+	};
+	if(client_Buttons.settings.isSwapped) {
+		swapLayoutBtn.onclick();
+	}
 };
 client_Buttons.initHotkeys = function(main,player) {
 	window.document.querySelector("#mediarefresh").title += " (Alt-R)";
@@ -840,14 +729,9 @@ client_Buttons.initHotkeys = function(main,player) {
 		e.preventDefault();
 	};
 };
-client_Buttons.hideMenus = function() {
-	var menus = window.document.querySelectorAll(".dropdown-menu");
-	var _g = 0;
-	while(_g < menus.length) menus[_g++].style.display = "";
-};
 client_Buttons.updateSynchThresholdBtn = function() {
-	var tmp = "" + Lang.get("synchThreshold") + ": " + client_Buttons.settings.synchThreshold;
-	window.document.querySelector("#synchThresholdBtn").innerText = tmp + "s";
+	var text = Lang.get("synchThreshold");
+	window.document.querySelector("#synchThresholdBtn").innerText = "" + text + ": " + client_Buttons.settings.synchThreshold + "s";
 };
 client_Buttons.updateHotkeysBtn = function() {
 	var text = Lang.get("hotkeys");
@@ -1017,7 +901,7 @@ var client_Main = function(host,port) {
 	if(port == "") {
 		port = "80";
 	}
-	client_Settings.init({ version : 2, name : "", hash : "", isExtendedPlayer : false, chatSize : 40, playerSize : 60, synchThreshold : 2, isSwapped : false, isUserListHidden : false, latestLinks : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
+	client_Settings.init({ version : 2, name : "", hash : "", synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
 	this.initListeners();
 	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
@@ -1031,7 +915,7 @@ var client_Main = function(host,port) {
 		return;
 	};
 	Lang.init("langs",function() {
-		client_Buttons.initTextButtons(_gthis);
+		client_Buttons.initOptions(_gthis);
 		client_Buttons.initHotkeys(_gthis,_gthis.player);
 		_gthis.openWebSocket(host,port);
 		return;
@@ -1090,14 +974,13 @@ client_Main.prototype = {
 	,initListeners: function() {
 		var _gthis = this;
 		client_Buttons.init(this);
-		client_MobileView.init();
 		window.document.querySelector("#leader_btn").onclick = function(e) {
 			_gthis.setLeaderButton((_gthis.personal.group & 2) == 0);
 			_gthis.send({ type : "SetLeader", setLeader : { clientName : (_gthis.personal.group & 2) != 0 ? "" : _gthis.personal.name}});
 			return;
 		};
 		window.document.querySelector("#voteskip").onclick = function(e1) {
-			if(client_Utils.isTouch() && !window.confirm(Lang.get("skipItemConfirm"))) {
+			if(client_Utils.isTouch() && !window.confirm(Lang.get("voteSkipConfirm"))) {
 				return;
 			}
 			if(_gthis.player.isListEmpty()) {
@@ -1281,7 +1164,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		var t = data.type;
 		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 325, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 321, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1459,10 +1342,9 @@ client_Main.prototype = {
 		} else {
 			this.onLogin(connected.clients,connected.clientName);
 		}
-		var guestName = window.document.querySelector("#guestname");
 		var name = this.settings.name;
 		if(name.length == 0) {
-			name = guestName.value;
+			name = window.document.querySelector("#guestname").value;
 		}
 		var hash = this.settings.hash;
 		if(hash.length > 0) {
@@ -1534,9 +1416,8 @@ client_Main.prototype = {
 		var smilesWrap = window.document.querySelector("#smileswrap");
 		smilesWrap.style.display = "none";
 		smilesWrap.onclick = function(e) {
-			var el = e.target;
 			var form = window.document.querySelector("#chatline");
-			form.value += " " + el.title;
+			form.value += " " + e.target.title;
 			form.focus();
 			return;
 		};
@@ -1547,11 +1428,11 @@ client_Main.prototype = {
 			var emote1 = _g5[_g4];
 			++_g4;
 			var tag1 = StringTools.endsWith(emote1.image,"mp4") ? "video" : "img";
-			var el1 = window.document.createElement(tag1);
-			el1.className = "smile-preview";
-			el1.dataset.src = emote1.image;
-			el1.title = emote1.name;
-			smilesWrap.appendChild(el1);
+			var el = window.document.createElement(tag1);
+			el.className = "smile-preview";
+			el.dataset.src = emote1.image;
+			el.title = emote1.name;
+			smilesWrap.appendChild(el);
 		}
 	}
 	,onLogin: function(data,clientName) {
@@ -1564,16 +1445,16 @@ client_Main.prototype = {
 		this.hideGuestLoginPanel();
 	}
 	,showGuestLoginPanel: function() {
-		window.document.querySelector("#guestlogin").style.display = "block";
+		window.document.querySelector("#guestlogin").style.display = "flex";
 		window.document.querySelector("#guestpassword").style.display = "none";
-		window.document.querySelector("#chatline").style.display = "none";
+		window.document.querySelector("#chatbox").style.display = "none";
 		window.document.querySelector("#exitBtn").textContent = Lang.get("login");
 		window.dispatchEvent(new Event("resize"));
 	}
 	,hideGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
 		window.document.querySelector("#guestpassword").style.display = "none";
-		window.document.querySelector("#chatline").style.display = "block";
+		window.document.querySelector("#chatbox").style.display = "flex";
 		window.document.querySelector("#exitBtn").textContent = Lang.get("exit");
 		if((this.personal.group & 4) != 0) {
 			window.document.querySelector("#clearchatbtn").style.display = "inline-block";
@@ -1582,11 +1463,10 @@ client_Main.prototype = {
 	}
 	,showGuestPasswordPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
-		window.document.querySelector("#chatline").style.display = "none";
-		window.document.querySelector("#guestpassword").style.display = "block";
+		window.document.querySelector("#chatbox").style.display = "none";
+		window.document.querySelector("#guestpassword").style.display = "flex";
 		window.document.querySelector("#guestpass").type = "password";
-		window.document.querySelector("#guestpass_icon").classList.add("glyphicon-eye-open");
-		window.document.querySelector("#guestpass_icon").classList.remove("glyphicon-eye-close");
+		window.document.querySelector("#guestpass_icon").setAttribute("name","eye");
 	}
 	,updateClients: function(newClients) {
 		this.clients.length = 0;
@@ -1606,7 +1486,7 @@ client_Main.prototype = {
 		}
 		var msgBuf = window.document.querySelector("#messagebuffer");
 		var div = window.document.createElement("div");
-		var time = "[" + HxOverrides.dateStr(new Date()).split(" ")[1] + "] ";
+		var time = HxOverrides.dateStr(new Date()).split(" ")[1];
 		switch(type) {
 		case 1:
 			div.className = "server-msg-reconnect";
@@ -1644,7 +1524,7 @@ client_Main.prototype = {
 			++_g;
 			list_b += "<div class=\"userlist_item\">";
 			if((client1.group & 2) != 0) {
-				list_b += "<span class=\"glyphicon glyphicon-star-empty\"></span>";
+				list_b += "<ion-icon name=\"play\"></ion-icon>";
 			}
 			list_b += Std.string("<span class=\"" + ((client1.group & 4) != 0 ? "userlist_owner" : "") + "\">" + client1.name + "</span></div>");
 		}
@@ -1660,16 +1540,19 @@ client_Main.prototype = {
 		var msgBuf = window.document.querySelector("#messagebuffer");
 		var userDiv = window.document.createElement("div");
 		userDiv.className = "chat-msg-" + name;
+		var headDiv = window.document.createElement("div");
+		headDiv.className = "head";
 		var tstamp = window.document.createElement("span");
 		tstamp.className = "timestamp";
 		if(time == null) {
-			time = "[" + HxOverrides.dateStr(new Date()).split(" ")[1] + "] ";
+			time = HxOverrides.dateStr(new Date()).split(" ")[1];
 		}
 		tstamp.textContent = time;
 		var nameDiv = window.document.createElement("strong");
 		nameDiv.className = "username";
-		nameDiv.textContent = name + ": ";
-		var textDiv = window.document.createElement("span");
+		nameDiv.textContent = name;
+		var textDiv = window.document.createElement("div");
+		textDiv.className = "text";
 		text = StringTools.htmlEscape(text);
 		if(StringTools.startsWith(text,"/")) {
 			if(name == this.personal.name) {
@@ -1694,8 +1577,9 @@ client_Main.prototype = {
 			var _g3 = textDiv.getElementsByTagName("video");
 			while(_g21 < _g3.length) _g3[_g21++].onloadedmetadata = $bind(this,this.onChatVideoLoaded);
 		}
-		userDiv.appendChild(tstamp);
-		userDiv.appendChild(nameDiv);
+		userDiv.appendChild(headDiv);
+		headDiv.appendChild(nameDiv);
+		headDiv.appendChild(tstamp);
 		userDiv.appendChild(textDiv);
 		msgBuf.appendChild(userDiv);
 		if(isInChatEnd) {
@@ -1760,9 +1644,9 @@ client_Main.prototype = {
 	,setLeaderButton: function(flag) {
 		var leaderBtn = window.document.querySelector("#leader_btn");
 		if(flag) {
-			leaderBtn.classList.add("label-success");
+			leaderBtn.classList.add("success-bg");
 		} else {
-			leaderBtn.classList.remove("label-success");
+			leaderBtn.classList.remove("success-bg");
 		}
 	}
 	,setPlaylistLock: function(isOpen) {
@@ -1771,15 +1655,15 @@ client_Main.prototype = {
 		if(isOpen) {
 			lockPlaylist.title = Lang.get("playlistOpen");
 			lockPlaylist.classList.add("btn-success");
-			lockPlaylist.classList.remove("btn-danger");
-			icon.classList.add("glyphicon-ok");
-			icon.classList.remove("glyphicon-lock");
+			lockPlaylist.classList.add("success");
+			lockPlaylist.classList.remove("danger");
+			icon.setAttribute("name","lock-open");
 		} else {
 			lockPlaylist.title = Lang.get("playlistLocked");
 			lockPlaylist.classList.add("btn-danger");
-			lockPlaylist.classList.remove("btn-success");
-			icon.classList.add("glyphicon-lock");
-			icon.classList.remove("glyphicon-ok");
+			lockPlaylist.classList.add("danger");
+			lockPlaylist.classList.remove("success");
+			icon.setAttribute("name","lock-closed");
 		}
 	}
 	,setSynchThreshold: function(s) {
@@ -1799,29 +1683,6 @@ client_Main.prototype = {
 		var _this_r = new RegExp("([.*+?^${}()|[\\]\\\\])","g".split("u").join(""));
 		return regex.replace(_this_r,"\\$1");
 	}
-};
-var client_MobileView = function() { };
-client_MobileView.__name__ = true;
-client_MobileView.init = function() {
-	var mvbtn = window.document.querySelector("#mv_btn");
-	mvbtn.onclick = function(e) {
-		var hasMobileView = client_Utils.toggleFullScreen(window.document.documentElement);
-		var vwrap = window.document.querySelector("#videowrap");
-		if(hasMobileView) {
-			window.document.body.classList.add("mobile-view");
-			mvbtn.classList.add("active");
-			if(vwrap.children[0].id == "currenttitle") {
-				vwrap.appendChild(vwrap.children[0]);
-			}
-		} else {
-			window.document.body.classList.remove("mobile-view");
-			mvbtn.classList.remove("active");
-			if(vwrap.children[0].id != "currenttitle") {
-				vwrap.insertBefore(vwrap.children[1],vwrap.children[0]);
-			}
-		}
-		return;
-	};
 };
 var client_Player = function(main) {
 	this.skipSetRate = false;
@@ -1921,7 +1782,7 @@ client_Player.prototype = {
 	,removeVideo: function() {
 		client_JsApi.fireVideoRemoveEvents(this.items[this.itemPos]);
 		this.player.removeVideo();
-		window.document.querySelector("#currenttitle").textContent = Lang.get("nothingPlaying");
+		window.document.querySelector("#currenttitle").textContent = Lang.get("playerTitle");
 	}
 	,onCanBePlayed: function() {
 		if(!this.isLoaded) {
@@ -1963,7 +1824,7 @@ client_Player.prototype = {
 	}
 	,addVideoItem: function(item,atEnd) {
 		var url = StringTools.htmlEscape(item.url,true);
-		var itemEl = client_Utils.nodeFromString("<li class=\"queue_entry pluid-0\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\n\t\t\t\t<a class=\"qe_title\" href=\"" + url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a>\n\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\n\t\t\t\t<div class=\"qe_clear\"></div>\n\t\t\t\t<div class=\"btn-group\">\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-play\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-play\"></span>" + Lang.get("play") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-next\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-share-alt\"></span>" + Lang.get("setNext") + "\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-tmp\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-flag\"></span>\n\t\t\t\t\t</button>\n\t\t\t\t\t<button class=\"btn btn-xs btn-default qbtn-delete\">\n\t\t\t\t\t\t<span class=\"glyphicon glyphicon-trash\"></span>" + Lang.get("delete") + "\n\t\t\t\t\t</button>\n\t\t\t\t</div>\n\t\t\t</li>");
+		var itemEl = client_Utils.nodeFromString("<li class=\"queue_entry info\" title=\"" + Lang.get("addedBy") + ": " + item.author + "\">\r\n\t\t\t\t<header>\r\n\t\t\t\t\t<span class=\"qe_time\">" + this.duration(item.duration) + "</span>\r\n\t\t\t\t\t<h4><a class=\"qe_title\" href=\"" + url + "\" target=\"_blank\">" + StringTools.htmlEscape(item.title) + "</a></h4>\r\n\t\t\t\t</header>\r\n\t\t\t\t<span class=\"controls\">\r\n\t\t\t\t\t<button class=\"qbtn-play\" title=\"" + Lang.get("queuePlay") + "\"><ion-icon name=\"play\"></ion-icon></button>\r\n\t\t\t\t\t<button class=\"qbtn-next\" title=\"" + Lang.get("queueNext") + "\"><ion-icon name=\"arrow-up\"></ion-icon></button>\r\n\t\t\t\t\t<button class=\"qbtn-tmp\"><ion-icon name=\"flag\"></ion-icon></button>\r\n\t\t\t\t\t<button class=\"qbtn-delete\" title=\"" + Lang.get("delete") + "\"><ion-icon name=\"close\"></ion-icon></button>\r\n\t\t\t\t</span>\r\n\t\t\t</li>");
 		_$VideoList_VideoList_$Impl_$.addItem(this.items,item,atEnd,this.itemPos);
 		this.setItemElementType(itemEl,item.isTemp);
 		if(atEnd) {
@@ -1975,11 +1836,14 @@ client_Player.prototype = {
 	}
 	,setItemElementType: function(item,isTemp) {
 		var text = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
-		item.querySelector(".qbtn-tmp").innerHTML = "<span class=\"glyphicon glyphicon-flag\"></span>" + text;
 		if(isTemp) {
 			item.classList.add("queue_temp");
+			item.querySelector(".qbtn-tmp").innerHTML = "<ion-icon name=\"lock-open\" title\"" + text + "\"></ion-icon>";
+			item.querySelector(".qbtn-tmp").setAttribute("title",Lang.get("makePermanent"));
 		} else {
 			item.classList.remove("queue_temp");
+			item.querySelector(".qbtn-tmp").innerHTML = "<ion-icon name=\"lock-closed\" title=\"" + text + "\"></ion-icon>";
+			item.querySelector(".qbtn-tmp").setAttribute("title",Lang.get("makeTemporary"));
 		}
 	}
 	,removeItem: function(url) {
@@ -2028,7 +1892,7 @@ client_Player.prototype = {
 	}
 	,updateCounters: function() {
 		var tmp = "" + this.items.length + " ";
-		var tmp1 = Lang.get("videos");
+		var tmp1 = Lang.get("playlistCount");
 		window.document.querySelector("#plcount").textContent = tmp + tmp1;
 		window.document.querySelector("#pllength").textContent = this.totalDuration();
 	}
@@ -2392,8 +2256,7 @@ client_players_Raw.prototype = {
 	}
 	,getVideoData: function(url,callback) {
 		var _gthis = this;
-		var pos = url.lastIndexOf("/") + 1;
-		var title = HxOverrides.substr(url,pos,null);
+		var title = HxOverrides.substr(url,url.lastIndexOf("/") + 1,null);
 		if(this.matchName.match(title)) {
 			title = this.matchName.matched(1);
 		} else {
@@ -2632,7 +2495,7 @@ client_players_Youtube.prototype = {
 				var title = item.snippet.title;
 				var duration = _gthis.convertTime(item.contentDetails.duration);
 				if(duration == 0) {
-					callback({ duration : 356400, title : title, url : "<iframe src=\"https://www.youtube.com/embed/" + id + "\" frameborder=\"0\"\n\t\t\t\t\t\t\t\tallow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\"\n\t\t\t\t\t\t\t\tallowfullscreen></iframe>", isIframe : true});
+					callback({ duration : 356400, title : title, url : "<iframe src=\"https://www.youtube.com/embed/" + id + "\" frameborder=\"0\"\r\n\t\t\t\t\t\t\t\tallow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\"\r\n\t\t\t\t\t\t\t\tallowfullscreen></iframe>", isIframe : true});
 					return;
 				}
 				callback({ duration : duration, title : title, url : url});
@@ -2971,6 +2834,25 @@ haxe_crypto_Sha256.prototype = {
 		var _g = 0;
 		while(_g < a.length) str += StringTools.hex(a[_g++],8);
 		return str.toLowerCase();
+	}
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+haxe_ds_StringMap.__name__ = true;
+haxe_ds_StringMap.prototype = {
+	setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
 	}
 };
 var haxe_http_HttpBase = function(url) {
@@ -3425,11 +3307,11 @@ js_youtube_Youtube.init = function(onAPIReady) {
 function $getIterator(o) { if( o instanceof Array ) return HxOverrides.iter(o); else return o.iterator(); }
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;
-var __map_reserved = {};
 if( String.fromCodePoint == null ) String.fromCodePoint = function(c) { return c < 0x10000 ? String.fromCharCode(c) : String.fromCharCode((c>>10)+0xD7C0)+String.fromCharCode((c&0x3FF)+0xDC00); }
 String.__name__ = true;
 Array.__name__ = true;
 Date.__name__ = "Date";
+var __map_reserved = {};
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
 }});
