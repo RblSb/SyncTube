@@ -54,11 +54,11 @@ class Main {
 			name: "",
 			hash: "",
 			isExtendedPlayer: false,
-			chatSize: 40,
-			playerSize: 60,
+			playerSize: 70,
+			chatSize: 30,
 			synchThreshold: 2,
 			isSwapped: false,
-			isUserListHidden: false,
+			isUserListHidden: true,
 			latestLinks: [],
 			hotkeysEnabled: true
 		}
@@ -120,7 +120,6 @@ class Main {
 
 	function initListeners():Void {
 		Buttons.init(this);
-		MobileView.init();
 
 		ge("#leader_btn").onclick = e -> {
 			// change button style before answer
@@ -572,9 +571,9 @@ class Main {
 	}
 
 	function showGuestLoginPanel():Void {
-		ge("#guestlogin").style.display = "block";
+		ge("#guestlogin").style.display = "flex";
 		ge("#guestpassword").style.display = "none";
-		ge("#chatline").style.display = "none";
+		ge("#chatbox").style.display = "none";
 		ge("#exitBtn").textContent = Lang.get("login");
 		window.dispatchEvent(new Event("resize"));
 	}
@@ -582,7 +581,7 @@ class Main {
 	function hideGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "none";
 		ge("#guestpassword").style.display = "none";
-		ge("#chatline").style.display = "block";
+		ge("#chatbox").style.display = "flex";
 		ge("#exitBtn").textContent = Lang.get("exit");
 		if (isAdmin()) ge("#clearchatbtn").style.display = "inline-block";
 		window.dispatchEvent(new Event("resize"));
@@ -590,11 +589,10 @@ class Main {
 
 	function showGuestPasswordPanel():Void {
 		ge("#guestlogin").style.display = "none";
-		ge("#chatline").style.display = "none";
-		ge("#guestpassword").style.display = "block";
+		ge("#chatbox").style.display = "none";
+		ge("#guestpassword").style.display = "flex";
 		(cast ge("#guestpass") : InputElement).type = "password";
-		ge("#guestpass_icon").classList.add("glyphicon-eye-open");
-		ge("#guestpass_icon").classList.remove("glyphicon-eye-close");
+		ge("#guestpass_icon").setAttribute("name", "eye");
 	}
 
 	function updateClients(newClients:Array<ClientData>):Void {
@@ -613,7 +611,7 @@ class Main {
 	public function serverMessage(type:Int, ?text:String, isText = true):Void {
 		final msgBuf = ge("#messagebuffer");
 		final div = document.createDivElement();
-		final time = "[" + Date.now().toString().split(" ")[1] + "] ";
+		final time = Date.now().toString().split(" ")[1];
 		switch (type) {
 			case 1:
 				div.className = "server-msg-reconnect";
@@ -626,8 +624,13 @@ class Main {
 				div.textContent = time + text + " " + Lang.get("entered");
 			case 4:
 				div.className = "server-whisper";
-				if (isText) div.textContent = time + text;
-				else div.innerHTML = time + text;
+				div.innerHTML = '<div class="head">
+					<div class="server-whisper"></div>
+					<span class="timestamp">$time</span>
+				</div>';
+				final textDiv = div.querySelector(".server-whisper");
+				if (isText) textDiv.textContent = text;
+				else textDiv.innerHTML = text;
 			default:
 		}
 		msgBuf.appendChild(div);
@@ -642,7 +645,7 @@ class Main {
 		final list = new StringBuf();
 		for (client in clients) {
 			list.add('<div class="userlist_item">');
-			if (client.isLeader) list.add('<span class="glyphicon glyphicon-star-empty"></span>');
+			if (client.isLeader) list.add('<ion-icon name="play"></ion-icon>');
 			final klass = client.isAdmin ? "userlist_owner" : "";
 			list.add('<span class="$klass">${client.name}</span></div>');
 		}
@@ -663,16 +666,20 @@ class Main {
 		final userDiv = document.createDivElement();
 		userDiv.className = 'chat-msg-$name';
 
+		final headDiv = document.createDivElement();
+		headDiv.className = "head";
+
 		final tstamp = document.createSpanElement();
 		tstamp.className = "timestamp";
-		if (time == null) time = "[" + Date.now().toString().split(" ")[1] + "] ";
+		if (time == null) time = Date.now().toString().split(" ")[1];
 		tstamp.textContent = time;
 
 		final nameDiv = document.createElement("strong");
 		nameDiv.className = "username";
-		nameDiv.textContent = name + ": ";
+		nameDiv.textContent = name;
 
-		final textDiv = document.createSpanElement();
+		final textDiv = document.createDivElement();
+		textDiv.className = "text";
 		text = text.htmlEscape();
 
 		if (text.startsWith("/")) {
@@ -694,8 +701,9 @@ class Main {
 			}
 		}
 
-		userDiv.appendChild(tstamp);
-		userDiv.appendChild(nameDiv);
+		userDiv.appendChild(headDiv);
+		headDiv.appendChild(nameDiv);
+		headDiv.appendChild(tstamp);
 		userDiv.appendChild(textDiv);
 		msgBuf.appendChild(userDiv);
 		if (isInChatEnd) {
@@ -763,8 +771,8 @@ class Main {
 
 	function setLeaderButton(flag:Bool):Void {
 		final leaderBtn = ge("#leader_btn");
-		if (flag) leaderBtn.classList.add("label-success");
-		else leaderBtn.classList.remove("label-success");
+		if (flag) leaderBtn.classList.add("success-bg");
+		else leaderBtn.classList.remove("success-bg");
 	}
 
 	function setPlaylistLock(isOpen:Bool):Void {
@@ -773,15 +781,15 @@ class Main {
 		if (isOpen) {
 			lockPlaylist.title = Lang.get("playlistOpen");
 			lockPlaylist.classList.add("btn-success");
-			lockPlaylist.classList.remove("btn-danger");
-			icon.classList.add("glyphicon-ok");
-			icon.classList.remove("glyphicon-lock");
+			lockPlaylist.classList.add("success");
+			lockPlaylist.classList.remove("danger");
+			icon.setAttribute("name", "lock-open");
 		} else {
 			lockPlaylist.title = Lang.get("playlistLocked");
 			lockPlaylist.classList.add("btn-danger");
-			lockPlaylist.classList.remove("btn-success");
-			icon.classList.add("glyphicon-lock");
-			icon.classList.remove("glyphicon-ok");
+			lockPlaylist.classList.add("danger");
+			lockPlaylist.classList.remove("success");
+			icon.setAttribute("name", "lock-closed");
 		}
 	}
 

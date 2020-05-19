@@ -357,7 +357,7 @@ class Main {
 				}
 				data.message.text = text;
 				data.message.clientName = client.name;
-				final time = "[" + Date.now().toString().split(" ")[1] + "] ";
+				final time = Date.now().toString().split(" ")[1];
 				messages.push({text: text, name: client.name, time: time});
 				if (messages.length > config.serverChatHistory) messages.shift();
 				broadcast(data);

@@ -1,178 +1,167 @@
 <!DOCTYPE html>
-<html><head>
+<html>
+<head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SyncTube</title>
   <link rel="icon" type="image/png" href="img/favicon.png" />
-  <link href="css/sticky-footer-navbar.css" rel="stylesheet">
-  <link href="css/cytube.css" rel="stylesheet">
-  <link href="css/mobile-view.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.css" />
   <link id="usertheme" href="css/des.css" rel="stylesheet">
   <link id="customcss" href="css/custom.css" rel="stylesheet">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule="" src="https://cdn.jsdelivr.net/npm/ionicons@5.0.0/dist/ionicons/ionicons.js"></script>
 </head>
-  <body class="fluid">
-    <div id="wrap">
-      <nav class="navbar navbar-inverse" role="navigation">
-        <div class="navbar-header">
-          <a class="navbar-brand" href="#">SyncTube</a>
-          <button id="toggleMenu" class="navbar-toggle collapsed" type="button" aria-expanded="false">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-        </div>
-        <div class="collapse navbar-collapse" id="nav-collapsible">
-          <ul class="nav navbar-nav">
-            <li class="dropdown"><a class="dropdown-toggle" href="#" data-toggle="dropdown">${account}<b class="caret"></b></a>
-              <ul class="dropdown-menu">
-                <!-- <li><a href="#">${exportSettings}</a></li>
-                <li><a href="#">${importSettings}</a></li>
-                <li class="divider"></li> -->
-                <li><a id="exitBtn" href="#">${login}</a></li>
-              </ul>
-            </li>
-            <li class="dropdown"><a class="dropdown-toggle" href="#" data-toggle="dropdown">${settings}<b class="caret"></b></a>
-              <ul class="dropdown-menu">
-                <li><a href="#" id="synchThresholdBtn">${synchThreshold}</a></li>
-                <li><a href="#" id="hotkeysBtn">${hotkeys}</a></li>
-              </ul>
-            </li>
-            <li class="dropdown"><a class="dropdown-toggle" href="#" data-toggle="dropdown">${layout}<b class="caret"></b></a>
-              <ul class="dropdown-menu">
-                <li><a href="#" id="swapLayoutBtn">${swapLayout}</a></li>
-                <li><a href="#" id="removeVideoBtn">${removeVideo}</a></li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </nav>
-      <section id="mainpage">
-        <div class="container-fluid">
-          <div class="row" id="motdrow">
-            <div class="col-lg-12 col-md-12">
-              <div class="well" id="motdwrap" style="display: none;">
-                <button class="close pull-right" id="togglemotd" type="button"><span class="glyphicon glyphicon-minus"></span></button>
-                <div id="motd"></div>
-                <div class="clear"></div>
-              </div>
-            </div>
-          </div>
-          <div class="row" id="announcements"></div>
-          <div class="row" id="main">
-            <div class="split split-horizontal" id="chatwrap" style="width: calc(40% - 5px);">
-              <div id="chatheader"><i class="glyphicon glyphicon-chevron-down pull-left pointer" id="userlisttoggle" title="${toggleUserList}"></i>
-                <span class="pointer" id="usercount">${connection}...</span>
-                <span class="label label-default pull-right pointer" id="leader_btn" title="${leaderDesc}">${leader}</span>
-              </div>
-              <div id="userlist" style="height: 389px;"></div>
-              <div class="linewrap" id="messagebuffer" style="height: 389px;"></div>
-              <input class="form-control" id="chatline">
-              <div class="input-group" id="guestlogin" style="display: none;"><span class="input-group-addon">${enterAsGuest}</span>
-                <input class="form-control" id="guestname" placeholder="${yourName}">
-              </div>
-              <div class="input-group" id="guestpassword" style="display: none;"><span class="input-group-addon">${enterUserPassword}</span>
-                <input class="form-control" id="guestpass" placeholder="${yourPassword}">
-                <div id="guestpass_icon" class="glyphicon glyphicon-eye-open"></div>
-              </div>
-            </div>
-            <!-- <div class="gutter gutter-horizontal" style="width: 10px;"></div> -->
-            <div class="split split-horizontal" id="videowrap" style="width: calc(60% - 5px);">
-              <p id="currenttitle">${nothingPlaying}</p>
-              <div id="ytapiplayer" class="embed-responsive embed-responsive-16by9"></div>
-            </div>
-            <div class="clear"></div>
-          </div>
-          <div class="row" id="controlsrow">
-            <div class="col-lg-5 col-md-5" id="leftcontrols">
-              <button id="mv_btn" class="btn btn-sm btn-default">${mobileViewBtn}</button>
-            <button class="btn btn-sm btn-default" id="smilesbtn">${emotes}</button>
-            <button class="btn btn-sm btn-default" id="clearchatbtn" style="display: none;">${clearChat}</button></div>
-            <div class="col-lg-7 col-md-7" id="rightcontrols">
-              <div class="btn-group" id="plcontrol">
-                <button class="btn btn-sm btn-default collapsed" id="showmediaurl" title="${addVideoFromUrl}" data-toggle="collapse" data-target="#addfromurl" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span></button>
-                <button class="btn btn-sm btn-default collapsed" id="showcustomembed" title="${embedCustomFrame}" data-toggle="collapse" data-target="#customembed" aria-expanded="false"><span class="glyphicon glyphicon-th-large"></span></button>
-                <button class="btn btn-sm btn-default" id="clearplaylist" title="${clearPlaylist}"><span class="glyphicon glyphicon-trash"></span></button>
-                <button class="btn btn-sm btn-default" id="shuffleplaylist" title="${shufflePlaylist}"><span class="glyphicon glyphicon-sort"></span></button>
-                <button class="btn btn-sm btn-success" id="lockplaylist" title="${playlistOpen}"><span class="glyphicon glyphicon-ok"></span></button>
-              </div>
-              <div class="btn-group pull-right" id="videocontrols">
-                <button class="btn btn-sm btn-default" id="extendplayer" title="${expandPlayer}"><span class="glyphicon glyphicon-sound-stereo"></span></button>
-                <button class="btn btn-sm btn-default" id="togglesynch" title="${toggleVideoSync}"><span class="glyphicon glyphicon-play"></span></button>
-                <button class="btn btn-sm btn-default" id="mediarefresh" title="${refreshPlayer}"><span class="glyphicon glyphicon-retweet"></span></button>
-                <button class="btn btn-sm btn-default" id="fullscreenbtn" title="${fullscreenPlayer}"><span class="glyphicon glyphicon-fullscreen"></span></button>
-                <button class="btn btn-sm btn-default" id="getplaylist" title="${retrievePlaylistLinks}"><span class="glyphicon glyphicon-link"></span></button>
-                <button class="btn btn-sm btn-default" id="voteskip" title="${voteForSkip}"><span class="glyphicon glyphicon-step-forward"></span></button>
-              </div>
-            </div>
-          </div>
-          <div class="row" id="playlistrow">
-            <div class="col-lg-5 col-md-5" id="leftpane">
-              <div class="row" id="leftpane-inner">
-                <div class="col-lg-12 col-md-12" id="smileswrap"></div>
-              </div>
-            </div>
-            <div class="col-lg-7 col-md-7" id="rightpane">
-              <div class="row" id="rightpane-inner">
-                <div class="plcontrol-collapse col-lg-12 col-md-12 collapse" id="addfromurl" aria-expanded="false">
-                  <div class="vertical-spacer"></div>
-                  <div class="input-group"><span class="input-group-btn">
-                      <button class="btn btn-default" id="insert_template" title="${addTemplateUrl}">&gt;</button></span>
-                    <input class="form-control" id="mediaurl" placeholder="${mediaUrl}"><span class="input-group-btn">
-                      <button class="btn btn-default" id="queue_next">${queueNext}</button></span><span class="input-group-btn">
-                      <button class="btn btn-default" id="queue_end">${queueLast}</button></span>
-                  </div>
-                  <div class="checkbox">
-                    <label>
-                      <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
-                    </label>
-                  </div>
-                </div>
-                <div class="plcontrol-collapse col-lg-12 col-md-12 collapse" id="customembed" aria-expanded="false" style="height: 209px;">
-                  <div class="vertical-spacer"></div>
-                  <div class="input-group">
-                    <input class="form-control" id="customembed-title" placeholder="${optionalTitle}"><span class="input-group-btn">
-                      <button class="btn btn-default" id="ce_queue_next">${queueNext}</button></span><span class="input-group-btn">
-                      <button class="btn btn-default" id="ce_queue_end">${queueLast}</button></span>
-                  </div>
-                  <div class="checkbox">
-                    <label>
-                      <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
-                    </label>
-                  </div>${pasteEmbedCodeAndClick} "${queueNext}" ${or} "${queueLast}".
-                  ${acceptableEmbedCodesAre} <code>&lt;iframe&gt;</code> ${or} <code>&lt;object&gt;</code>.
-                  <strong>${customEmbedsCannotBeSynchronized}.</strong>
-                  <textarea class="input-block-level form-control" id="customembed-content" rows="3"></textarea>
-                </div>
-                <div class="col-lg-12 col-md-12" id="queuefail">
-                  <div class="vertical-spacer"></div>
-                </div>
-                <div class="col-lg-12 col-md-12">
-                  <ul class="videolist ui-sortable queue_sortable" id="queue"></ul>
-                  <div id="plmeta"><span id="plcount">0 ${videos}</span><span id="pllength">00:00</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="row" id="resizewrap">
-            <div class="col-lg-5 col-md-5"></div>
-            <div class="col-lg-7 col-md-7" id="videowidth"></div>
-          </div>
-          <div id="sitefooter"></div>
-        </div>
-      </section>
-    </div>
-    <div id="pmbar"></div>
-    <footer id="footer">
-      <div class="container">
-        <p class="text-muted credit">Based on CyTube by Calvin Montgomery ·
-          <a href="https://github.com/RblSb/SyncTube" target="_blank" rel="noreferrer noopener">GitHub</a>
-        </p>
+<body style="grid-template-columns: 70fr 4px 30fr;">
+  <!-- Video -->
+  <main id="video" data-simplebar>
+    <!-- Player -->
+    <section id="player" >
+      <div id="ytapiplayer" class="embed-responsive embed-responsive-16by9"></div>
+      <!-- Video info -->
+      <div class="info">
+        <header id="header">
+          <h2 id="currenttitle">${nothingPlaying}</h2>
+        </header>
+        <!-- Video controls -->
+        <span class="controls">
+          <button id="togglesynch" title="${toggleVideoSync}"><ion-icon name="play"></ion-icon></button>
+          <button id="mediarefresh" title="${refreshPlayer}"><ion-icon name="refresh"></ion-icon></button>
+          <button id="fullscreenbtn" title="${fullscreenPlayer}"><ion-icon name="expand"></ion-icon></button>
+          <button id="voteskip" title="${voteForSkip}"><ion-icon name="play-skip-forward"></ion-icon></button>
+        </span>
       </div>
+    </section>
+    <!-- Playlist -->
+    <section id="playlist">
+      <!-- Playlist info -->
+      <div class="info">
+        <header>
+          <h3>${playlist}</h3>
+          <button id="lockplaylist" title="${playlistOpen}"><ion-icon name="lock-open"></ion-icon></button>
+          <button id="getplaylist" title="${retrievePlaylistLinks}"><ion-icon name="link"></ion-icon></button>
+        </header>
+        <!-- Playlist controls -->
+        <span class="controls">
+          <button class="collapsed" id="showmediaurl" title="${addVideoFromUrl}" data-toggle="collapse" data-target="#addfromurl" aria-expanded="false"><ion-icon name="add"></ion-icon></button>
+          <button class="collapsed" id="showcustomembed" title="${embedCustomFrame}" data-toggle="collapse" data-target="#customembed" aria-expanded="false"><ion-icon name="code"></ion-icon></button>
+          <button id="shuffleplaylist" title="${shufflePlaylist}"><ion-icon name="shuffle"></ion-icon></button>
+          <button id="clearplaylist" title="${clearPlaylist}"><ion-icon name="close"></ion-icon></button>
+        </span>
+      </div>
+      <!-- Playlist metadata -->
+      <div class="metadata">
+        <span><ion-icon name="logo-youtube"></ion-icon><span id="plcount">0 ${videos}</span></span>
+        <span><ion-icon name="time"></ion-icon><span id="pllength">00:00</span></span>
+      </div>
+      <!-- Add video -->
+      <div class="collapse" id="addfromurl" aria-expanded="false">
+        <div>
+          <button id="insert_template" title="${addTemplateUrl}">&gt;</button>
+          <input id="mediaurl" type="text" placeholder="${addVideoFromUrl}">
+        </div>
+        <div>
+          <button id="queue_next">${queueNext}</button>
+          <button id="queue_end">${queueLast}</button>
+          <label>
+            <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
+          </label>
+        </div>
+      </div>
+      <div class="collapse" id="customembed" aria-expanded="false">
+        <input id="customembed-title" type="text" placeholder="${optionalTitle}">
+        <textarea id="customembed-content" rows="5" placeholder="${pasteEmbedCodeAndClick} '${queueNext}' ${or} '${queueLast}'. &#10;${acceptableEmbedCodesAre} &lt;iframe&gt; ${or} &lt;object&gt;. &#10;${customEmbedsCannotBeSynchronized}."></textarea>
+        <div>
+          <button id="ce_queue_next">${queueNext}</button>
+          <button id="ce_queue_end">${queueLast}</button>
+          <label>
+            <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
+          </label>
+        </div>
+      </div>
+      <!-- Queue -->
+      <div id="queuefail">
+      </div>
+      <div>
+        <ul class="ui-sortable queue_sortable" id="queue"></ul>
+      </div>
+    </section>
+    <!-- Footer -->
+    <footer id="footer">
+      <p>Powered by <a href="https://github.com/RblSb/SyncTube" target="_blank" rel="noreferrer noopener">SyncTube</a></p>
     </footer>
+  </main>
 
-    <script src="js/split.min.js"></script>
-    <script src="client.js"></script>
-    <script src="js/custom.js"></script>
-  </body>
+  <!-- Gutter -->
+  <div class="gutter"></div>
+
+  <!-- Chat -->
+  <aside id="chat">
+    <!-- Chat controls -->
+    <div class="controls">
+      <div id="optionsTitle" style="display: none;">${settings}</div>
+      <button id="userlisttoggle" title="${toggleUserList}">
+        <ion-icon  name="chevron-forward"></ion-icon>
+        <span id="usercount">${connection}...</span>
+      </button>
+      <span>
+        <button id="leader_btn" title="${leaderDesc}">${leader}</button>
+        <!-- Settings button -->
+        <button id="showoptions" class="collapsed" data-toggle="collapse" data-target="#optionsPanel" aria-expanded="false"><ion-icon name="settings-sharp"></ion-icon></button>
+      </span>
+    </div>
+    <!-- User list -->
+    <div id="userlist"></div>
+    <!-- Settings list -->
+    <ul id="optionsPanel" class="collapse" aria-expanded="false">
+      <!-- <div><h3>${settings}</h3></div> -->
+      <div>
+        <h4>${account}</h4>
+        <li><button id="exitBtn">${login}</button></li>
+      </div>
+      <div>
+        <h4>${general}</h4>
+        <li><button id="hotkeysBtn"><span>${hotkeys}</span></button></li>
+        <li><button id="swapLayoutBtn" title="${swapLayout}"><span>${swapLayout}</span></button></li>
+      </div>
+      <div>
+        <h4>${video}</h4>
+        <li><button id="synchThresholdBtn"><span>${synchThreshold}</span></button></li>
+        <li><button id="removeVideoBtn"><span>${removeVideo}</span></button></li>
+      </div>
+      <div>
+        <h4>${chat}</h4>
+        <li><button id="clearchatbtn" style="display: none;"><span>${clearChat}</span></button></li>
+      </div>
+      <!-- <li><a href="#">${exportSettings}</a></li>
+      <li><a href="#">${importSettings}</a></li>
+      <li class="divider"></li> -->
+    </ul>
+    <!-- Messages -->
+    <div id="messagebuffer" data-simplebar></div>
+    <!-- Message input -->
+    <div id="chatbox">
+      <input id="chatline" type="text" placeholder="${chatlinePlaceholder}">
+      <button id="smilesbtn" title="${emotes}"><ion-icon name="happy"></ion-icon></button>
+    </div>
+    <div id="smileswrap" data-simplebar></div>
+    <!-- Guest login -->
+    <div id="guestlogin" style="display: none;">
+      <label>${enterAsGuest}</label>
+      <input id="guestname" type="text" placeholder="${yourName}">
+    </div>
+    <div id="guestpassword" style="display: none;">
+      <label>${enterUserPassword}</label>
+      <span>
+        <input id="guestpass" type="text" placeholder="${yourPassword}">
+        <button id="guestpass_icon"><ion-icon name="eye"></ion-icon></button>
+      </span>
+    </div>
+  </aside>
+
+  <script src="https://cdn.jsdelivr.net/npm/split-grid@1.0.9/dist/split-grid.js"></script>
+  <script src="client.js"></script>
+  <script src="js/custom.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simplebar@5.2.0/dist/simplebar.min.js"></script>
+</body>
 </html>

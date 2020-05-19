@@ -186,24 +186,17 @@ class Player {
 	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
 		final url = item.url.htmlEscape(true);
 		final itemEl = Utils.nodeFromString(
-			'<li class="queue_entry pluid-0" title="${Lang.get("addedBy")}: ${item.author}">
-				<a class="qe_title" href="$url" target="_blank">${item.title.htmlEscape()}</a>
-				<span class="qe_time">${duration(item.duration)}</span>
-				<div class="qe_clear"></div>
-				<div class="btn-group">
-					<button class="btn btn-xs btn-default qbtn-play">
-						<span class="glyphicon glyphicon-play"></span>${Lang.get("play")}
-					</button>
-					<button class="btn btn-xs btn-default qbtn-next">
-						<span class="glyphicon glyphicon-share-alt"></span>${Lang.get("setNext")}
-					</button>
-					<button class="btn btn-xs btn-default qbtn-tmp">
-						<span class="glyphicon glyphicon-flag"></span>
-					</button>
-					<button class="btn btn-xs btn-default qbtn-delete">
-						<span class="glyphicon glyphicon-trash"></span>${Lang.get("delete")}
-					</button>
-				</div>
+			'<li class="queue_entry info" title="${Lang.get("addedBy")}: ${item.author}">
+				<header>
+					<span class="qe_time">${duration(item.duration)}</span>
+					<h4><a class="qe_title" href="$url" target="_blank">${item.title.htmlEscape()}</a></h4>
+				</header>
+				<span class="controls">
+					<button class="qbtn-play" title="${Lang.get("play")}"><ion-icon name="play"></ion-icon></button>
+					<button class="qbtn-next" title="${Lang.get("setNext")}"><ion-icon name="arrow-up"></ion-icon></button>
+					<button class="qbtn-tmp"><ion-icon></ion-icon></button>
+					<button class="qbtn-delete" title="${Lang.get("delete")}"><ion-icon name="close"></ion-icon></button>
+				</span>
 			</li>'
 		);
 		items.addItem(item, atEnd, itemPos);
@@ -214,8 +207,10 @@ class Player {
 	}
 
 	function setItemElementType(item:Element, isTemp:Bool):Void {
-		final text = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
-		item.querySelector(".qbtn-tmp").innerHTML = '<span class="glyphicon glyphicon-flag"></span>$text';
+		final btn = item.querySelector(".qbtn-tmp");
+		btn.title = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
+		final iconType = isTemp ? "lock-open" : "lock-closed";
+		btn.firstElementChild.setAttribute("name", iconType);
 		if (isTemp) item.classList.add("queue_temp");
 		else item.classList.remove("queue_temp");
 	}
