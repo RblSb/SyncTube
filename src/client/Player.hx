@@ -131,7 +131,7 @@ class Player {
 	public function removeVideo():Void {
 		JsApi.fireVideoRemoveEvents(items[itemPos]);
 		player.removeVideo();
-		ge("#currenttitle").textContent = Lang.get("playerTitle");
+		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
 	}
 
 	public function onCanBePlayed():Void {
@@ -192,9 +192,9 @@ class Player {
 					<h4><a class="qe_title" href="$url" target="_blank">${item.title.htmlEscape()}</a></h4>
 				</header>
 				<span class="controls">
-					<button class="qbtn-play" title="${Lang.get("queuePlay")}"><ion-icon name="play"></ion-icon></button>
-					<button class="qbtn-next" title="${Lang.get("queueNext")}"><ion-icon name="arrow-up"></ion-icon></button>
-					<button class="qbtn-tmp"><ion-icon name="flag"></ion-icon></button>
+					<button class="qbtn-play" title="${Lang.get("play")}"><ion-icon name="play"></ion-icon></button>
+					<button class="qbtn-next" title="${Lang.get("setNext")}"><ion-icon name="arrow-up"></ion-icon></button>
+					<button class="qbtn-tmp"><ion-icon></ion-icon></button>
 					<button class="qbtn-delete" title="${Lang.get("delete")}"><ion-icon name="close"></ion-icon></button>
 				</span>
 			</li>'
@@ -207,17 +207,12 @@ class Player {
 	}
 
 	function setItemElementType(item:Element, isTemp:Bool):Void {
-		final text = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
-		if (isTemp){
-			item.classList.add("queue_temp");
-			item.querySelector(".qbtn-tmp").innerHTML = '<ion-icon name="lock-open" title"$text"></ion-icon>';
-			item.querySelector(".qbtn-tmp").setAttribute("title", Lang.get("makePermanent"));
-		}
-		else {
-			item.classList.remove("queue_temp");
-			item.querySelector(".qbtn-tmp").innerHTML = '<ion-icon name="lock-closed" title="$text"></ion-icon>';
-			item.querySelector(".qbtn-tmp").setAttribute("title", Lang.get("makeTemporary"));
-		}
+		final btn = item.querySelector(".qbtn-tmp");
+		btn.title = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
+		final iconType = isTemp ? "lock-open" : "lock-closed";
+		btn.firstElementChild.setAttribute("name", iconType);
+		if (isTemp) item.classList.add("queue_temp");
+		else item.classList.remove("queue_temp");
 	}
 
 	public function removeItem(url:String):Void {
@@ -254,7 +249,7 @@ class Player {
 	}
 
 	function updateCounters():Void {
-		ge("#plcount").textContent = '${items.length} ${Lang.get("playlistCount")}';
+		ge("#plcount").textContent = '${items.length} ${Lang.get("videos")}';
 		ge("#pllength").textContent = totalDuration();
 	}
 

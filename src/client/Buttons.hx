@@ -12,27 +12,27 @@ import js.html.Event;
 
 class Buttons {
 
-	//static var split:Split;
+	static var split:Split;
 	static var settings:ClientSettings;
 
 	public static function init(main:Main):Void {
 		settings = main.settings;
-		window.onresize = onVideoResize;
-		//initSplit();
+		if (settings.isSwapped) document.body.classList.add("swap");
+		initSplit();
+		setSplitSize(settings.playerSize, settings.chatSize);
 		initChatInput(main);
 
 		final passIcon = ge("#guestpass_icon");
 		passIcon.onclick = e -> {
-			final isOpen = passIcon.classList.toggle("eye-open");
-			passIcon.classList.toggle("eye-close");
+			final icon = passIcon.firstElementChild;
+			final isOpen = icon.getAttribute("name") == "eye-off";
 			final pass:InputElement = cast ge("#guestpass");
 			if (isOpen) {
 				pass.type = "password";
-				passIcon.setAttribute("name", "eye");
-			}
-			else {
+				icon.setAttribute("name", "eye");
+			} else {
 				pass.type = "text";
-				passIcon.setAttribute("name", "eye-off");
+				icon.setAttribute("name", "eye-off");
 			}
 		}
 
@@ -96,7 +96,7 @@ class Buttons {
 		toggleSynch.onclick = e -> {
 			final icon = toggleSynch.firstElementChild;
 			if (main.isSyncActive) {
-				if (!window.confirm(Lang.get("playerSynchConfirm"))) return;
+				if (!window.confirm(Lang.get("toggleSynchConfirm"))) return;
 				main.isSyncActive = false;
 				icon.style.color = "rgba(238, 72, 67, 0.75)";
 				icon.setAttribute("name", "pause");
@@ -128,14 +128,15 @@ class Buttons {
 		}
 		final clearPlaylist = ge("#clearplaylist");
 		clearPlaylist.onclick = e -> {
-			if (!window.confirm(Lang.get("playlistClearConfirm"))) return;
+			if (!window.confirm(Lang.get("clearPlaylistConfirm"))) return;
 			main.send({type: ClearPlaylist});
 		}
 		final shufflePlaylist = ge("#shuffleplaylist");
 		shufflePlaylist.onclick = e -> {
-			if (!window.confirm(Lang.get("playlistShuffleConfirm"))) return;
+			if (!window.confirm(Lang.get("shufflePlaylistConfirm"))) return;
 			main.send({type: ShufflePlaylist});
 		}
+
 		final lockPlaylist = ge("#lockplaylist");
 		lockPlaylist.onclick = e -> {
 			if (main.isAdmin()) main.send({type: TogglePlaylistLock});
@@ -147,20 +148,35 @@ class Buttons {
 		final showCustomEmbed = ge("#showcustomembed");
 		showCustomEmbed.onclick = e -> showPlayerGroup(showCustomEmbed);
 
+		ge("#insert_template").onclick = e -> {
+			final input:InputElement = cast ge("#mediaurl");
+			input.value = main.getTemplateUrl();
+			input.focus();
+		}
+
 		final showOptions = ge("#showoptions");
-		showOptions.onclick = e -> collapse(showOptions);
+		showOptions.onclick = e -> {
+			final isActive = toggleGroup(showOptions);
+			ge("#messagebuffer").style.display = isActive ? "none" : "block";
+			ge("#chatbox").style.display = isActive ? "none" : "flex";
+			ge("#userlisttoggle").style.display = isActive ? "none" : "inline-flex";
+			ge("#optionsTitle").style.display = isActive ? "inline-flex" : "none";
+		}
 
 		final exitBtn = ge("#exitBtn");
 		exitBtn.onclick = e -> {
 			if (main.isUser()) main.send({type: Logout});
 			else ge("#guestname").focus();
-			collapse(showOptions);
-			exitBtn.blur();
+			toggleGroup(showOptions);
 		}
-		ge("#insert_template").onclick = e -> {
-			final input:InputElement = cast ge("#mediaurl");
-			input.value = main.getTemplateUrl();
-			input.focus();
+
+		final swapLayoutBtn = ge("#swapLayoutBtn");
+		swapLayoutBtn.onclick = e -> {
+			settings.isSwapped = ge("body").classList.toggle("swap");
+			final sizes = document.body.style.gridTemplateColumns.split(" ");
+			sizes.reverse();
+			document.body.style.gridTemplateColumns = sizes.join(" ");
+			Settings.write(settings);
 		}
 	}
 
@@ -168,64 +184,55 @@ class Buttons {
 		final groups:Array<Element> = cast document.querySelectorAll('[data-target]');
 		for (group in groups) {
 			if (el == group) continue;
-			group.classList.add("collapsed");
-			group.classList.remove("active");
-			ge(group.dataset.target).classList.add("collapse");
+			if (group.classList.contains("collapsed")) continue;
+			toggleGroup(group);
 		}
-		el.classList.toggle("collapsed");
-		el.classList.toggle("active");
-		ge(el.dataset.target).classList.toggle("collapse");
+		toggleGroup(el);
 	}
 
-	static function collapse(el:Element):Void {
+	static function toggleGroup(el:Element):Bool {
 		el.classList.toggle("collapsed");
-		el.classList.toggle("active");
 		ge(el.dataset.target).classList.toggle("collapse");
+		return el.classList.toggle("active");
 	}
 
-	/*static function initSplit():Void {
+	static function initSplit():Void {
 		if (split != null) split.destroy();
-		final divs = ["#video", "#chat"];
-		final sizes = [settings.playerSize, settings.chatSize];
-		if (settings.isSwapped) {
-			divs.reverse();
-			sizes.reverse();
-		}
-		split = new Split(divs, {
-			sizes: sizes,
-			onDragEnd: () -> {
-				window.dispatchEvent(new Event("resize"));
-				writeSplitSize();
-			},
-			minSize: 185,
-			snapOffset: 0
+		split = new Split({
+			columnGutters: [{
+				element: ge(".gutter"),
+				track: 1,
+			}],
+			minSize: 200,
+			snapOffset: 0,
+			onDragEnd: saveSplitSize
 		});
-		window.dispatchEvent(new Event("resize"));
 	}
 
-	static function writeSplitSize():Void {
-		final sizes = split.getSizes();
+	static function setSplitSize(playerSize:Float, chatSize:Float):Void {
+		final sizes = document.body.style.gridTemplateColumns.split(" ");
+		final playerId = settings.isSwapped ? sizes.length - 1 : 0;
+		final chatId = settings.isSwapped ? 0 : sizes.length - 1;
+		sizes[playerId] = '${playerSize}fr';
+		sizes[chatId] = '${chatSize}fr';
+		document.body.style.gridTemplateColumns = sizes.join(" ");
+	}
+
+	static function	saveSplitSize():Void {
+		final sizes = document.body.style.gridTemplateColumns.split(" ");
 		if (settings.isSwapped) sizes.reverse();
+		settings.playerSize = Std.parseFloat(sizes[0]);
+		settings.chatSize = Std.parseFloat(sizes[sizes.length - 1]);
 		Settings.write(settings);
-	}*/
-
-	static function onVideoResize():Void {
-		final player = ge("#ytapiplayer");
 	}
 
-	static function onClick(el:Element, func:Any->Void):Void {
-		if (!Utils.isTouch()) el.onclick = func;
-		else el.ontouchend = func;
-	}
-
-	public static function initOptions(main:Main):Void {
+	public static function initTextButtons(main:Main):Void {
 		final synchThresholdBtn = ge("#synchThresholdBtn");
 		synchThresholdBtn.onclick = e -> {
 			var secs = settings.synchThreshold + 1;
 			if (secs > 5) secs = 1;
 			main.setSynchThreshold(secs);
 			updateSynchThresholdBtn();
-			synchThresholdBtn.blur();
 		}
 		updateSynchThresholdBtn();
 
@@ -234,7 +241,6 @@ class Buttons {
 			settings.hotkeysEnabled = !settings.hotkeysEnabled;
 			Settings.write(settings);
 			updateHotkeysBtn();
-			hotkeysBtn.blur();
 		}
 		updateHotkeysBtn();
 
@@ -243,28 +249,7 @@ class Buttons {
 			final has = main.toggleVideoElement();
 			if (has || main.isListEmpty()) removeBtn.innerText = Lang.get("removeVideo");
 			else removeBtn.innerText = Lang.get("addVideo");
-			removeBtn.blur();
 		}
-
-		final swapLayoutBtn = ge("#swapLayoutBtn");
-		swapLayoutBtn.onclick = e -> {
-			final p = ge("body");
-			final template = "1fr 4px 384px";
-			final templateRev = "384px 4px 1fr";
-			if (ge("body").classList.contains("swap")) {
-				p.classList.remove("swap");
-				p.style.gridTemplateColumns = template;
-			} else {
-				p.classList.add("swap");
-				p.style.gridTemplateColumns = templateRev;
-			}
-			settings.isSwapped = ge("body").firstElementChild == ge("#chat");
-			Settings.write(settings);
-			//initSplit();
-			swapLayoutBtn.blur();
-			main.scrollChatToEnd();
-		}
-		if (settings.isSwapped) swapLayoutBtn.onclick();
 	}
 
 	public static function initHotkeys(main:Main, player:Player):Void {

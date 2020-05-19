@@ -9,9 +9,10 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.css" />
   <link id="usertheme" href="css/des.css" rel="stylesheet">
   <link id="customcss" href="css/custom.css" rel="stylesheet">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule="" src="https://cdn.jsdelivr.net/npm/ionicons@5.0.0/dist/ionicons/ionicons.js"></script>
 </head>
-<body style="grid-template-columns: 1fr 4px 384px;">
-  
+<body style="grid-template-columns: 70fr 4px 30fr;">
   <!-- Video -->
   <main id="video" data-simplebar>
     <!-- Player -->
@@ -20,14 +21,14 @@
       <!-- Video info -->
       <div class="info">
         <header id="header">
-          <h2 id="currenttitle">${playerTitle}</h2>
+          <h2 id="currenttitle">${nothingPlaying}</h2>
         </header>
         <!-- Video controls -->
         <span class="controls">
-          <button id="togglesynch" title="${playerSynch}"><ion-icon name="play"></ion-icon></button>
-          <button id="mediarefresh" title="${playerRefresh}"><ion-icon name="refresh"></ion-icon></button>
-          <button id="fullscreenbtn" title="${playerFullscreen}"><ion-icon name="expand"></ion-icon></button>
-          <button id="voteskip" title="${voteSkip}"><ion-icon name="play-skip-forward"></ion-icon></button>
+          <button id="togglesynch" title="${toggleVideoSync}"><ion-icon name="play"></ion-icon></button>
+          <button id="mediarefresh" title="${refreshPlayer}"><ion-icon name="refresh"></ion-icon></button>
+          <button id="fullscreenbtn" title="${fullscreenPlayer}"><ion-icon name="expand"></ion-icon></button>
+          <button id="voteskip" title="${voteForSkip}"><ion-icon name="play-skip-forward"></ion-icon></button>
         </span>
       </div>
     </section>
@@ -36,16 +37,16 @@
       <!-- Playlist info -->
       <div class="info">
         <header>
-          <h3>${Playlist}</h3>
+          <h3>${playlist}</h3>
           <button id="lockplaylist" title="${playlistOpen}"><ion-icon name="lock-open"></ion-icon></button>
-          <button id="getplaylist" title="${playlistLinks}"><ion-icon name="link"></ion-icon></button>
+          <button id="getplaylist" title="${retrievePlaylistLinks}"><ion-icon name="link"></ion-icon></button>
         </header>
         <!-- Playlist controls -->
         <span class="controls">
-          <button class="collapsed" id="showmediaurl" title="${playlistAddUrl}" data-toggle="collapse" data-target="#addfromurl" aria-expanded="false"><ion-icon name="add"></ion-icon></button>
-          <button class="collapsed" id="showcustomembed" title="${playlistAddEmbed}" data-toggle="collapse" data-target="#customembed" aria-expanded="false"><ion-icon name="code"></ion-icon></button>
-          <button id="shuffleplaylist" title="${playlistShuffle}"><ion-icon name="shuffle"></ion-icon></button>
-          <button id="clearplaylist" title="${playlistClear}"><ion-icon name="close"></ion-icon></button>
+          <button class="collapsed" id="showmediaurl" title="${addVideoFromUrl}" data-toggle="collapse" data-target="#addfromurl" aria-expanded="false"><ion-icon name="add"></ion-icon></button>
+          <button class="collapsed" id="showcustomembed" title="${embedCustomFrame}" data-toggle="collapse" data-target="#customembed" aria-expanded="false"><ion-icon name="code"></ion-icon></button>
+          <button id="shuffleplaylist" title="${shufflePlaylist}"><ion-icon name="shuffle"></ion-icon></button>
+          <button id="clearplaylist" title="${clearPlaylist}"><ion-icon name="close"></ion-icon></button>
         </span>
       </div>
       <!-- Playlist metadata -->
@@ -57,22 +58,22 @@
       <div class="collapse" id="addfromurl" aria-expanded="false">
         <div>
           <button id="insert_template" title="${addTemplateUrl}">&gt;</button>
-          <input id="mediaurl" type="text" placeholder="${addUrl}">
+          <input id="mediaurl" type="text" placeholder="${addVideoFromUrl}">
         </div>
         <div>
-          <button id="queue_next">${addNext}</button>
-          <button id="queue_end">${addLast}</button>
+          <button id="queue_next">${queueNext}</button>
+          <button id="queue_end">${queueLast}</button>
           <label>
             <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
           </label>
         </div>
       </div>
       <div class="collapse" id="customembed" aria-expanded="false">
-        <input id="customembed-title" type="text" placeholder="${addTitle}">
-        <textarea id="customembed-content" rows="5" placeholder="${pasteEmbedCodeAndClick} '${addNext}' ${or} '${queueLast}'. &#10;${acceptableEmbedCodesAre} &lt;iframe&gt; ${or} &lt;object&gt;. &#10;${customEmbedsCannotBeSynchronized}."></textarea>
+        <input id="customembed-title" type="text" placeholder="${optionalTitle}">
+        <textarea id="customembed-content" rows="5" placeholder="${pasteEmbedCodeAndClick} '${queueNext}' ${or} '${queueLast}'. &#10;${acceptableEmbedCodesAre} &lt;iframe&gt; ${or} &lt;object&gt;. &#10;${customEmbedsCannotBeSynchronized}."></textarea>
         <div>
-          <button id="ce_queue_next">${addNext}</button>
-          <button id="ce_queue_end">${addLast}</button>
+          <button id="ce_queue_next">${queueNext}</button>
+          <button id="ce_queue_end">${queueLast}</button>
           <label>
             <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
           </label>
@@ -87,7 +88,7 @@
     </section>
     <!-- Footer -->
     <footer id="footer">
-      <p>Powered by <a href="https://github.com/RblSb/SyncTube" target="_blank" rel="noreferrer noopener">SyncTube</a> &middot; Based on CyTube by Calvin Montgomery</p>
+      <p>Powered by <a href="https://github.com/RblSb/SyncTube" target="_blank" rel="noreferrer noopener">SyncTube</a></p>
     </footer>
   </main>
 
@@ -98,6 +99,7 @@
   <aside id="chat">
     <!-- Chat controls -->
     <div class="controls">
+      <div id="optionsTitle" style="display: none;">${settings}</div>
       <button id="userlisttoggle" title="${toggleUserList}">
         <ion-icon  name="chevron-forward"></ion-icon>
         <span id="usercount">${connection}...</span>
@@ -112,7 +114,7 @@
     <div id="userlist"></div>
     <!-- Settings list -->
     <ul id="optionsPanel" class="collapse" aria-expanded="false">
-      <div><h3>${settings}</h3></div>
+      <!-- <div><h3>${settings}</h3></div> -->
       <div>
         <h4>${account}</h4>
         <li><button id="exitBtn">${login}</button></li>
@@ -139,7 +141,7 @@
     <div id="messagebuffer" data-simplebar></div>
     <!-- Message input -->
     <div id="chatbox">
-      <input id="chatline" type="text" placeholder="${sendMessage}">
+      <input id="chatline" type="text" placeholder="${chatlinePlaceholder}">
       <button id="smilesbtn" title="${emotes}"><ion-icon name="happy"></ion-icon></button>
     </div>
     <div id="smileswrap" data-simplebar></div>
@@ -152,24 +154,14 @@
       <label>${enterUserPassword}</label>
       <span>
         <input id="guestpass" type="text" placeholder="${yourPassword}">
-        <ion-icon id="guestpass_icon" name="eye"></ion-icon>
+        <button id="guestpass_icon"><ion-icon name="eye"></ion-icon></button>
       </span>
     </div>
   </aside>
 
+  <script src="https://cdn.jsdelivr.net/npm/split-grid@1.0.9/dist/split-grid.js"></script>
   <script src="client.js"></script>
   <script src="js/custom.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/simplebar@5.2.0/dist/simplebar.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/split-grid@1.0.9/dist/split-grid.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ionicons@5.0.0/dist/ionicons.js"></script>
-  <script>
-    Split({
-      columnGutters: [{
-        element: document.querySelector('.gutter'),
-        track: 1,
-      }],
-      minSize: 192
-    });
-  </script>
 </body>
 </html>

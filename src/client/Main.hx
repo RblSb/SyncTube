@@ -53,6 +53,9 @@ class Main {
 			version: SETTINGS_VERSION,
 			name: "",
 			hash: "",
+			isExtendedPlayer: false,
+			playerSize: 70,
+			chatSize: 30,
 			synchThreshold: 2,
 			isSwapped: false,
 			isUserListHidden: true,
@@ -73,7 +76,7 @@ class Main {
 			}
 		}
 		Lang.init("langs", () -> {
-			Buttons.initOptions(this);
+			Buttons.initTextButtons(this);
 			Buttons.initHotkeys(this, player);
 			openWebSocket(host, port);
 		});
@@ -131,7 +134,7 @@ class Main {
 		}
 		final voteSkip = ge("#voteskip");
 		voteSkip.onclick = e -> {
-			if (Utils.isTouch() && !window.confirm(Lang.get("voteSkipConfirm"))) return;
+			if (Utils.isTouch() && !window.confirm(Lang.get("skipItemConfirm"))) return;
 			if (player.isListEmpty()) return;
 			final items = player.getItems();
 			final pos = player.getItemPos();
@@ -621,8 +624,13 @@ class Main {
 				div.textContent = time + text + " " + Lang.get("entered");
 			case 4:
 				div.className = "server-whisper";
-				if (isText) div.textContent = time + text;
-				else div.innerHTML = time + text;
+				div.innerHTML = '<div class="head">
+					<div class="server-whisper"></div>
+					<span class="timestamp">$time</span>
+				</div>';
+				final textDiv = div.querySelector(".server-whisper");
+				if (isText) textDiv.textContent = text;
+				else textDiv.innerHTML = text;
 			default:
 		}
 		msgBuf.appendChild(div);
