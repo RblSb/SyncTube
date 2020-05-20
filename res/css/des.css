@@ -484,6 +484,22 @@ footer#footer {
   color: var(--midground);
 }
 
+#userlisttoggle {
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.md.hydrated {
+  flex-shrink: 0;
+}
+
+#usercount {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 /* Options */
 
 #optionsPanel {
@@ -737,21 +753,6 @@ footer#footer {
   }
 }
 
-#userlisttoggle {
-  overflow: hidden;
-  white-space: nowrap;
-  text-align: left;
-}
-
-.md.hydrated {
-  flex-shrink: 0;
-}
-
-#usercount {
-  display: block;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
 
 @-ms-viewport {
   width:device-width
