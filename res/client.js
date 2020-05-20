@@ -1157,7 +1157,7 @@ client_Main.prototype = {
 			if(this.player.isVideoLoaded()) {
 				this.forceSyncNextTick = false;
 			}
-			if(this.player.getDuration() < this.player.getTime()) {
+			if(this.player.getDuration() <= this.player.getTime()) {
 				return;
 			}
 			if(!data.getTime.paused) {

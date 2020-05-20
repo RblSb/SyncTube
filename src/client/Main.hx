@@ -411,7 +411,7 @@ class Main {
 					return;
 				}
 				if (player.isVideoLoaded()) forceSyncNextTick = false;
-				if (player.getDuration() < player.getTime()) return;
+				if (player.getDuration() <= player.getTime()) return;
 				if (!data.getTime.paused) player.play();
 				else player.pause();
 				if (Math.abs(time - newTime) < synchThreshold) return;
