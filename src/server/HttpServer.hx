@@ -155,6 +155,7 @@ class HttpServer {
 		proxy.on("error", err -> {
 			res.end('Proxy error for ${url.href}');
 		});
+		res.setHeader("Content-Type", "application/octet-stream");
 		req.pipe(proxy, {end: true});
 		return true;
 	}
