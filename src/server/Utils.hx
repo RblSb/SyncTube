@@ -35,8 +35,7 @@ class Utils {
 	}
 
 	public static function sortedPush(ids:Array<Int>, id:Int):Void {
-		for (i in 0...ids.length) {
-			final n = ids[i];
+		for (i => n in ids) {
 			if (id < n) {
 				ids.insert(i, id);
 				return;
@@ -46,9 +45,8 @@ class Utils {
 	}
 
 	public static function shuffle<T>(arr:Array<T>):Void {
-		for (i in 0...arr.length) {
+		for (i => a in arr) {
 			final n = Std.random(arr.length);
-			final a = arr[i];
 			final b = arr[n];
 			arr[i] = b;
 			arr[n] = a;

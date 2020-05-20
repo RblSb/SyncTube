@@ -45,8 +45,9 @@ It's just works, but you can also check [user/ folder](/user/README.md) for serv
 - Add `APP_URL` config var with `your-app-link.herokuapp.com` value to prevent sleeping when clients online
 
 ### Development
-- Install Haxe 4, VSCode and vshaxe extension
+- Install [Haxe 4.1](https://haxe.org/download/), [VSCode](https://code.visualstudio.com) and [Haxe extension](https://marketplace.visualstudio.com/items?itemName=nadako.vshaxe)
 - `haxelib install all` to install extern libs
+- If you skipped `Setup` section before: `npm install`
 - Open project in VSCode and press `F5` for client+server build and run
 
 ### About

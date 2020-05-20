@@ -1,11 +1,11 @@
--lib hxnodejs
--lib hxnodejs-ws
--lib json2object
+--library hxnodejs
+--library hxnodejs-ws
+--library json2object
 # Client libs for completion
--lib youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
--lib hls.js-extern:git:https://github.com/grosmar/hls.js-haxe-extern.git
--lib utest
--cp src
+--library youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
+--library hls.js-extern:git:https://github.com/grosmar/hls.js-haxe-extern.git
+--library utest
+--class-path src
 --main server.Main
 -D analyzer-optimize
 --dce full
