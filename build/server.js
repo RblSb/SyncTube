@@ -3637,7 +3637,7 @@ server_Main.prototype = {
 					if(_gthis.videoList.length != currentLength) {
 						return;
 					}
-					_gthis.onMessage(client,{ type : "SkipVideo", skipVideo : { url : _gthis.videoList[_gthis.itemPos].url}});
+					_gthis.skipVideo({ type : "SkipVideo", skipVideo : { url : _gthis.videoList[_gthis.itemPos].url}});
 				},1000);
 				return;
 			}
@@ -3859,17 +3859,7 @@ server_Main.prototype = {
 			if(!this.checkPermission(client,"removeVideo")) {
 				return;
 			}
-			if(this.videoList.length == 0) {
-				return;
-			}
-			if(this.videoList[this.itemPos].url != data.skipVideo.url) {
-				return;
-			}
-			this.itemPos = VideoList.skipItem(this.videoList,this.itemPos);
-			if(this.videoList.length > 0) {
-				this.restartWaitTimer();
-			}
-			this.broadcast(data);
+			this.skipVideo(data);
 			break;
 		case "ToggleItemType":
 			VideoList.toggleItemType(this.videoList,data.toggleItemType.pos);
@@ -3927,6 +3917,19 @@ server_Main.prototype = {
 			}
 			client.ws.send(json,null);
 		}
+	}
+	,skipVideo: function(data) {
+		if(this.videoList.length == 0) {
+			return;
+		}
+		if(this.videoList[this.itemPos].url != data.skipVideo.url) {
+			return;
+		}
+		this.itemPos = VideoList.skipItem(this.videoList,this.itemPos);
+		if(this.videoList.length > 0) {
+			this.restartWaitTimer();
+		}
+		this.broadcast(data);
 	}
 	,checkPermission: function(client,perm) {
 		var state = this.hasPermission(client,perm);

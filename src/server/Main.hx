@@ -415,12 +415,7 @@ class Main {
 
 			case SkipVideo:
 				if (!checkPermission(client, RemoveVideoPerm)) return;
-				if (videoList.length == 0) return;
-				final item = videoList[itemPos];
-				if (item.url != data.skipVideo.url) return;
-				itemPos = videoList.skipItem(itemPos);
-				if (videoList.length > 0) restartWaitTimer();
-				broadcast(data);
+				skipVideo(data);
 
 			case Pause:
 				if (videoList.length == 0) return;
@@ -445,7 +440,7 @@ class Main {
 					final currentLength = videoList.length;
 					Timer.delay(() -> {
 						if (videoList.length != currentLength) return;
-						onMessage(client, {
+						skipVideo({
 							type: SkipVideo, skipVideo: {
 								url: videoList[itemPos].url
 							}
@@ -609,6 +604,15 @@ class Main {
 			if (client == skipped) continue;
 			client.ws.send(json, null);
 		}
+	}
+
+	function skipVideo(data:WsEvent):Void {
+		if (videoList.length == 0) return;
+		final item = videoList[itemPos];
+		if (item.url != data.skipVideo.url) return;
+		itemPos = videoList.skipItem(itemPos);
+		if (videoList.length > 0) restartWaitTimer();
+		broadcast(data);
 	}
 
 	function checkPermission(client:Client, perm:Permission):Bool {
