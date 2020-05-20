@@ -138,7 +138,9 @@ class HttpServer {
 
 	static function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
 		final url = req.url.replace("/proxy?url=", "");
-		final url = new URL(js.Node.global.decodeURI(url));
+		final url = try {
+			new URL(js.Node.global.decodeURI(url));
+		} catch(e) return false;
 		if (url.host == req.headers["host"]) return false;
 		final options = {
 			host: url.host,
@@ -149,6 +151,7 @@ class HttpServer {
 		};
 		final request = url.protocol == "https:" ? Https.request : Http.request;
 		final proxy = request(options, proxyRes -> {
+			proxyRes.headers["Content-Type"] = "application/octet-stream";
 			res.writeHead(proxyRes.statusCode, proxyRes.headers);
 			proxyRes.pipe(res, {end: true});
 		});

@@ -3266,11 +3266,17 @@ server_HttpServer.localizeHtml = function(data,lang) {
 };
 server_HttpServer.proxyUrl = function(req,res) {
 	var url = StringTools.replace(req.url,"/proxy?url=","");
-	var url1 = new js_node_url_URL(global.decodeURI(url));
+	var url1;
+	try {
+		url1 = new js_node_url_URL(global.decodeURI(url));
+	} catch( _g ) {
+		return false;
+	}
 	if(url1.host == req.headers["host"]) {
 		return false;
 	}
 	var proxy = (url1.protocol == "https:" ? js_node_Https.request : js_node_Http.request)({ host : url1.host, port : Std.parseInt(url1.port), path : url1.pathname + url1.search, method : req.method},function(proxyRes) {
+		proxyRes.headers["Content-Type"] = "application/octet-stream";
 		res.writeHead(proxyRes.statusCode,proxyRes.headers);
 		proxyRes.pipe(res,{ end : true});
 	});
