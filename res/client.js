@@ -472,17 +472,16 @@ client_Buttons.init = function(main) {
 	var userlistToggle = window.document.querySelector("#userlisttoggle");
 	userlistToggle.onclick = function(e) {
 		var icon = userlistToggle.firstElementChild;
-		var isHidden = userlistToggle.classList.toggle("chevron-right");
-		userlistToggle.classList.toggle("chevron-down");
+		var isHidden = icon.getAttribute("name") == "chevron-forward";
 		var style = window.document.querySelector("#userlist").style;
 		if(isHidden) {
-			style.display = "none";
-			icon.setAttribute("name","chevron-forward");
-		} else {
 			style.display = "block";
 			icon.setAttribute("name","chevron-down");
+		} else {
+			style.display = "none";
+			icon.setAttribute("name","chevron-forward");
 		}
-		client_Buttons.settings.isUserListHidden = isHidden;
+		client_Buttons.settings.isUserListHidden = !isHidden;
 		client_Settings.write(client_Buttons.settings);
 	};
 	window.document.querySelector("#usercount").onclick = userlistToggle.onclick;
@@ -553,11 +552,7 @@ client_Buttons.init = function(main) {
 	};
 	var showOptions = window.document.querySelector("#showoptions");
 	showOptions.onclick = function(e) {
-		var isActive = client_Buttons.toggleGroup(showOptions);
-		window.document.querySelector("#messagebuffer").style.display = isActive ? "none" : "block";
-		window.document.querySelector("#chatbox").style.display = isActive ? "none" : "flex";
-		window.document.querySelector("#userlisttoggle").style.display = isActive ? "none" : "inline-flex";
-		return window.document.querySelector("#optionsTitle").style.display = isActive ? "inline-flex" : "none";
+		return client_Buttons.toggleGroup(showOptions);
 	};
 	window.document.querySelector("#exitBtn").onclick = function(e) {
 		if((main.personal.group & 1) != 0) {
@@ -1404,7 +1399,6 @@ client_Main.prototype = {
 		window.document.querySelector("#guestpassword").style.display = "none";
 		window.document.querySelector("#chatbox").style.display = "none";
 		window.document.querySelector("#exitBtn").textContent = Lang.get("login");
-		window.dispatchEvent(new Event("resize"));
 	}
 	,hideGuestLoginPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
@@ -1412,9 +1406,8 @@ client_Main.prototype = {
 		window.document.querySelector("#chatbox").style.display = "flex";
 		window.document.querySelector("#exitBtn").textContent = Lang.get("exit");
 		if((this.personal.group & 4) != 0) {
-			window.document.querySelector("#clearchatbtn").style.display = "inline-block";
+			window.document.querySelector("#adminMenu").style.display = "block";
 		}
-		window.dispatchEvent(new Event("resize"));
 	}
 	,showGuestPasswordPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";

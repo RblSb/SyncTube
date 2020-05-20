@@ -575,7 +575,6 @@ class Main {
 		ge("#guestpassword").style.display = "none";
 		ge("#chatbox").style.display = "none";
 		ge("#exitBtn").textContent = Lang.get("login");
-		window.dispatchEvent(new Event("resize"));
 	}
 
 	function hideGuestLoginPanel():Void {
@@ -583,8 +582,7 @@ class Main {
 		ge("#guestpassword").style.display = "none";
 		ge("#chatbox").style.display = "flex";
 		ge("#exitBtn").textContent = Lang.get("exit");
-		if (isAdmin()) ge("#clearchatbtn").style.display = "inline-block";
-		window.dispatchEvent(new Event("resize"));
+		if (isAdmin()) ge("#adminMenu").style.display = "block";
 	}
 
 	function showGuestPasswordPanel():Void {

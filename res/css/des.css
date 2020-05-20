@@ -487,19 +487,15 @@ footer#footer {
 
 /* Options */
 
-#optionsTitle {
-  display: inline-flex;
-  line-height: 1;
-  padding: .5rem;
-  align-items: center;
-  text-align: center;
-  margin-left: .5rem;
-}
-
 #optionsPanel {
   z-index: 1;
   background-color: var(--background-chat);
   overflow-y: scroll;
+  position: absolute;
+  top: 3rem;
+  left: 1rem;
+  bottom: 1rem;
+  right: 1rem;
   scrollbar-color: var(--border) var(--background-chat);
   scrollbar-width: thin;
 }

@@ -99,9 +99,8 @@
   <aside id="chat">
     <!-- Chat controls -->
     <div class="controls">
-      <div id="optionsTitle" style="display: none;">${settings}</div>
       <button id="userlisttoggle" title="${toggleUserList}">
-        <ion-icon  name="chevron-forward"></ion-icon>
+        <ion-icon name="chevron-down"></ion-icon>
         <span id="usercount">${connection}...</span>
       </button>
       <span>
@@ -114,7 +113,6 @@
     <div id="userlist"></div>
     <!-- Settings list -->
     <ul id="optionsPanel" class="collapse" aria-expanded="false">
-      <!-- <div><h3>${settings}</h3></div> -->
       <div>
         <h4>${account}</h4>
         <li><button id="exitBtn">${login}</button></li>
@@ -129,13 +127,10 @@
         <li><button id="synchThresholdBtn"><span>${synchThreshold}</span></button></li>
         <li><button id="removeVideoBtn"><span>${removeVideo}</span></button></li>
       </div>
-      <div>
+      <div id="adminMenu" style="display: none;">
         <h4>${chat}</h4>
-        <li><button id="clearchatbtn" style="display: none;"><span>${clearChat}</span></button></li>
+        <li><button id="clearchatbtn"><span>${clearChat}</span></button></li>
       </div>
-      <!-- <li><a href="#">${exportSettings}</a></li>
-      <li><a href="#">${importSettings}</a></li>
-      <li class="divider"></li> -->
     </ul>
     <!-- Messages -->
     <div id="messagebuffer" data-simplebar></div>

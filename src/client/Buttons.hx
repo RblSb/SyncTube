@@ -75,18 +75,16 @@ class Buttons {
 		final userlistToggle = ge("#userlisttoggle");
 		userlistToggle.onclick = e -> {
 			final icon = userlistToggle.firstElementChild;
-			final isHidden = userlistToggle.classList.toggle("chevron-right");
-			userlistToggle.classList.toggle("chevron-down");
+			final isHidden = icon.getAttribute("name") == "chevron-forward";
 			final style = ge("#userlist").style;
 			if (isHidden) {
+				style.display = "block";
+				icon.setAttribute("name", "chevron-down");
+			} else {
 				style.display = "none";
 				icon.setAttribute("name", "chevron-forward");
 			}
-			else {
-				style.display = "block";
-				icon.setAttribute("name", "chevron-down");
-			}
-			settings.isUserListHidden = isHidden;
+			settings.isUserListHidden = !isHidden;
 			Settings.write(settings);
 		}
 		ge("#usercount").onclick = userlistToggle.onclick;
@@ -155,13 +153,7 @@ class Buttons {
 		}
 
 		final showOptions = ge("#showoptions");
-		showOptions.onclick = e -> {
-			final isActive = toggleGroup(showOptions);
-			ge("#messagebuffer").style.display = isActive ? "none" : "block";
-			ge("#chatbox").style.display = isActive ? "none" : "flex";
-			ge("#userlisttoggle").style.display = isActive ? "none" : "inline-flex";
-			ge("#optionsTitle").style.display = isActive ? "inline-flex" : "none";
-		}
+		showOptions.onclick = e -> toggleGroup(showOptions);
 
 		final exitBtn = ge("#exitBtn");
 		exitBtn.onclick = e -> {
