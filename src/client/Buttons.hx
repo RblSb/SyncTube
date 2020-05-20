@@ -8,18 +8,18 @@ import js.html.Element;
 import client.Main.ge;
 import js.Browser.window;
 import js.Browser.document;
-import js.html.Event;
 
 class Buttons {
 
+	static inline var CHAT_MIN_SIZE = 200;
 	static var split:Split;
 	static var settings:ClientSettings;
 
 	public static function init(main:Main):Void {
 		settings = main.settings;
-		if (settings.isSwapped) document.body.classList.add("swap");
+		if (settings.isSwapped) swapPlayerAndChat();
 		initSplit();
-		setSplitSize(settings.playerSize, settings.chatSize);
+		setSplitSize(settings.chatSize);
 		initChatInput(main);
 
 		final passIcon = ge("#guestpass_icon");
@@ -164,10 +164,7 @@ class Buttons {
 
 		final swapLayoutBtn = ge("#swapLayoutBtn");
 		swapLayoutBtn.onclick = e -> {
-			settings.isSwapped = ge("body").classList.toggle("swap");
-			final sizes = document.body.style.gridTemplateColumns.split(" ");
-			sizes.reverse();
-			document.body.style.gridTemplateColumns = sizes.join(" ");
+			swapPlayerAndChat();
 			Settings.write(settings);
 		}
 	}
@@ -188,6 +185,13 @@ class Buttons {
 		return el.classList.toggle("active");
 	}
 
+	static function swapPlayerAndChat():Void {
+		settings.isSwapped = ge("body").classList.toggle("swap");
+		final sizes = document.body.style.gridTemplateColumns.split(" ");
+		sizes.reverse();
+		document.body.style.gridTemplateColumns = sizes.join(" ");
+	}
+
 	static function initSplit():Void {
 		if (split != null) split.destroy();
 		split = new Split({
@@ -201,19 +205,17 @@ class Buttons {
 		});
 	}
 
-	static function setSplitSize(playerSize:Float, chatSize:Float):Void {
+	static function setSplitSize(chatSize:Float):Void {
+		if (chatSize < CHAT_MIN_SIZE) return;
 		final sizes = document.body.style.gridTemplateColumns.split(" ");
-		final playerId = settings.isSwapped ? sizes.length - 1 : 0;
 		final chatId = settings.isSwapped ? 0 : sizes.length - 1;
-		sizes[playerId] = '${playerSize}fr';
-		sizes[chatId] = '${chatSize}fr';
+		sizes[chatId] = '${chatSize}px';
 		document.body.style.gridTemplateColumns = sizes.join(" ");
 	}
 
 	static function	saveSplitSize():Void {
 		final sizes = document.body.style.gridTemplateColumns.split(" ");
 		if (settings.isSwapped) sizes.reverse();
-		settings.playerSize = Std.parseFloat(sizes[0]);
 		settings.chatSize = Std.parseFloat(sizes[sizes.length - 1]);
 		Settings.write(settings);
 	}

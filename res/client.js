@@ -405,10 +405,10 @@ client_Buttons.__name__ = true;
 client_Buttons.init = function(main) {
 	client_Buttons.settings = main.settings;
 	if(client_Buttons.settings.isSwapped) {
-		window.document.body.classList.add("swap");
+		client_Buttons.swapPlayerAndChat();
 	}
 	client_Buttons.initSplit();
-	client_Buttons.setSplitSize(client_Buttons.settings.playerSize,client_Buttons.settings.chatSize);
+	client_Buttons.setSplitSize(client_Buttons.settings.chatSize);
 	client_Buttons.initChatInput(main);
 	var passIcon = window.document.querySelector("#guestpass_icon");
 	passIcon.onclick = function(e) {
@@ -563,10 +563,7 @@ client_Buttons.init = function(main) {
 		return client_Buttons.toggleGroup(showOptions);
 	};
 	window.document.querySelector("#swapLayoutBtn").onclick = function(e) {
-		client_Buttons.settings.isSwapped = window.document.querySelector("body").classList.toggle("swap");
-		var sizes = window.document.body.style.gridTemplateColumns.split(" ");
-		sizes.reverse();
-		window.document.body.style.gridTemplateColumns = sizes.join(" ");
+		client_Buttons.swapPlayerAndChat();
 		client_Settings.write(client_Buttons.settings);
 	};
 };
@@ -592,16 +589,24 @@ client_Buttons.toggleGroup = function(el) {
 	window.document.querySelector(id).classList.toggle("collapse");
 	return el.classList.toggle("active");
 };
+client_Buttons.swapPlayerAndChat = function() {
+	client_Buttons.settings.isSwapped = window.document.querySelector("body").classList.toggle("swap");
+	var sizes = window.document.body.style.gridTemplateColumns.split(" ");
+	sizes.reverse();
+	window.document.body.style.gridTemplateColumns = sizes.join(" ");
+};
 client_Buttons.initSplit = function() {
 	if(client_Buttons.split != null) {
 		client_Buttons.split.destroy();
 	}
 	client_Buttons.split = new Split({ columnGutters : [{ element : window.document.querySelector(".gutter"), track : 1}], minSize : 200, snapOffset : 0, onDragEnd : client_Buttons.saveSplitSize});
 };
-client_Buttons.setSplitSize = function(playerSize,chatSize) {
+client_Buttons.setSplitSize = function(chatSize) {
+	if(chatSize < 200) {
+		return;
+	}
 	var sizes = window.document.body.style.gridTemplateColumns.split(" ");
-	sizes[client_Buttons.settings.isSwapped ? sizes.length - 1 : 0] = "" + playerSize + "fr";
-	sizes[client_Buttons.settings.isSwapped ? 0 : sizes.length - 1] = "" + chatSize + "fr";
+	sizes[client_Buttons.settings.isSwapped ? 0 : sizes.length - 1] = "" + chatSize + "px";
 	window.document.body.style.gridTemplateColumns = sizes.join(" ");
 };
 client_Buttons.saveSplitSize = function() {
@@ -609,7 +614,6 @@ client_Buttons.saveSplitSize = function() {
 	if(client_Buttons.settings.isSwapped) {
 		sizes.reverse();
 	}
-	client_Buttons.settings.playerSize = parseFloat(sizes[0]);
 	var tmp = parseFloat(sizes[sizes.length - 1]);
 	client_Buttons.settings.chatSize = tmp;
 	client_Settings.write(client_Buttons.settings);
@@ -863,7 +867,7 @@ var client_Main = function(host,port) {
 	if(port == "") {
 		port = "80";
 	}
-	client_Settings.init({ version : 2, name : "", hash : "", isExtendedPlayer : false, playerSize : 70, chatSize : 30, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
+	client_Settings.init({ version : 2, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
 	this.initListeners();
 	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
