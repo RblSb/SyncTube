@@ -319,9 +319,11 @@ class Main {
 
 	function onMessage(e):Void {
 		final data:WsEvent = Json.parse(e.data);
-		final t:String = cast data.type;
-		final t = t.charAt(0).toLowerCase() + t.substr(1);
-		trace('Event: ${data.type}', untyped data[t]);
+		if (config != null && config.isVerbose) {
+			final t:String = cast data.type;
+			final t = t.charAt(0).toLowerCase() + t.substr(1);
+			trace('Event: ${data.type}', Reflect.field(data, t));
+		}
 		switch (data.type) {
 			case Connected:
 				onConnected(data);

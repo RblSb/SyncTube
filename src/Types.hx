@@ -28,6 +28,7 @@ typedef Config = {
 	},
 	emotes:Array<Emote>,
 	filters:Array<Filter>,
+	?isVerbose:Bool,
 	?salt:String
 };
 

@@ -1115,9 +1115,10 @@ client_Main.prototype = {
 	}
 	,onMessage: function(e) {
 		var data = JSON.parse(e.data);
-		var t = data.type;
-		var t1 = t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null);
-		haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 324, className : "client.Main", methodName : "onMessage", customParams : [data[t1]]});
+		if(this.config != null && this.config.isVerbose) {
+			var t = data.type;
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 325, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+		}
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1151,7 +1152,7 @@ client_Main.prototype = {
 			var synchThreshold = this.settings.synchThreshold;
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
-			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0 && !this.forceSyncNextTick) {
+			if((this.personal.group & 2) != 0 && !this.forceSyncNextTick) {
 				if(Math.abs(time - newTime) < synchThreshold) {
 					return;
 				}
@@ -1198,14 +1199,14 @@ client_Main.prototype = {
 			this.showGuestPasswordPanel();
 			break;
 		case "Pause":
-			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
+			if((this.personal.group & 2) != 0) {
 				return;
 			}
 			this.player.pause();
 			this.player.setTime(data.pause.time);
 			break;
 		case "Play":
-			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
+			if((this.personal.group & 2) != 0) {
 				return;
 			}
 			this.player.setTime(data.play.time);
@@ -1225,14 +1226,13 @@ client_Main.prototype = {
 			break;
 		case "ServerMessage":
 			var id = data.serverMessage.textId;
-			var text = id == "usernameError" ? StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength) : Lang.get(id);
-			this.serverMessage(4,text);
+			this.serverMessage(4,id == "usernameError" ? StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength) : Lang.get(id));
 			break;
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
 			this.updateUserList();
-			this.setLeaderButton((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0);
-			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
+			this.setLeaderButton((this.personal.group & 2) != 0);
+			if((this.personal.group & 2) != 0) {
 				this.player.setTime(this.player.getTime(),false);
 			}
 			break;
@@ -1240,7 +1240,7 @@ client_Main.prototype = {
 			this.player.setNextItem(data.setNextItem.pos);
 			break;
 		case "SetRate":
-			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0) {
+			if((this.personal.group & 2) != 0) {
 				return;
 			}
 			this.player.setPlaybackRate(data.setRate.rate);
@@ -1248,8 +1248,7 @@ client_Main.prototype = {
 		case "SetTime":
 			var synchThreshold = this.settings.synchThreshold;
 			var newTime = data.setTime.time;
-			var time = this.player.getTime();
-			if(Math.abs(time - newTime) < synchThreshold) {
+			if(Math.abs(this.player.getTime() - newTime) < synchThreshold) {
 				return;
 			}
 			this.player.setTime(newTime);
@@ -1278,7 +1277,7 @@ client_Main.prototype = {
 		case "VideoLoaded":
 			this.player.setTime(0);
 			this.player.play();
-			if((this.personal.group & 1 << ClientGroup.Leader._hx_index) != 0 && !this.player.isVideoLoaded()) {
+			if((this.personal.group & 2) != 0 && !this.player.isVideoLoaded()) {
 				this.forceSyncNextTick = true;
 			}
 			break;

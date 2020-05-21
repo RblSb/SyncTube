@@ -73,6 +73,7 @@ class Main {
 		loadState();
 		config = loadUserConfig();
 		userList = loadUsers();
+		config.isVerbose = verbose;
 		config.salt = generateConfigSalt();
 		localIp = Utils.getLocalIp();
 		globalIp = localIp;
