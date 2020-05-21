@@ -1,10 +1,11 @@
 ## SyncTube
 Synchronized video viewing with chat and other features.
-Based on CyTube layout, but with lightweight implementation and very easy way to run locally.
+Lightweight modern implementation and very easy way to run locally.
 
 Default channel example: http://synctube-example.herokuapp.com/
 
 ### New features
+- Reworked layout and theme
 - Multi-Language support
 - Mobile view with page fullscreen
 - Way to play local videos for network users (without NAT loopback feature)
@@ -12,7 +13,6 @@ Default channel example: http://synctube-example.herokuapp.com/
 - `/30`, `/-21`, etc to rewind video playback in seconds
 - Links mask: `foo.com/bar${1-4}.mp4` to add multiple items
 - Override every front-end file you want (`user/res` folder)
-- Reworked Modern theme
 
 ### Supported players
 - Youtube (videos, streams and playlists)
@@ -51,6 +51,6 @@ It's just works, but you can also check [user/ folder](/user/README.md) for serv
 - Open project in VSCode and press `F5` for client+server build and run
 
 ### About
-- [Original idea](https://github.com/calzoneman/sync) and layout by Calvin Montgomery
-- Original theme by Thomas Park
+- Layout and design by [Austin Riddell](https://github.com/aus-tin)
+- [Original idea](https://github.com/calzoneman/sync) by Calvin Montgomery
 - Default emotes by [emlan](https://www.deviantart.com/emlan)
