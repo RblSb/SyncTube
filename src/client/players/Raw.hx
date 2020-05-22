@@ -116,6 +116,9 @@ class Raw implements IPlayer {
 
 	public function removeVideo():Void {
 		if (video == null) return;
+		video.pause();
+		video.removeAttribute("src");
+		video.load();
 		playerEl.removeChild(video);
 		video = null;
 	}
