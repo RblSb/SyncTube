@@ -227,6 +227,12 @@ button.danger-bg:focus {
   flex-wrap: wrap;
 }
 
+.info header {
+  flex-wrap: nowrap;
+  overflow-x: hidden;
+  white-space: nowrap;
+}
+
 .info header:first-child {
   display: flex;
   align-items: center;
@@ -240,6 +246,11 @@ button.danger-bg:focus {
 
 .info header button {
   background-color: var(--background-video);
+}
+
+header h4 {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .controls {

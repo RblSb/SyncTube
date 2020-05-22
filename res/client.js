@@ -2202,7 +2202,8 @@ client_players_Raw.prototype = {
 	}
 	,getVideoData: function(url,callback) {
 		var _gthis = this;
-		var title = HxOverrides.substr(url,url.lastIndexOf("/") + 1,null);
+		var decodedUrl = decodeURIComponent(url.split("+").join(" "));
+		var title = HxOverrides.substr(decodedUrl,decodedUrl.lastIndexOf("/") + 1,null);
 		if(this.matchName.match(title)) {
 			title = this.matchName.matched(1);
 		} else {
