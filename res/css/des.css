@@ -461,18 +461,6 @@ footer#footer {
   padding: 1rem;
   border-radius: 1rem;
   height: 12rem;
-  scrollbar-color: var(--border) var(--background-video);
-  scrollbar-width: thin;
-}
-
-#userlist::-webkit-scrollbar {
-  width: .5rem;
-}
-#userlist::-webkit-scrollbar-track {
-  background: var(--background-video);
-}
-#userlist::-webkit-scrollbar-thumb {
-  background-color: var(--border);
 }
 
 .userlist_item {
@@ -522,18 +510,6 @@ footer#footer {
   left: 1rem;
   bottom: 1rem;
   right: 1rem;
-  scrollbar-color: var(--border) var(--background-chat);
-  scrollbar-width: thin;
-}
-
-#optionsPanel::-webkit-scrollbar {
-  width: .5rem;
-}
-#optionsPanel::-webkit-scrollbar-track {
-  background: var(--background-chat);
-}
-#optionsPanel::-webkit-scrollbar-thumb {
-  background-color: var(--border);
 }
 
 #optionsPanel div {
@@ -569,18 +545,6 @@ footer#footer {
   word-wrap: break-word;
   width: 100%;
   height: 100%;
-  scrollbar-color: var(--border) var(--background-chat);
-  scrollbar-width: thin;
-}
-
-#messagebuffer::-webkit-scrollbar {
-  width: .5rem;
-}
-#messagebuffer::-webkit-scrollbar-track {
-  background: var(--background-chat);
-}
-#messagebuffer::-webkit-scrollbar-thumb {
-  background-color: var(--border);
 }
 
 #messagebuffer > * {
@@ -647,18 +611,6 @@ footer#footer {
   grid-gap: .5rem;
   gap: .5rem;
   box-sizing: border-box;
-  scrollbar-color: var(--border) var(--background-video);
-  scrollbar-width: thin;
-}
-
-#smileswrap::-webkit-scrollbar {
-  width: .5rem;
-}
-#smileswrap::-webkit-scrollbar-track {
-  background: var(--background-video);
-}
-#smileswrap::-webkit-scrollbar-thumb {
-  background-color: var(--border);
 }
 
 .smile-preview {
@@ -707,11 +659,23 @@ footer#footer {
  */
 
 /*
- * Simple scrollbar
+ * Scrollbar
  */
-
-.simplebar-scrollbar::before {
-  background-color: var(--foreground);
+html {
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-width: thin;
+}
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /*
