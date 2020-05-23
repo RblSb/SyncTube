@@ -297,18 +297,22 @@ class Buttons {
 	static function initChatInput(main:Main):Void {
 		final guestName:InputElement = cast ge("#guestname");
 		guestName.onkeydown = e -> {
-			if (e.keyCode == 13) main.guestLogin(guestName.value);
+			if (e.keyCode == KeyCode.Return) main.guestLogin(guestName.value);
 		}
 
 		final guestPass:InputElement = cast ge("#guestpass");
 		guestPass.onkeydown = e -> {
-			if (e.keyCode == 13) {
+			if (e.keyCode == KeyCode.Return) {
 				main.userLogin(guestName.value, guestPass.value);
 				guestPass.value = "";
 			}
 		}
 
-		new InputWithHistory(cast ge("#chatline"), 50, value -> {
+		final chatline:InputElement = cast ge("#chatline");
+		chatline.onfocus = e -> {
+			if (Utils.isTouch()) main.scrollChatToEnd();
+		}
+		new InputWithHistory(chatline, 50, value -> {
 			main.send({
 				type: Message,
 				message: {

@@ -726,7 +726,13 @@ client_Buttons.initChatInput = function(main) {
 			guestPass.value = "";
 		}
 	};
-	new client_InputWithHistory(window.document.querySelector("#chatline"),null,50,function(value) {
+	var chatline = window.document.querySelector("#chatline");
+	chatline.onfocus = function(e) {
+		if(client_Utils.isTouch()) {
+			main.scrollChatToEnd();
+		}
+	};
+	new client_InputWithHistory(chatline,null,50,function(value) {
 		main.send({ type : "Message", message : { clientName : "", text : value}});
 		return true;
 	});

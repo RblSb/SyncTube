@@ -156,7 +156,7 @@ class Main {
 		ge("#ce_queue_next").onclick = e -> addIframe(false);
 		ge("#ce_queue_end").onclick = e -> addIframe(true);
 		ge("#customembed-title").onkeydown = (e:KeyboardEvent) -> {
-			if (e.keyCode == 13) {
+			if (e.keyCode == KeyCode.Return) {
 				addIframe(true);
 				e.preventDefault();
 			}
