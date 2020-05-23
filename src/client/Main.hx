@@ -549,6 +549,7 @@ class Main {
 		smilesWrap.style.display = "none";
 		smilesWrap.onclick = (e:MouseEvent) -> {
 			final el:Element = cast e.target;
+			if (el == smilesWrap) return;
 			final form:InputElement = cast ge("#chatline");
 			form.value += ' ${el.title}';
 			form.focus();

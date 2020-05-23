@@ -1400,6 +1400,9 @@ client_Main.prototype = {
 		smilesWrap.style.display = "none";
 		smilesWrap.onclick = function(e) {
 			var el = e.target;
+			if(el == smilesWrap) {
+				return;
+			}
 			var form = window.document.querySelector("#chatline");
 			form.value += " " + el.title;
 			form.focus();
