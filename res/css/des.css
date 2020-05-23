@@ -16,6 +16,13 @@
   --box-shadow: 0rem .25rem 1rem rgba(0, 0, 0, .25);
 }
 
+html {
+  box-sizing: border-box;
+}
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
 body {
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   font-size: .875rem;
@@ -160,7 +167,6 @@ textarea {
   background-color: var(--background-video);
   border: .125rem solid;
   border-color:  var(--border);
-  box-sizing: border-box;
   transition: border-color ease-in-out .15s;
 }
 
@@ -314,7 +320,6 @@ header h4 {
 #playlist {
   border-top: .063rem solid;
   border-color: var(--border);
-  box-sizing: border-box;
 }
 
 /* Metadata */
@@ -380,7 +385,6 @@ header h4 {
   padding: 1rem;
   border-bottom: .063rem solid;
   border-color: var(--border);
-  box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -390,7 +394,6 @@ header h4 {
 .queue_entry:first-child {
   border-top: .063rem solid;
   border-color: var(--border);
-  box-sizing: border-box;
 }
 
 .queue_entry a {
@@ -434,7 +437,6 @@ footer#footer {
   flex-wrap: nowrap;
   padding: 1rem;
   height: calc( 100vh - 56.25vw );
-  box-sizing: border-box;
 }
 
 #chat header {
@@ -514,7 +516,6 @@ footer#footer {
 
 #optionsPanel div {
   margin-bottom: .5rem;
-  box-sizing: border-box;
 }
 
 #optionsPanel div:not(:first-child) {
@@ -582,7 +583,6 @@ footer#footer {
   padding-top: 1rem;
   border-top: .063rem solid;
   border-color: var(--border);
-  box-sizing: border-box;
   display: flex;
   flex-direction: row;
 }
@@ -610,7 +610,6 @@ footer#footer {
   grid-template-columns: repeat( auto-fit, minmax( 4rem, 1fr ) );
   grid-gap: .5rem;
   gap: .5rem;
-  box-sizing: border-box;
 }
 
 .smile-preview {
@@ -636,7 +635,6 @@ footer#footer {
   padding-top: 1rem;
   border-top: .063rem solid;
   border-color: var(--border);
-  box-sizing: border-box;
 }
 
 /* Guest login */
