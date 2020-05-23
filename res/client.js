@@ -509,8 +509,13 @@ client_Buttons.init = function(main) {
 		main.refreshPlayer();
 	};
 	window.document.querySelector("#fullscreenbtn").onclick = function(e) {
-		return client_Utils.toggleFullScreen(window.document.querySelector("#ytapiplayer"));
+		if(client_Utils.isTouch() && !client_Utils.hasFullscreen()) {
+			return client_Utils.requestFullscreen(window.document.documentElement);
+		} else {
+			return client_Utils.requestFullscreen(window.document.querySelector("#ytapiplayer"));
+		}
 	};
+	client_Buttons.initPageFullscreen();
 	var getPlaylist = window.document.querySelector("#getplaylist");
 	getPlaylist.onclick = function(e) {
 		client_Utils.copyToClipboard(main.getPlaylistLinks().join(","));
@@ -725,6 +730,18 @@ client_Buttons.initChatInput = function(main) {
 		main.send({ type : "Message", message : { clientName : "", text : value}});
 		return true;
 	});
+};
+client_Buttons.initPageFullscreen = function() {
+	window.document.onfullscreenchange = function(e) {
+		var el = window.document.documentElement;
+		if(client_Utils.hasFullscreen()) {
+			if(e.target == el) {
+				el.classList.add("mobile-view");
+			}
+		} else {
+			el.classList.remove("mobile-view");
+		}
+	};
 };
 var client_InputWithHistory = function(element,history,maxItems,onEnter) {
 	this.historyId = -1;
@@ -2078,31 +2095,26 @@ client_Utils.getIndex = function(parent,child) {
 	}
 	return i;
 };
-client_Utils.toggleFullScreen = function(el) {
-	var state = true;
+client_Utils.hasFullscreen = function() {
 	var doc = window.document;
-	var el2 = el;
-	if(window.document.fullscreenElement == null && doc.mozFullScreenElement == null && doc.webkitFullscreenElement == null) {
-		if(el.requestFullscreen != null) {
-			el.requestFullscreen();
-		} else if(el2.mozRequestFullScreen != null) {
-			el2.mozRequestFullScreen();
-		} else if(el2.webkitRequestFullscreen != null) {
-			el2.webkitRequestFullscreen(HTMLElement.ALLOW_KEYBOARD_INPUT);
-		} else {
-			state = false;
-		}
+	if(!(window.document.fullscreenElement != null || doc.mozFullScreenElement != null)) {
+		return doc.webkitFullscreenElement != null;
 	} else {
-		if(doc.cancelFullScreen != null) {
-			doc.cancelFullScreen();
-		} else if(doc.mozCancelFullScreen != null) {
-			doc.mozCancelFullScreen();
-		} else if(doc.webkitCancelFullScreen != null) {
-			doc.webkitCancelFullScreen();
-		}
-		state = false;
+		return true;
 	}
-	return state;
+};
+client_Utils.requestFullscreen = function(el) {
+	var el2 = el;
+	if(el.requestFullscreen != null) {
+		el.requestFullscreen();
+	} else if(el2.mozRequestFullScreen != null) {
+		el2.mozRequestFullScreen();
+	} else if(el2.webkitRequestFullscreen != null) {
+		el2.webkitRequestFullscreen(HTMLElement.ALLOW_KEYBOARD_INPUT);
+	} else {
+		return false;
+	}
+	return true;
 };
 client_Utils.copyToClipboard = function(text) {
 	var clipboardData = window.clipboardData;

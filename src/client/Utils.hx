@@ -35,27 +35,40 @@ class Utils {
 		return i;
 	}
 
-	public static function toggleFullScreen(el:Element):Bool {
-		var state = true;
+	public static function hasFullscreen():Bool {
 		final doc:Dynamic = document;
+		return (
+			document.fullscreenElement != null
+			|| doc.mozFullScreenElement != null
+			|| doc.webkitFullscreenElement != null
+		);
+	}
+
+	public static function requestFullscreen(el:Element):Bool {
 		final el2:Dynamic = el;
-		if (document.fullscreenElement == null &&
-			doc.mozFullScreenElement == null &&
-			doc.webkitFullscreenElement == null) {
-			if (el.requestFullscreen != null) {
-				el.requestFullscreen();
-			} else if (el2.mozRequestFullScreen != null) {
-				el2.mozRequestFullScreen();
-			} else if (el2.webkitRequestFullscreen != null) {
-				el2.webkitRequestFullscreen(untyped Element.ALLOW_KEYBOARD_INPUT);
-			} else state = false;
-		} else {
-			if (doc.cancelFullScreen != null) doc.cancelFullScreen();
-			else if (doc.mozCancelFullScreen != null) doc.mozCancelFullScreen();
-			else if (doc.webkitCancelFullScreen != null) doc.webkitCancelFullScreen();
-			state = false;
+		if (el.requestFullscreen != null) {
+			el.requestFullscreen();
+		} else if (el2.mozRequestFullScreen != null) {
+			el2.mozRequestFullScreen();
+		} else if (el2.webkitRequestFullscreen != null) {
+			el2.webkitRequestFullscreen(untyped Element.ALLOW_KEYBOARD_INPUT);
+		} else return false;
+		return true;
+	}
+
+	public static function cancelFullscreen(el:Element):Void {
+		final doc:Dynamic = document;
+		if (doc.cancelFullScreen != null) doc.cancelFullScreen();
+		else if (doc.mozCancelFullScreen != null) doc.mozCancelFullScreen();
+		else if (doc.webkitCancelFullScreen != null) doc.webkitCancelFullScreen();
+	}
+
+	public static function toggleFullscreen(el:Element):Bool {
+		if (hasFullscreen()) {
+			cancelFullscreen(el);
+			return false;
 		}
-		return state;
+		return requestFullscreen(el);
 	}
 
 	public static function copyToClipboard(text:String):Void {

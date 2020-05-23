@@ -111,9 +111,13 @@ class Buttons {
 		}
 		final fullscreenBtn = ge("#fullscreenbtn");
 		fullscreenBtn.onclick = e -> {
-			final el = ge("#ytapiplayer");
-			Utils.toggleFullScreen(el);
+			if (Utils.isTouch() && !Utils.hasFullscreen()) {
+				Utils.requestFullscreen(document.documentElement);
+			} else {
+				Utils.requestFullscreen(ge("#ytapiplayer"));
+			}
 		}
+		initPageFullscreen();
 		final getPlaylist = ge("#getplaylist");
 		getPlaylist.onclick = e -> {
 			final text = main.getPlaylistLinks().join(",");
@@ -314,6 +318,15 @@ class Buttons {
 			});
 			return true;
 		});
+	}
+
+	static function initPageFullscreen():Void {
+		document.onfullscreenchange = e -> {
+			final el = document.documentElement;
+			if (Utils.hasFullscreen()) {
+				if (e.target == el) el.classList.add("mobile-view");
+			} else el.classList.remove("mobile-view");
+		}
 	}
 
 }

@@ -263,6 +263,7 @@ header h4 {
   position: relative;
   display: flex;
   flex-wrap: nowrap;
+  padding-bottom: 1rem;
 }
 
 .controls span {
@@ -445,10 +446,6 @@ footer#footer {
   justify-content: space-between;
 }
 
-#chat > *:not(:first-child) {
-  margin-top: 1rem;
-}
-
 #chat .controls {
   display: flex;
   justify-content: space-between;
@@ -463,6 +460,7 @@ footer#footer {
   padding: 1rem;
   border-radius: 1rem;
   height: 12rem;
+  margin-bottom: 1rem;
 }
 
 .userlist_item {
@@ -729,4 +727,24 @@ html {
 
 @-ms-viewport {
   width:device-width
+}
+
+/* Mobile page fullscreen */
+
+.mobile-view #chatbox {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.mobile-view #chat {
+  padding: 0 1rem;
+}
+
+.mobile-view .controls {
+  padding-bottom: 0;
+}
+
+.mobile-view #optionsPanel {
+  top: 2rem;
+  bottom: 0;
 }
