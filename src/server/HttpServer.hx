@@ -9,6 +9,7 @@ import js.node.Http;
 import js.node.url.URL;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
+import js.node.http.ClientRequest;
 import js.node.Path as JsPath;
 using StringTools;
 
@@ -138,28 +139,47 @@ class HttpServer {
 
 	static function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
 		final url = req.url.replace("/proxy?url=", "");
+		final proxy = proxyRequest(url, req, res, proxyReq -> {
+			final url = proxyReq.headers["location"];
+			if (url == null) return false;
+			final proxy2 = proxyRequest(url, req, res, proxyReq -> false);
+			if (proxy2 == null) {
+				res.end('Proxy error for redirected $url');
+				return true;
+			}
+			req.pipe(proxy2, {end: true});
+			return true;
+		});
+		if (proxy == null) return false;
+		req.pipe(proxy, {end: true});
+		return true;
+	}
+
+	static function proxyRequest(
+		url:String, req:IncomingMessage, res:ServerResponse,
+		fn:(req:IncomingMessage)->Bool
+	):Null<ClientRequest> {
 		final url = try {
 			new URL(js.Node.global.decodeURI(url));
-		} catch(e) return false;
-		if (url.host == req.headers["host"]) return false;
+		} catch (e) return null;
+		if (url.host == req.headers["host"]) return null;
 		final options = {
 			host: url.host,
 			port: Std.parseInt(url.port),
 			path: url.pathname + url.search,
-			method: req.method,
-			// headers: req.headers
+			method: req.method
 		};
 		final request = url.protocol == "https:" ? Https.request : Http.request;
-		final proxy = request(options, proxyRes -> {
-			proxyRes.headers["Content-Type"] = "application/octet-stream";
-			res.writeHead(proxyRes.statusCode, proxyRes.headers);
-			proxyRes.pipe(res, {end: true});
+		final proxy = request(options, proxyReq -> {
+			if (fn(proxyReq)) return;
+			proxyReq.headers["Content-Type"] = "application/octet-stream";
+			res.writeHead(proxyReq.statusCode, proxyReq.headers);
+			proxyReq.pipe(res, {end: true});
 		});
 		proxy.on("error", err -> {
 			res.end('Proxy error for ${url.href}');
 		});
-		req.pipe(proxy, {end: true});
-		return true;
+		return proxy;
 	}
 
 	static function isChildOf(parent:String, child:String):Bool {
