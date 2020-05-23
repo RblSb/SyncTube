@@ -202,7 +202,7 @@ class Main {
 		final url = mediaUrl.value;
 		if (url.length == 0) return;
 		mediaUrl.value = "";
-		settings.latestLinks.push(url);
+		InputWithHistory.pushIfNotLast(settings.latestLinks, url);
 		Settings.write(settings);
 		final url = ~/, ?(https?)/g.replace(url, "|$1");
 		final links = url.split("|");

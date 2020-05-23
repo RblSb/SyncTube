@@ -33,12 +33,16 @@ class Raw implements IPlayer {
 	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
 		final decodedUrl = url.urlDecode();
 		var title = decodedUrl.substr(decodedUrl.lastIndexOf("/") + 1);
-		if (matchName.match(title)) title = matchName.matched(1);
+		final isNameMatched = matchName.match(title);
+		if (isNameMatched) title = matchName.matched(1);
 		else title = Lang.get("rawVideo");
-		final isHls = matchName.matched(2).contains("m3u8");
-		if (isHls && !isHlsLoaded) {
-			loadHlsPlugin(() -> getVideoData(url, callback));
-			return;
+		var isHls = false;
+		if (isNameMatched) {
+			isHls = matchName.matched(2).contains("m3u8");
+			if (isHls && !isHlsLoaded) {
+				loadHlsPlugin(() -> getVideoData(url, callback));
+				return;
+			}
 		}
 
 		final video = document.createVideoElement();

@@ -756,15 +756,22 @@ var client_InputWithHistory = function(element,history,maxItems,onEnter) {
 	element.onkeydown = $bind(this,this.onKeyDown);
 };
 client_InputWithHistory.__name__ = true;
+client_InputWithHistory.pushIfNotLast = function(arr,item) {
+	var len = arr.length;
+	if(len == 0 || arr[len - 1] != item) {
+		arr.push(item);
+	}
+};
 client_InputWithHistory.prototype = {
 	onKeyDown: function(e) {
 		switch(e.keyCode) {
 		case 13:
-			if(this.element.value.length == 0) {
+			var value = this.element.value;
+			if(value.length == 0) {
 				return;
 			}
-			if(this.onEnter(this.element.value)) {
-				this.history.push(this.element.value);
+			if(this.onEnter(value)) {
+				client_InputWithHistory.pushIfNotLast(this.history,value);
 			}
 			if(this.history.length > this.maxItems) {
 				this.history.shift();
@@ -1024,7 +1031,7 @@ client_Main.prototype = {
 			return;
 		}
 		mediaUrl.value = "";
-		this.settings.latestLinks.push(url);
+		client_InputWithHistory.pushIfNotLast(this.settings.latestLinks,url);
 		client_Settings.write(this.settings);
 		var _this_r = new RegExp(", ?(https?)","g".split("u").join(""));
 		var links = url.replace(_this_r,"|$1").split("|");
@@ -2216,17 +2223,21 @@ client_players_Raw.prototype = {
 		var _gthis = this;
 		var decodedUrl = decodeURIComponent(url.split("+").join(" "));
 		var title = HxOverrides.substr(decodedUrl,decodedUrl.lastIndexOf("/") + 1,null);
-		if(this.matchName.match(title)) {
+		var isNameMatched = this.matchName.match(title);
+		if(isNameMatched) {
 			title = this.matchName.matched(1);
 		} else {
 			title = Lang.get("rawVideo");
 		}
-		var isHls = this.matchName.matched(2).indexOf("m3u8") != -1;
-		if(isHls && !this.isHlsLoaded) {
-			this.loadHlsPlugin(function() {
-				_gthis.getVideoData(url,callback);
-			});
-			return;
+		var isHls = false;
+		if(isNameMatched) {
+			isHls = this.matchName.matched(2).indexOf("m3u8") != -1;
+			if(isHls && !this.isHlsLoaded) {
+				this.loadHlsPlugin(function() {
+					_gthis.getVideoData(url,callback);
+				});
+				return;
+			}
 		}
 		var video = window.document.createElement("video");
 		video.src = url;

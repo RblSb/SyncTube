@@ -23,12 +23,18 @@ class InputWithHistory {
 		element.onkeydown = onKeyDown;
 	}
 
+	public static function pushIfNotLast(arr:Array<String>, item:String):Void {
+		final len = arr.length;
+		if (len == 0 || arr[len - 1] != item) arr.push(item);
+	}
+
 	function onKeyDown(e:KeyboardEvent) {
 		switch (e.keyCode) {
 			case 13: // Enter
-				if (element.value.length == 0) return;
-				final isAdd = onEnter(element.value);
-				if (isAdd) history.push(element.value);
+				final value = element.value;
+				if (value.length == 0) return;
+				final isAdd = onEnter(value);
+				if (isAdd) pushIfNotLast(history, value);
 				if (history.length > maxItems) history.shift();
 				historyId = -1;
 				element.value = "";
