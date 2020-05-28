@@ -7,7 +7,7 @@
   --background-video: #000;
   --background-chat: #111;
   --midground: #888;
-  --foreground: #ddd;
+  --foreground: #bbb;
   --accent: #0055ff;
   --success: #009632;
   --warning: #ffb800;
@@ -310,10 +310,6 @@ header h4 {
 
 .embed-responsive.embed-responsive-4by3 {
   padding-bottom: 75%
-}
-
-.embed-responsive:full-screen {
-  width: 100%;
 }
 
 /* Playlist */
@@ -722,11 +718,6 @@ html {
     grid-area: chat;
     height: 100vh;
   }
-}
-
-
-@-ms-viewport {
-  width:device-width
 }
 
 /* Mobile page fullscreen */
