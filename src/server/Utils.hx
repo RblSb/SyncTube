@@ -1,9 +1,14 @@
 package server;
 
+import sys.FileSystem;
 import js.node.Https;
 import js.node.Os;
 
 class Utils {
+
+	public static function ensureDir(path:String):Void {
+		if (!FileSystem.exists(path)) FileSystem.createDirectory(path);
+	}
 
 	public static function getGlobalIp(callback:(ip:String)->Void):Void {
 		// untyped to skip second null argument for node < v10

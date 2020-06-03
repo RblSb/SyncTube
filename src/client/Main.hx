@@ -328,6 +328,7 @@ class Main {
 			case Connected:
 				onConnected(data);
 				onTimeGet.run();
+			case Disconnected: // server-only
 
 			case Login:
 				onLogin(data.login.clients, data.login.clientName);

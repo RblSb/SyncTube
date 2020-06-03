@@ -19,5 +19,5 @@ Server has input commands, for example, to set admin users. Simple enter anythin
 ## Other files here
 - `state.json` - Saved state of latest server session (messages, videos, video time).
 - `users.json` - Admin names with password hashes and random channel-specific salt. Do not share this file!
-- `crashes/` - Latest error logs, when the server had to restart itself.
-- `logs/` - (TODO) Latest activity logs.
+- `crashes/` - Latest error logs, when the server crashes.
+- `logs/` - Latest activity logs, saved when the server shuts down.

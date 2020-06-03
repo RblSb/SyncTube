@@ -1169,6 +1169,8 @@ client_Main.prototype = {
 			this.onConnected(data);
 			this.onTimeGet.run();
 			break;
+		case "Disconnected":
+			break;
 		case "GetTime":
 			if(data.getTime.paused == null) {
 				data.getTime.paused = false;

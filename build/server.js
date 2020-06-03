@@ -251,6 +251,35 @@ HxOverrides.dateStr = function(date) {
 	var s = date.getSeconds();
 	return date.getFullYear() + "-" + (m < 10 ? "0" + m : "" + m) + "-" + (d < 10 ? "0" + d : "" + d) + " " + (h < 10 ? "0" + h : "" + h) + ":" + (mi < 10 ? "0" + mi : "" + mi) + ":" + (s < 10 ? "0" + s : "" + s);
 };
+HxOverrides.strDate = function(s) {
+	switch(s.length) {
+	case 8:
+		var k = s.split(":");
+		var d = new Date();
+		d["setTime"](0);
+		d["setUTCHours"](k[0]);
+		d["setUTCMinutes"](k[1]);
+		d["setUTCSeconds"](k[2]);
+		return d;
+	case 10:
+		var k = s.split("-");
+		return new Date(k[0],k[1] - 1,k[2],0,0,0);
+	case 19:
+		var k = s.split(" ");
+		var y = k[0].split("-");
+		var t = k[1].split(":");
+		return new Date(y[0],y[1] - 1,y[2],t[0],t[1],t[2]);
+	default:
+		throw haxe_Exception.thrown("Invalid date format : " + s);
+	}
+};
+HxOverrides.cca = function(s,index) {
+	var x = s.charCodeAt(index);
+	if(x != x) {
+		return undefined;
+	}
+	return x;
+};
 HxOverrides.substr = function(s,pos,len) {
 	if(len == null) {
 		len = s.length;
@@ -914,7 +943,7 @@ JsonParser_$28.prototype = $extend(json2object_reader_BaseParser.prototype,{
 		this.value = null;
 	}
 	,loadJsonString: function(s,pos,variable) {
-		this.value = this.loadString(s,pos,variable,["Connected","Login","PasswordRequest","LoginError","Logout","Message","ServerMessage","UpdateClients","AddVideo","RemoveVideo","SkipVideo","VideoLoaded","Pause","Play","GetTime","SetTime","SetRate","Rewind","SetLeader","PlayItem","SetNextItem","ToggleItemType","ClearChat","ClearPlaylist","ShufflePlaylist","UpdatePlaylist","TogglePlaylistLock"],"Connected");
+		this.value = this.loadString(s,pos,variable,["Connected","Disconnected","Login","PasswordRequest","LoginError","Logout","Message","ServerMessage","UpdateClients","AddVideo","RemoveVideo","SkipVideo","VideoLoaded","Pause","Play","GetTime","SetTime","SetRate","Rewind","SetLeader","PlayItem","SetNextItem","ToggleItemType","ClearChat","ClearPlaylist","ShufflePlaylist","UpdatePlaylist","TogglePlaylistLock"],"Connected");
 	}
 	,__class__: JsonParser_$28
 });
@@ -1876,9 +1905,28 @@ Lambda.exists = function(it,f) {
 	}
 	return false;
 };
+Lambda.count = function(it,pred) {
+	var n = 0;
+	if(pred == null) {
+		var _ = $getIterator(it);
+		while(_.hasNext()) {
+			_.next();
+			++n;
+		}
+	} else {
+		var x = $getIterator(it);
+		while(x.hasNext()) if(pred(x.next())) {
+			++n;
+		}
+	}
+	return n;
+};
 var haxe_IMap = function() { };
 haxe_IMap.__name__ = true;
 haxe_IMap.__isInterface__ = true;
+haxe_IMap.prototype = {
+	__class__: haxe_IMap
+};
 var haxe_ds_StringMap = function() {
 	this.h = Object.create(null);
 };
@@ -1895,8 +1943,32 @@ haxe_ds_StringMap.keysIterator = function(h) {
 		return keys[idx - 1];
 	}};
 };
+haxe_ds_StringMap.kvIterator = function(h) {
+	var keys = Object.keys(h);
+	var len = keys.length;
+	var idx = 0;
+	return { hasNext : function() {
+		return idx < len;
+	}, next : function() {
+		idx += 1;
+		var k = keys[idx - 1];
+		return { key : k, value : h[k]};
+	}};
+};
 haxe_ds_StringMap.prototype = {
-	__class__: haxe_ds_StringMap
+	get: function(key) {
+		return this.h[key];
+	}
+	,set: function(key,value) {
+		this.h[key] = value;
+	}
+	,keys: function() {
+		return haxe_ds_StringMap.keysIterator(this.h);
+	}
+	,keyValueIterator: function() {
+		return haxe_ds_StringMap.kvIterator(this.h);
+	}
+	,__class__: haxe_ds_StringMap
 };
 var Lang = function() { };
 Lang.__name__ = true;
@@ -2013,6 +2085,46 @@ StringTools.startsWith = function(s,start) {
 		return false;
 	}
 };
+StringTools.endsWith = function(s,end) {
+	var elen = end.length;
+	var slen = s.length;
+	if(slen >= elen) {
+		return s.indexOf(end,slen - elen) == slen - elen;
+	} else {
+		return false;
+	}
+};
+StringTools.isSpace = function(s,pos) {
+	var c = HxOverrides.cca(s,pos);
+	if(!(c > 8 && c < 14)) {
+		return c == 32;
+	} else {
+		return true;
+	}
+};
+StringTools.ltrim = function(s) {
+	var l = s.length;
+	var r = 0;
+	while(r < l && StringTools.isSpace(s,r)) ++r;
+	if(r > 0) {
+		return HxOverrides.substr(s,r,l - r);
+	} else {
+		return s;
+	}
+};
+StringTools.rtrim = function(s) {
+	var l = s.length;
+	var r = 0;
+	while(r < l && StringTools.isSpace(s,l - r - 1)) ++r;
+	if(r > 0) {
+		return HxOverrides.substr(s,0,l - r);
+	} else {
+		return s;
+	}
+};
+StringTools.trim = function(s) {
+	return StringTools.ltrim(StringTools.rtrim(s));
+};
 StringTools.lpad = function(s,c,l) {
 	if(c.length <= 0) {
 		return s;
@@ -2021,6 +2133,15 @@ StringTools.lpad = function(s,c,l) {
 	l -= s.length;
 	while(buf_b.length < l) buf_b += c == null ? "null" : "" + c;
 	buf_b += s == null ? "null" : "" + s;
+	return buf_b;
+};
+StringTools.rpad = function(s,c,l) {
+	if(c.length <= 0) {
+		return s;
+	}
+	var buf_b = "";
+	buf_b = "" + (s == null ? "null" : "" + s);
+	while(buf_b.length < l) buf_b += c == null ? "null" : "" + c;
 	return buf_b;
 };
 StringTools.replace = function(s,sub,by) {
@@ -2428,6 +2549,75 @@ haxe_io_Path.extension = function(path) {
 		return "";
 	}
 	return s.ext;
+};
+haxe_io_Path.normalize = function(path) {
+	var slash = "/";
+	path = path.split("\\").join(slash);
+	if(path == slash) {
+		return slash;
+	}
+	var target = [];
+	var _g = 0;
+	var _g1 = path.split(slash);
+	while(_g < _g1.length) {
+		var token = _g1[_g];
+		++_g;
+		if(token == ".." && target.length > 0 && target[target.length - 1] != "..") {
+			target.pop();
+		} else if(token == "") {
+			if(target.length > 0 || HxOverrides.cca(path,0) == 47) {
+				target.push(token);
+			}
+		} else if(token != ".") {
+			target.push(token);
+		}
+	}
+	var acc_b = "";
+	var colon = false;
+	var slashes = false;
+	var _g2_offset = 0;
+	var _g2_s = target.join(slash);
+	while(_g2_offset < _g2_s.length) {
+		var s = _g2_s;
+		var index = _g2_offset++;
+		var c = s.charCodeAt(index);
+		if(c >= 55296 && c <= 56319) {
+			c = c - 55232 << 10 | s.charCodeAt(index + 1) & 1023;
+		}
+		var c1 = c;
+		if(c1 >= 65536) {
+			++_g2_offset;
+		}
+		var c2 = c1;
+		switch(c2) {
+		case 47:
+			if(!colon) {
+				slashes = true;
+			} else {
+				var i = c2;
+				colon = false;
+				if(slashes) {
+					acc_b += "/";
+					slashes = false;
+				}
+				acc_b += String.fromCodePoint(i);
+			}
+			break;
+		case 58:
+			acc_b += ":";
+			colon = true;
+			break;
+		default:
+			var i1 = c2;
+			colon = false;
+			if(slashes) {
+				acc_b += "/";
+				slashes = false;
+			}
+			acc_b += String.fromCodePoint(i1);
+		}
+	}
+	return acc_b;
 };
 haxe_io_Path.addTrailingSlash = function(path) {
 	if(path.length == 0) {
@@ -3129,13 +3319,19 @@ json2object_PositionUtils.prototype = {
 	,__class__: json2object_PositionUtils
 };
 var server_ConsoleInput = function(main) {
+	var _g = new haxe_ds_StringMap();
+	_g.set("addAdmin",{ args : ["name","password"], desc : "Adds channel admin"});
+	_g.set("replay",{ args : ["name"], desc : "Replay log file on server from user/logs/"});
+	_g.set("logList",{ args : [], desc : "Show log list from user/logs/"});
+	_g.set("exit",{ args : [], desc : "Exit process"});
+	this.commands = _g;
 	this.main = main;
 };
 server_ConsoleInput.__name__ = true;
 server_ConsoleInput.prototype = {
 	initConsoleInput: function() {
 		var _gthis = this;
-		var rl = js_node_Readline.createInterface(process.stdin,process.stdout);
+		var rl = js_node_Readline.createInterface({ input : process.stdin, output : process.stdout, completer : $bind(this,this.onCompletion)});
 		haxe_Log.trace = function(msg,pos) {
 			js_node_Readline.clearLine(process.stdout,0);
 			js_node_Readline.cursorTo(process.stdout,0,null);
@@ -3148,26 +3344,105 @@ server_ConsoleInput.prototype = {
 			rl.prompt();
 		});
 	}
-	,parseLine: function(line) {
-		if(StringTools.startsWith(line,"/addAdmin")) {
-			var args = line.split(" ");
-			if(args.length != 3) {
-				haxe_Log.trace("Wrong count of arguments",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 36, className : "server.ConsoleInput", methodName : "parseLine"});
-				return;
+	,onCompletion: function(line) {
+		var _g = [];
+		var item = this.commands.keys();
+		while(item.hasNext()) _g.push("/" + item.next() + " ");
+		var _g1 = [];
+		var _g11 = 0;
+		while(_g11 < _g.length) {
+			var v = _g[_g11];
+			++_g11;
+			if(StringTools.startsWith(v,line)) {
+				_g1.push(v);
 			}
-			var name = args[1];
-			var password = args[2];
+		}
+		if(_g1.length > 0) {
+			return [_g1,line];
+		}
+		return [_g,line];
+	}
+	,parseLine: function(line) {
+		if(line.charCodeAt(0) != 47 || line.length < 2) {
+			this.printHelp(line);
+			return;
+		}
+		var args = StringTools.trim(line).split(" ");
+		var command = HxOverrides.substr(args.shift(),1,null);
+		if(this.commands.get(command) == null) {
+			this.printHelp(line);
+			return;
+		}
+		if(!this.isValidArgs(command,args)) {
+			return;
+		}
+		switch(command) {
+		case "addAdmin":
+			var name = args[0];
+			var password = args[1];
 			if(this.main.badNickName(name)) {
-				haxe_Log.trace(StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.main.config.maxLoginLength),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 44, className : "server.ConsoleInput", methodName : "parseLine"});
+				haxe_Log.trace(StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.main.config.maxLoginLength),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 100, className : "server.ConsoleInput", methodName : "parseLine"});
 				return;
 			}
 			this.main.addAdmin(name,password);
-		} else if(line == "/exit") {
+			break;
+		case "exit":
 			this.main.exit();
-			return;
-		} else {
-			haxe_Log.trace("Unknown command \"" + line + "\". List:\n/addAdmin name password | Adds channel admin\n/exit | Exit process",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 53, className : "server.ConsoleInput", methodName : "parseLine"});
+			break;
+		case "logList":
+			server_Utils.ensureDir(this.main.logsDir);
+			var _this = js_node_Fs.readdirSync(this.main.logsDir);
+			var _g = [];
+			var _g1 = 0;
+			while(_g1 < _this.length) {
+				var v = _this[_g1];
+				++_g1;
+				if(StringTools.endsWith(v,".json")) {
+					_g.push(v);
+				}
+			}
+			var _g1 = 0;
+			while(_g1 < _g.length) haxe_Log.trace(haxe_io_Path.withoutExtension(_g[_g1++]),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 121, className : "server.ConsoleInput", methodName : "parseLine"});
+			break;
+		case "replay":
+			server_Utils.ensureDir(this.main.logsDir);
+			var path = haxe_io_Path.normalize("" + this.main.logsDir + "/" + args[0] + ".json");
+			if(!sys_FileSystem.exists(path)) {
+				haxe_Log.trace("File \"" + path + "\" not found",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 110, className : "server.ConsoleInput", methodName : "parseLine"});
+				return;
+			}
+			var events = JSON.parse(js_node_Fs.readFileSync(path,{ encoding : "utf8"}));
+			this.main.replayLog(events);
+			break;
 		}
+	}
+	,isValidArgs: function(command,args) {
+		var len = args.length;
+		var actual = this.commands.get(command).args.length;
+		if(len != actual) {
+			haxe_Log.trace("Wrong count of arguments for command \"" + command + "\" (" + len + " instead of " + actual + ")",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 132, className : "server.ConsoleInput", methodName : "isValidArgs"});
+			return false;
+		}
+		return true;
+	}
+	,printHelp: function(line) {
+		var maxLength = 0;
+		var _g = this.commands.keyValueIterator();
+		while(_g.hasNext()) {
+			var _g1 = _g.next();
+			var len = ("/" + _g1.key + " " + _g1.value.args.join(" ")).length;
+			if(maxLength < len) {
+				maxLength = len;
+			}
+		}
+		var list = [];
+		var _g = this.commands.keyValueIterator();
+		while(_g.hasNext()) {
+			var _g1 = _g.next();
+			var data = _g1.value;
+			list.push("" + StringTools.rpad("/" + _g1.key + " " + data.args.join(" ")," ",maxLength) + " | " + data.desc);
+		}
+		haxe_Log.trace("Unknown command \"" + line + "\". List:\n" + list.join("\n"),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 151, className : "server.ConsoleInput", methodName : "printHelp"});
 	}
 	,__class__: server_ConsoleInput
 };
@@ -3327,6 +3602,72 @@ server_HttpServer.getMimeType = function(ext) {
 	}
 	return contentType;
 };
+var server_Logger = function(folder,maxCount,verbose) {
+	this.matchFileFormat = new EReg("[0-9_-]+\\.json$","");
+	this.logs = [];
+	this.folder = folder;
+	this.maxCount = maxCount;
+	this.verbose = verbose;
+};
+server_Logger.__name__ = true;
+server_Logger.prototype = {
+	log: function(event) {
+		this.logs.push(event);
+		if(this.logs.length > 5000) {
+			this.logs.shift();
+		}
+	}
+	,saveLog: function() {
+		if(this.logs.length == 0) {
+			return;
+		}
+		server_Utils.ensureDir(this.folder);
+		this.removeOldestLog(this.folder);
+		var name = DateTools.format(new Date(),"%Y-%m-%d_%H_%M_%S");
+		js_node_Fs.writeFileSync("" + this.folder + "/" + name + ".json",JSON.stringify(this.logs,$bind(this,this.filterNulls),"\t"));
+	}
+	,filterNulls: function(key,value) {
+		if(value == null) {
+			return undefined;
+		}
+		return value;
+	}
+	,removeOldestLog: function(folder) {
+		var _gthis = this;
+		var names = js_node_Fs.readdirSync(folder);
+		if(Lambda.count(names,function(item) {
+			return _gthis.matchFileFormat.match(item);
+		}) < this.maxCount) {
+			return;
+		}
+		var minDate = 0.0;
+		var fileName = null;
+		var _g = 0;
+		while(_g < names.length) {
+			var name = names[_g];
+			++_g;
+			var date = this.extractFileDate(name).getTime();
+			if(minDate == 0 || minDate > date) {
+				minDate = date;
+				fileName = name;
+			}
+		}
+		if(fileName == null) {
+			return;
+		}
+		js_node_Fs.unlinkSync("" + folder + "/" + fileName);
+	}
+	,extractFileDate: function(name) {
+		name = haxe_io_Path.withoutExtension(name);
+		var t = name.split("_");
+		var d = t.shift().split("-");
+		if(d.length != 3 && t.length != 3) {
+			return new Date(0);
+		}
+		return HxOverrides.strDate("" + d[0] + "-" + d[1] + "-" + d[2] + " " + t[0] + ":" + t[1] + ":" + t[2]);
+	}
+	,__class__: server_Logger
+};
 var server_Main = function() {
 	this.loadedClientsCount = 0;
 	this.htmlChars = new EReg("[&^<>'\"]","");
@@ -3342,6 +3683,7 @@ var server_Main = function() {
 	var _gthis = this;
 	this.verbose = Lambda.has(process.argv.slice(2),"--verbose");
 	this.statePath = "" + this.rootDir + "/user/state.json";
+	this.logsDir = "" + this.rootDir + "/user/logs";
 	process.on("SIGINT",$bind(this,this.exit));
 	process.on("SIGUSR1",$bind(this,this.exit));
 	process.on("SIGUSR2",$bind(this,this.exit));
@@ -3354,6 +3696,7 @@ var server_Main = function() {
 		_gthis.logError("unhandledRejection",reason);
 		_gthis.exit();
 	});
+	this.logger = new server_Logger(this.logsDir,10,this.verbose);
 	this.consoleInput = new server_ConsoleInput(this);
 	this.consoleInput.initConsoleInput();
 	this.initIntergationHandlers();
@@ -3371,8 +3714,8 @@ var server_Main = function() {
 	}
 	server_Utils.getGlobalIp(function(ip) {
 		_gthis.globalIp = ip;
-		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 86, className : "server.Main", methodName : "new"});
-		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 87, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 90, className : "server.Main", methodName : "new"});
+		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 91, className : "server.Main", methodName : "new"});
 	});
 	var dir = "" + this.rootDir + "/res";
 	server_HttpServer.init(dir,"" + this.rootDir + "/user/res",this.config.localAdmins);
@@ -3391,6 +3734,7 @@ server_Main.main = function() {
 server_Main.prototype = {
 	exit: function() {
 		this.saveState();
+		this.logger.saveLog();
 		if(this.wss == null) {
 			process.exit();
 			return;
@@ -3445,7 +3789,7 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 141, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 146, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
@@ -3456,14 +3800,14 @@ server_Main.prototype = {
 			var emote = _g1[_g];
 			++_g;
 			if(emoteCopies_h[emote.name]) {
-				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 146, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 151, className : "server.Main", methodName : "getUserConfig"});
 			}
 			emoteCopies_h[emote.name] = true;
 			if(!this.verbose) {
 				continue;
 			}
 			if(emoteCopies_h[emote.image]) {
-				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 149, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 154, className : "server.Main", methodName : "getUserConfig"});
 			}
 			emoteCopies_h[emote.image] = true;
 		}
@@ -3478,13 +3822,11 @@ server_Main.prototype = {
 	}
 	,writeUsers: function(users) {
 		var folder = "" + this.rootDir + "/user";
-		if(!sys_FileSystem.exists(folder)) {
-			sys_FileSystem.createDirectory(folder);
-		}
+		server_Utils.ensureDir(folder);
 		js_node_Fs.writeFileSync("" + folder + "/users.json",JSON.stringify(users,null,"\t"));
 	}
 	,saveState: function() {
-		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 173, className : "server.Main", methodName : "saveState"});
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 176, className : "server.Main", methodName : "saveState"});
 		var json = JSON.stringify({ videoList : this.videoList, isPlaylistOpen : this.isPlaylistOpen, itemPos : this.itemPos, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 	}
@@ -3492,7 +3834,7 @@ server_Main.prototype = {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
-		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 190, className : "server.Main", methodName : "loadState"});
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 193, className : "server.Main", methodName : "loadState"});
 		var data = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		this.videoList.length = 0;
 		this.messages.length = 0;
@@ -3509,11 +3851,9 @@ server_Main.prototype = {
 		this.videoTimer.pause();
 	}
 	,logError: function(type,data) {
-		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 204, className : "server.Main", methodName : "logError", customParams : [data]});
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 207, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.rootDir + "/user/crashes";
-		if(!sys_FileSystem.exists(crashesFolder)) {
-			sys_FileSystem.createDirectory(crashesFolder);
-		}
+		server_Utils.ensureDir(crashesFolder);
 		js_node_Fs.writeFileSync("" + crashesFolder + "/" + (DateTools.format(new Date(),"%Y-%m-%d_%H_%M_%S") + "-" + type) + ".json",JSON.stringify(data,null,"\t"));
 	}
 	,initIntergationHandlers: function() {
@@ -3527,7 +3867,7 @@ server_Main.prototype = {
 				if(_gthis.clients.length == 0) {
 					return;
 				}
-				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 219, className : "server.Main", methodName : "initIntergationHandlers"});
+				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 222, className : "server.Main", methodName : "initIntergationHandlers"});
 				js_node_Http.get(url,null,function(r) {
 				});
 			};
@@ -3541,62 +3881,68 @@ server_Main.prototype = {
 		}
 		this.userList.admins.push({ name : name, hash : hash});
 		this.writeUsers(this.userList);
-		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 234, className : "server.Main", methodName : "addAdmin"});
+		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 237, className : "server.Main", methodName : "addAdmin"});
+	}
+	,replayLog: function(events) {
+		var _gthis = this;
+		var timer = new haxe_Timer(1000);
+		timer.run = function() {
+			if(events.length == 0) {
+				timer.stop();
+				return;
+			}
+			var e = events.shift();
+			switch(e.event.type) {
+			case "Connected":
+				if(ClientTools.getByName(_gthis.clients,e.clientName) == null) {
+					var id = _gthis.freeIds.length > 0 ? _gthis.freeIds.shift() : _gthis.clients.length;
+					_gthis.clients.push(new Client({ send : function() {
+						return;
+					}},null,id,e.clientName,e.clientGroup));
+				}
+				_gthis.onMessage(ClientTools.getByName(_gthis.clients,e.clientName),e.event,true);
+				break;
+			case "Login":
+				var name = e.event.login.clientName;
+				if(e.event.login.passHash != null && !Lambda.exists(_gthis.userList.admins,function(a) {
+					return a.name == name;
+				})) {
+					e.event.login.passHash = null;
+				}
+				_gthis.onMessage(ClientTools.getByName(_gthis.clients,e.clientName),e.event,true);
+				break;
+			default:
+				_gthis.onMessage(ClientTools.getByName(_gthis.clients,e.clientName),e.event,true);
+			}
+		};
 	}
 	,onConnect: function(ws,req) {
 		var _gthis = this;
 		var ip = req.connection.remoteAddress;
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 241, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 274, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
 		client.setGroupFlag(ClientGroup.Admin,this.config.localAdmins && req.connection.localAddress == ip);
 		this.clients.push(client);
-		if(this.clients.length == 1 && this.videoList.length > 0) {
-			if(this.videoTimer.isPaused()) {
-				this.videoTimer.play();
-			}
-		}
-		var client1 = client;
-		var tmp = this.config;
-		var tmp1 = this.messages;
-		var client2 = client.name;
-		var _g = [];
-		var _g1 = 0;
-		var _g2 = this.clients;
-		while(_g1 < _g2.length) _g.push(_g2[_g1++].getData());
-		this.send(client1,{ type : "Connected", connected : { config : tmp, history : tmp1, isUnknownClient : true, clientName : client2, clients : _g, videoList : this.videoList, isPlaylistOpen : this.isPlaylistOpen, itemPos : this.itemPos, globalIp : this.globalIp}});
-		this.sendClientList();
+		this.onMessage(client,{ type : "Connected"},true);
 		ws.on("message",function(data) {
 			var obj = _gthis.wsEventParser.fromJson(data);
 			if(_gthis.wsEventParser.errors.length > 0) {
 				var errors = "" + ("Wrong request for type \"" + obj.type + "\":") + "\n" + json2object_ErrorUtils.convertErrorArray(_gthis.wsEventParser.errors);
-				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 273, className : "server.Main", methodName : "onConnect"});
+				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 289, className : "server.Main", methodName : "onConnect"});
 				_gthis.serverMessage(client,errors);
 				return;
 			}
-			_gthis.onMessage(client,obj);
+			_gthis.onMessage(client,obj,false);
 		});
 		ws.on("close",function(err) {
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 280, className : "server.Main", methodName : "onConnect"});
-			server_Utils.sortedPush(_gthis.freeIds,client.id);
-			HxOverrides.remove(_gthis.clients,client);
-			_gthis.sendClientList();
-			if((client.group & 2) != 0) {
-				if(_gthis.videoTimer.isPaused()) {
-					_gthis.videoTimer.play();
-				}
-			}
-			if(_gthis.clients.length == 0) {
-				if(_gthis.waitVideoStart != null) {
-					_gthis.waitVideoStart.stop();
-				}
-				_gthis.videoTimer.pause();
-			}
+			_gthis.onMessage(client,{ type : "Disconnected"},true);
 		});
 	}
-	,onMessage: function(client,data) {
+	,onMessage: function(client,data,internal) {
 		var _gthis = this;
+		this.logger.log({ clientName : client.name, clientGroup : client.group, event : data, time : new Date().getTime()});
 		switch(data.type) {
 		case "AddVideo":
 			if(!this.checkPermission(client,"addVideo")) {
@@ -3650,6 +3996,36 @@ server_Main.prototype = {
 			this.broadcast(data);
 			break;
 		case "Connected":
+			if(!internal) {
+				return;
+			}
+			if(this.clients.length == 1 && this.videoList.length > 0) {
+				if(this.videoTimer.isPaused()) {
+					this.videoTimer.play();
+				}
+			}
+			this.send(client,{ type : "Connected", connected : { config : this.config, history : this.messages, isUnknownClient : true, clientName : client.name, clients : this.clientList(), videoList : this.videoList, isPlaylistOpen : this.isPlaylistOpen, itemPos : this.itemPos, globalIp : this.globalIp}});
+			this.sendClientListExcept(client);
+			break;
+		case "Disconnected":
+			if(!internal) {
+				return;
+			}
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 334, className : "server.Main", methodName : "onMessage"});
+			server_Utils.sortedPush(this.freeIds,client.id);
+			HxOverrides.remove(this.clients,client);
+			this.sendClientList();
+			if((client.group & 2) != 0) {
+				if(this.videoTimer.isPaused()) {
+					this.videoTimer.play();
+				}
+			}
+			if(this.clients.length == 0) {
+				if(this.waitVideoStart != null) {
+					this.waitVideoStart.stop();
+				}
+				this.videoTimer.pause();
+			}
 			break;
 		case "GetTime":
 			if(this.videoList.length == 0) {
@@ -3712,7 +4088,7 @@ server_Main.prototype = {
 			client.name = name;
 			client.setGroupFlag(ClientGroup.User,true);
 			this.send(client,{ type : data.type, login : { isUnknownClient : true, clientName : client.name, clients : this.clientList()}});
-			this.sendClientList();
+			this.sendClientListExcept(client);
 			break;
 		case "LoginError":
 			break;
@@ -3721,7 +4097,7 @@ server_Main.prototype = {
 			client.name = "Guest " + (this.clients.indexOf(client) + 1);
 			client.setGroupFlag(ClientGroup.User,false);
 			this.send(client,{ type : data.type, logout : { oldClientName : oldName, clientName : client.name, clients : this.clientList()}});
-			this.sendClientList();
+			this.sendClientListExcept(client);
 			break;
 		case "Message":
 			if(!this.checkPermission(client,"writeChat")) {
@@ -3920,6 +4296,9 @@ server_Main.prototype = {
 	,sendClientList: function() {
 		this.broadcast({ type : "UpdateClients", updateClients : { clients : this.clientList()}});
 	}
+	,sendClientListExcept: function(skipped) {
+		this.broadcastExcept(skipped,{ type : "UpdateClients", updateClients : { clients : this.clientList()}});
+	}
 	,serverMessage: function(client,textId) {
 		this.send(client,{ type : "ServerMessage", serverMessage : { textId : textId}});
 	}
@@ -4018,6 +4397,11 @@ server_Main.prototype = {
 };
 var server_Utils = function() { };
 server_Utils.__name__ = true;
+server_Utils.ensureDir = function(path) {
+	if(!sys_FileSystem.exists(path)) {
+		sys_FileSystem.createDirectory(path);
+	}
+};
 server_Utils.getGlobalIp = function(callback) {
 	js_node_Https.get("https://myexternalip.com/raw",function(r) {
 		r.setEncoding("utf8");
@@ -4029,7 +4413,7 @@ server_Utils.getGlobalIp = function(callback) {
 			callback(data_b);
 		});
 	}).on("error",function(e) {
-		haxe_Log.trace("Warning: connection error, server is local.",{ fileName : "src/server/Utils.hx", lineNumber : 16, className : "server.Utils", methodName : "getGlobalIp"});
+		haxe_Log.trace("Warning: connection error, server is local.",{ fileName : "src/server/Utils.hx", lineNumber : 21, className : "server.Utils", methodName : "getGlobalIp"});
 		callback("127.0.0.1");
 	});
 };

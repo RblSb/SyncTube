@@ -171,6 +171,7 @@ typedef WsEvent = {
 
 enum abstract WsEventType(String) {
 	var Connected;
+	var Disconnected;
 	var Login;
 	var PasswordRequest;
 	var LoginError;
