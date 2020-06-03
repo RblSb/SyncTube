@@ -23,6 +23,7 @@ class Client {
 	public final ws:WebSocket;
 	public final id:Int;
 	public final req:IncomingMessage;
+	public var isAlive = true;
 	#end
 	public var name:String;
 	public var group:EnumFlags<ClientGroup>;

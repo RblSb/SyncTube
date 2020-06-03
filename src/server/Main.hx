@@ -101,6 +101,20 @@ class Main {
 		server.listen(port);
 		wss = new WSServer({server: server});
 		wss.on("connection", onConnect);
+
+		new Timer(25000).run = () -> {
+			for (client in clients) {
+				if (client.isAlive) {
+					client.isAlive = false;
+					client.ws.ping();
+					continue;
+				}
+				client.ws.terminate();
+				onMessage(client, {
+					type: Disconnected
+				}, true);
+			}
+		};
 	}
 
 	public function exit():Void {
@@ -276,6 +290,7 @@ class Main {
 		final client = new Client(ws, req, id, name, 0);
 		client.isAdmin = isAdmin;
 		clients.push(client);
+		ws.on("pong", () -> client.isAlive = true);
 		onMessage(client, {
 			type: Connected
 		}, true);
