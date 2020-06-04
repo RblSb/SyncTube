@@ -98,9 +98,9 @@ class Main {
 		final server = Http.createServer((req, res) -> {
 			HttpServer.serveFiles(req, res);
 		});
-		server.listen(port);
 		wss = new WSServer({server: server});
 		wss.on("connection", onConnect);
+		server.listen(port);
 
 		new Timer(25000).run = () -> {
 			for (client in clients) {
@@ -120,11 +120,7 @@ class Main {
 	public function exit():Void {
 		saveState();
 		logger.saveLog();
-		if (wss == null) {
-			process.exit();
-			return;
-		}
-		wss.close(() -> process.exit());
+		process.exit();
 	}
 
 	function generateConfigSalt():String {
@@ -262,9 +258,10 @@ class Main {
 			switch (e.event.type) {
 				case Connected:
 					if (clients.getByName(e.clientName) == null) {
-						final ws:Any = {send: () -> {}};
+						final ws:Dynamic = {send: () -> {}};
 						final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
 						final client = new Client(ws, null, id, e.clientName, e.clientGroup);
+						ws.ping = () -> client.isAlive = true;
 						clients.push(client);
 					}
 					onMessage(clients.getByName(e.clientName), e.event, true);
@@ -503,8 +500,10 @@ class Main {
 					videoTimer.pause();
 					videoTimer.setTime(maxTime);
 					final currentLength = videoList.length;
+					final currentPos = itemPos;
 					Timer.delay(() -> {
 						if (videoList.length != currentLength) return;
+						if (itemPos != currentPos) return;
 						skipVideo({
 							type: SkipVideo, skipVideo: {
 								url: videoList[itemPos].url
