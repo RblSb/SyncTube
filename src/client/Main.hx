@@ -80,6 +80,7 @@ class Main {
 			Buttons.initHotkeys(this, player);
 			openWebSocket(host, port);
 		});
+		JsApi.init(this, player);
 	}
 
 	function settingsPatcher(data:Any, version:Int):Any {

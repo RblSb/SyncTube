@@ -814,10 +814,20 @@ client_InputWithHistory.prototype = {
 };
 var client_JsApi = function() { };
 client_JsApi.__name__ = true;
-client_JsApi.addPlugin = $hx_exports["client"]["JsApi"]["addPlugin"] = function(id,onLoaded) {
+client_JsApi.init = function(main,player) {
+	client_JsApi.main = main;
+	client_JsApi.player = player;
 	client_JsApi.initPluginsSpace();
+};
+client_JsApi.initPluginsSpace = function() {
+	var w = window;
+	if(w.synctube == null) {
+		w.synctube = { };
+	}
+};
+client_JsApi.addPlugin = $hx_exports["client"]["JsApi"]["addPlugin"] = function(id,onLoaded) {
 	client_JsApi.addScriptToHead("/plugins/" + id + "/index.js",function() {
-		var obj = { api : client_JsApi, id : id, path : "/plugins/" + id};
+		var obj = { api : client.JsApi, id : id, path : "/plugins/" + id};
 		if(window.synctube[id] == null) {
 			window.console.error("Plugin \"" + id + "\" not found");
 		} else {
@@ -827,12 +837,6 @@ client_JsApi.addPlugin = $hx_exports["client"]["JsApi"]["addPlugin"] = function(
 			}
 		}
 	});
-};
-client_JsApi.initPluginsSpace = function() {
-	var w = window;
-	if(w.synctube == null) {
-		w.synctube = { };
-	}
 };
 client_JsApi.addScriptToHead = $hx_exports["client"]["JsApi"]["addScriptToHead"] = function(url,onLoaded) {
 	var script = window.document.createElement("script");
@@ -848,6 +852,21 @@ client_JsApi.hasScriptInHead = $hx_exports["client"]["JsApi"]["hasScriptInHead"]
 		return true;
 	}
 	return false;
+};
+client_JsApi.getTime = $hx_exports["client"]["JsApi"]["getTime"] = function() {
+	return client_JsApi.player.getTime();
+};
+client_JsApi.setTime = $hx_exports["client"]["JsApi"]["setTime"] = function(time) {
+	client_JsApi.player.setTime(time);
+};
+client_JsApi.isLeader = $hx_exports["client"]["JsApi"]["isLeader"] = function() {
+	return (client_JsApi.main.personal.group & 2) != 0;
+};
+client_JsApi.forceSyncNextTick = $hx_exports["client"]["JsApi"]["forceSyncNextTick"] = function(flag) {
+	client_JsApi.main.forceSyncNextTick = flag;
+};
+client_JsApi.setVideoSrc = $hx_exports["client"]["JsApi"]["setVideoSrc"] = function(src) {
+	client_JsApi.player.changeVideoSrc(src);
 };
 client_JsApi.notifyOnVideoChange = $hx_exports["client"]["JsApi"]["notifyOnVideoChange"] = function(func) {
 	client_JsApi.videoChange.push(func);
@@ -914,6 +933,7 @@ var client_Main = function(host,port) {
 		client_Buttons.initHotkeys(_gthis,_gthis.player);
 		_gthis.openWebSocket(host,port);
 	});
+	client_JsApi.init(this,this.player);
 };
 client_Main.__name__ = true;
 client_Main.main = function() {
@@ -1147,7 +1167,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 325, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 326, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		switch(data.type) {
 		case "AddVideo":
@@ -1761,6 +1781,16 @@ client_Player.prototype = {
 		this.player.loadVideo(item);
 		client_JsApi.fireVideoChangeEvents(item);
 		window.document.querySelector("#currenttitle").textContent = item.title;
+	}
+	,changeVideoSrc: function(src) {
+		if(this.player == null) {
+			return;
+		}
+		var item = this.items[this.itemPos];
+		if(item == null) {
+			return;
+		}
+		this.player.loadVideo({ url : src, title : item.title, author : item.author, duration : item.duration, isTemp : item.isTemp, isIframe : item.isIframe});
 	}
 	,removeVideo: function() {
 		client_JsApi.fireVideoRemoveEvents(this.items[this.itemPos]);

@@ -128,6 +128,20 @@ class Player {
 		ge("#currenttitle").textContent = item.title;
 	}
 
+	public function changeVideoSrc(src:String):Void {
+		if (player == null) return;
+		final item = items[itemPos];
+		if (item == null) return;
+		player.loadVideo({
+			url: src,
+			title: item.title,
+			author: item.author,
+			duration: item.duration,
+			isTemp: item.isTemp,
+			isIframe: item.isIframe
+		});
+	}
+
 	public function removeVideo():Void {
 		JsApi.fireVideoRemoveEvents(items[itemPos]);
 		player.removeVideo();
