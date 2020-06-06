@@ -111,7 +111,7 @@ class Buttons {
 		}
 		final fullscreenBtn = ge("#fullscreenbtn");
 		fullscreenBtn.onclick = e -> {
-			if (Utils.isTouch() && !Utils.hasFullscreen()) {
+			if ((Utils.isTouch() || main.isVerbose()) && !Utils.hasFullscreen()) {
 				Utils.requestFullscreen(document.documentElement);
 			} else {
 				Utils.requestFullscreen(ge("#ytapiplayer"));

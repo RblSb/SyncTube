@@ -234,6 +234,8 @@ button.danger-bg:focus {
 }
 
 .info header {
+  display: flex;
+  align-items: center;
   flex-wrap: nowrap;
   overflow-x: hidden;
   white-space: nowrap;
@@ -263,7 +265,6 @@ header h4 {
   position: relative;
   display: flex;
   flex-wrap: nowrap;
-  padding-bottom: 1rem;
 }
 
 .controls span {
@@ -445,6 +446,7 @@ footer#footer {
 #chat .controls {
   display: flex;
   justify-content: space-between;
+  padding-bottom: 1rem;
 }
 
 /* Users online */
@@ -697,12 +699,17 @@ html {
     background: var(--background-video);
   }
   #header {
-    font-size: 1.953rem;
-    display: inline-block;
+    display: flex;
     flex: 1;
-    overflow-x: hidden;
+    flex-wrap: nowrap;
+    overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    font-size: 1.953rem;
+  }
+  #currenttitle {
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
   .gutter {
     grid-area: gutter;
@@ -731,7 +738,7 @@ html {
   padding: 0 1rem;
 }
 
-.mobile-view .controls {
+.mobile-view #chat .controls {
   padding-bottom: 0;
 }
 

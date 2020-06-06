@@ -387,11 +387,13 @@ class Main {
 				if (player.isListEmpty()) player.pause();
 
 			case Pause:
+				player.setPauseIndicator(false);
 				if (isLeader()) return;
 				player.pause();
 				player.setTime(data.pause.time);
 
 			case Play:
+				player.setPauseIndicator(true);
 				if (isLeader()) return;
 				player.setTime(data.play.time);
 				player.play();
@@ -418,6 +420,7 @@ class Main {
 				if (player.getDuration() <= player.getTime() + synchThreshold) return;
 				if (!data.getTime.paused) player.play();
 				else player.pause();
+				player.setPauseIndicator(!data.getTime.paused);
 				if (Math.abs(time - newTime) < synchThreshold) return;
 				player.setTime(newTime);
 
@@ -810,6 +813,10 @@ class Main {
 
 	public function getYoutubeApiKey():String {
 		return config.youtubeApiKey;
+	}
+
+	public function isVerbose():Bool {
+		return config.isVerbose;
 	}
 
 	function escapeRegExp(regex:String):String {

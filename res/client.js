@@ -509,7 +509,7 @@ client_Buttons.init = function(main) {
 		main.refreshPlayer();
 	};
 	window.document.querySelector("#fullscreenbtn").onclick = function(e) {
-		if(client_Utils.isTouch() && !client_Utils.hasFullscreen()) {
+		if((client_Utils.isTouch() || main.isVerbose()) && !client_Utils.hasFullscreen()) {
 			return client_Utils.requestFullscreen(window.document.documentElement);
 		} else {
 			return client_Utils.requestFullscreen(window.document.querySelector("#ytapiplayer"));
@@ -1222,6 +1222,7 @@ client_Main.prototype = {
 			} else {
 				this.player.pause();
 			}
+			this.player.setPauseIndicator(!data.getTime.paused);
 			if(Math.abs(time - newTime) < synchThreshold) {
 				return;
 			}
@@ -1251,6 +1252,7 @@ client_Main.prototype = {
 			this.showGuestPasswordPanel();
 			break;
 		case "Pause":
+			this.player.setPauseIndicator(false);
 			if((this.personal.group & 2) != 0) {
 				return;
 			}
@@ -1258,6 +1260,7 @@ client_Main.prototype = {
 			this.player.setTime(data.pause.time);
 			break;
 		case "Play":
+			this.player.setPauseIndicator(true);
 			if((this.personal.group & 2) != 0) {
 				return;
 			}
@@ -1683,6 +1686,9 @@ client_Main.prototype = {
 	,getYoutubeApiKey: function() {
 		return this.config.youtubeApiKey;
 	}
+	,isVerbose: function() {
+		return this.config.isVerbose;
+	}
 	,escapeRegExp: function(regex) {
 		var _this_r = new RegExp("([.*+?^${}()|[\\]\\\\])","g".split("u").join(""));
 		return regex.replace(_this_r,"\\$1");
@@ -1796,6 +1802,18 @@ client_Player.prototype = {
 		client_JsApi.fireVideoRemoveEvents(this.items[this.itemPos]);
 		this.player.removeVideo();
 		window.document.querySelector("#currenttitle").textContent = Lang.get("nothingPlaying");
+		this.setPauseIndicator(true);
+	}
+	,setPauseIndicator: function(flag) {
+		if(!this.main.isSyncActive) {
+			return;
+		}
+		var state = flag ? "play" : "pause";
+		var el = window.document.querySelector("#pause-indicator");
+		if(el.getAttribute("name") == state) {
+			return;
+		}
+		el.setAttribute("name",state);
 	}
 	,onCanBePlayed: function() {
 		if(!this.isLoaded) {
