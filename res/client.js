@@ -685,9 +685,11 @@ client_Buttons.initHotkeys = function(main,player) {
 			break;
 		case 80:
 			if(!((main.personal.group & 2) != 0)) {
-				haxe_Timer.delay(function() {
-					player.pause();
-				},500);
+				client_JsApi.once("SetLeader",function(event) {
+					if(event.setLeader.clientName == main.personal.name) {
+						player.pause();
+					}
+				});
 			}
 			window.document.querySelector("#leader_btn").onclick();
 			break;
@@ -867,6 +869,21 @@ client_JsApi.forceSyncNextTick = $hx_exports["client"]["JsApi"]["forceSyncNextTi
 };
 client_JsApi.setVideoSrc = $hx_exports["client"]["JsApi"]["setVideoSrc"] = function(src) {
 	client_JsApi.player.changeVideoSrc(src);
+};
+client_JsApi.once = $hx_exports["client"]["JsApi"]["once"] = function(type,func) {
+	client_JsApi.onceListeners.push({ type : type, func : func});
+};
+client_JsApi.fireOnceEvent = function(event) {
+	var i = 0;
+	while(i < client_JsApi.onceListeners.length) {
+		var listener = client_JsApi.onceListeners[i];
+		if(listener.type == event.type) {
+			listener.func(event);
+			HxOverrides.remove(client_JsApi.onceListeners,listener);
+			continue;
+		}
+		++i;
+	}
 };
 client_JsApi.notifyOnVideoChange = $hx_exports["client"]["JsApi"]["notifyOnVideoChange"] = function(func) {
 	client_JsApi.videoChange.push(func);
@@ -1167,8 +1184,9 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 326, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 330, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
+		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -3362,6 +3380,7 @@ Lang.ids = ["en","ru"];
 Lang.lang = HxOverrides.substr($global.navigator.language,0,2).toLowerCase();
 client_JsApi.videoChange = [];
 client_JsApi.videoRemove = [];
+client_JsApi.onceListeners = [];
 client_Settings.isSupported = false;
 js_youtube_Youtube.isLoadedAPI = false;
 client_Main.main();

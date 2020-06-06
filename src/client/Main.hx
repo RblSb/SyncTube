@@ -178,6 +178,10 @@ class Main {
 		return personal.isAdmin;
 	}
 
+	public inline function getName():String {
+		return personal.name;
+	}
+
 	final mask = ~/\${([0-9]+)-([0-9]+)}/g;
 
 	function handleUrlMasks(links:Array<String>):Void {
@@ -325,6 +329,7 @@ class Main {
 			final t = t.charAt(0).toLowerCase() + t.substr(1);
 			trace('Event: ${data.type}', Reflect.field(data, t));
 		}
+		JsApi.fireOnceEvent(data);
 		switch (data.type) {
 			case Connected:
 				onConnected(data);

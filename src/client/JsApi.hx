@@ -1,11 +1,14 @@
 package client;
 
+import Types.WsEventType;
+import Types.WsEvent;
 import Types.VideoItem;
 import js.Browser.document;
 import js.Browser.window;
 import js.Syntax;
 
 private typedef VideoChangeFunc = (item:VideoItem)->Void;
+private typedef OnceEventFunc = (event:WsEvent)->Void;
 
 class JsApi {
 
@@ -13,6 +16,7 @@ class JsApi {
 	static var player:Player;
 	static final videoChange:Array<VideoChangeFunc> = [];
 	static final videoRemove:Array<VideoChangeFunc> = [];
+	static final onceListeners:Array<{type:WsEventType, func:OnceEventFunc}> = [];
 
 	public static function init(main:Main, player:Player):Void {
 		JsApi.main = main;
@@ -82,6 +86,24 @@ class JsApi {
 	@:expose
 	static function setVideoSrc(src:String):Void {
 		player.changeVideoSrc(src);
+	}
+
+	@:expose
+	public static function once(type:WsEventType, func:OnceEventFunc):Void {
+		onceListeners.push({type: type, func: func});
+	}
+
+	public static function fireOnceEvent(event:WsEvent):Void {
+		var i = 0;
+		while (i < onceListeners.length) {
+			final listener = onceListeners[i];
+			if (listener.type == event.type) {
+				listener.func(event);
+				onceListeners.remove(listener);
+				continue;
+			}
+			i++;
+		}
 	}
 
 	@:expose

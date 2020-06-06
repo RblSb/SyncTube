@@ -273,7 +273,10 @@ class Buttons {
 				case L: ge("#leader_btn").onclick();
 				case P:
 					if (!main.isLeader()) {
-						Timer.delay(() -> player.pause(), 500);
+						JsApi.once(SetLeader, event -> {
+							final name = event.setLeader.clientName;
+							if (name == main.getName()) player.pause();
+						});
 					}
 					ge("#leader_btn").onclick();
 				default: return;
