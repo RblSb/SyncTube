@@ -404,10 +404,6 @@ header h4 {
   border-left-color: var(--accent);
 }
 
-.queue_sortable li {
-  cursor: row-resize;
-}
-
 /* Footer */
 
 footer#footer {
