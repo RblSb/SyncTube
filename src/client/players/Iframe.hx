@@ -1,10 +1,9 @@
 package client.players;
 
-import haxe.Timer;
 import js.html.Element;
-import js.html.VideoElement;
 import js.Browser.document;
 import client.Main.ge;
+import Types.VideoDataRequest;
 import Types.VideoData;
 import Types.VideoItem;
 
@@ -24,9 +23,9 @@ class Iframe implements IPlayer {
 		return true;
 	}
 
-	public function getVideoData(data:String, callback:(data:VideoData)->Void):Void {
+	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
 		final iframe = document.createDivElement();
-		iframe.innerHTML = data;
+		iframe.innerHTML = data.url;
 		if (isValidIframe(iframe)) {
 			callback({duration: 99 * 60 * 60});
 		} else {

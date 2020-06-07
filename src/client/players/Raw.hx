@@ -6,6 +6,7 @@ import js.html.Element;
 import js.html.VideoElement;
 import js.Browser.document;
 import client.Main.ge;
+import Types.VideoDataRequest;
 import Types.VideoData;
 import Types.VideoItem;
 using StringTools;
@@ -30,7 +31,8 @@ class Raw implements IPlayer {
 		return true;
 	}
 
-	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
+	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+		final url = data.url;
 		final decodedUrl = url.urlDecode();
 		var title = decodedUrl.substr(decodedUrl.lastIndexOf("/") + 1);
 		final isNameMatched = matchName.match(title);
@@ -40,7 +42,7 @@ class Raw implements IPlayer {
 		if (isNameMatched) {
 			isHls = matchName.matched(2).contains("m3u8");
 			if (isHls && !isHlsLoaded) {
-				loadHlsPlugin(() -> getVideoData(url, callback));
+				loadHlsPlugin(() -> getVideoData(data, callback));
 				return;
 			}
 		}
@@ -63,7 +65,8 @@ class Raw implements IPlayer {
 	}
 
 	function loadHlsPlugin(callback:()->Void):Void {
-		JsApi.addScriptToHead("https://cdn.jsdelivr.net/npm/hls.js@latest", () -> {
+		final url = "https://cdn.jsdelivr.net/npm/hls.js@latest";
+		JsApi.addScriptToHead(url, () -> {
 			isHlsLoaded = true;
 			callback();
 		});

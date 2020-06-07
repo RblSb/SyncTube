@@ -14,6 +14,7 @@ import js.Browser;
 import js.Browser.document;
 import js.Browser.window;
 import Client.ClientData;
+import Types.VideoDataRequest;
 import Types.VideoData;
 import Types.Config;
 import Types.WsEvent;
@@ -213,14 +214,17 @@ class Main {
 		final links = url.split("|");
 		handleUrlMasks(links);
 		// if videos added as next, we need to load them in reverse order
-		if (!atEnd) {
-			// except first item when list empty
-			var first:Null<String> = null;
-			if (player.isListEmpty()) first = links.shift();
-			links.reverse();
-			if (player.isListEmpty()) links.unshift(first);
-		}
+		if (!atEnd) sortItemsForQueueNext(links);
 		addVideoArray(links, atEnd, isTemp);
+	}
+
+	public function sortItemsForQueueNext<T>(items:Array<T>):Void {
+		if (items.length == 0) return;
+		// except first item when list empty
+		var first:Null<T> = null;
+		if (player.isListEmpty()) first = items.shift();
+		items.reverse();
+		if (player.isListEmpty()) items.unshift(first);
 	}
 
 	function addVideoArray(links:Array<String>, atEnd:Bool, isTemp:Bool):Void {
@@ -238,7 +242,11 @@ class Main {
 		}
 		if (!url.startsWith("http")) url = '$protocol//$url';
 
-		player.getVideoData(url, (data:VideoData) -> {
+		final obj:VideoDataRequest = {
+			url: url,
+			atEnd: atEnd
+		};
+		player.getVideoData(obj, (data:VideoData) -> {
 			if (data.duration == 0) {
 				serverMessage(4, Lang.get("addVideoError"));
 				return;
@@ -271,7 +279,11 @@ class Main {
 		mediaTitle.value = "";
 		final checkbox:InputElement = cast ge("#customembed").querySelector(".add-temp");
 		final isTemp = checkbox.checked;
-		player.getIframeData(iframe, (data:VideoData) -> {
+		final obj:VideoDataRequest = {
+			url: iframe,
+			atEnd: atEnd
+		};
+		player.getIframeData(obj, (data:VideoData) -> {
 			if (data.duration == 0) {
 				serverMessage(4, Lang.get("addVideoError"));
 				return;

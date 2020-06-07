@@ -2,6 +2,11 @@ package;
 
 import Client.ClientData;
 
+typedef VideoDataRequest = {
+	url:String,
+	atEnd:Bool
+}
+
 typedef VideoData = {
 	duration:Float,
 	?title:String,

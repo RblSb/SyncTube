@@ -7,6 +7,7 @@ import js.Browser.document;
 import client.Main.ge;
 import js.youtube.Youtube as YtInit;
 import js.youtube.YoutubePlayer;
+import Types.VideoDataRequest;
 import Types.VideoData;
 import Types.VideoItem;
 using StringTools;
@@ -72,17 +73,18 @@ class Youtube implements IPlayer {
 		return total;
 	}
 
-	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
+	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+		final url = data.url;
 		if (apiKey == null) apiKey = main.getYoutubeApiKey();
-		var id = extractVideoId(url);
+		final id = extractVideoId(url);
 		if (id == "") {
-			getPlaylistVideoData(url, callback);
+			getPlaylistVideoData(data, callback);
 			return;
 		}
 		final dataUrl = '$videosUrl$urlTitleDuration&id=$id&key=$apiKey';
 		final http = new Http(dataUrl);
-		http.onData = data -> {
-			final json = Json.parse(data);
+		http.onData = text -> {
+			final json = Json.parse(text);
 			if (json.error != null) {
 				youtubeApiError(json.error);
 				getRemoteDataFallback(url, callback);
@@ -103,11 +105,11 @@ class Youtube implements IPlayer {
 						duration: 99 * 60 * 60,
 						title: title,
 						url: '<iframe src="https://www.youtube.com/embed/$id" frameborder="0"
-								allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-								allowfullscreen></iframe>',
+							allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+							allowfullscreen></iframe>',
 						isIframe: true
 					});
-					return;
+					continue;
 				}
 				callback({
 					duration: duration,
@@ -120,12 +122,13 @@ class Youtube implements IPlayer {
 		http.request();
 	}
 
-	function getPlaylistVideoData(url:String, callback:(data:VideoData)->Void):Void {
+	function getPlaylistVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+		final url = data.url;
 		final id = extractPlaylistId(url);
 		final dataUrl = '$playlistUrl$urlVideoId&maxResults=50&playlistId=$id&key=$apiKey';
 		final http = new Http(dataUrl);
-		http.onData = data -> {
-			final json = Json.parse(data);
+		http.onData = text -> {
+			final json = Json.parse(text);
 			if (json.error != null) {
 				youtubeApiError(json.error);
 				callback({duration: 0});
@@ -136,10 +139,15 @@ class Youtube implements IPlayer {
 				callback({duration: 0});
 				return;
 			}
+			if (!data.atEnd) main.sortItemsForQueueNext(items);
 			function loadNextItem():Void {
 				final item = items.shift();
 				final id:String = item.snippet.resourceId.videoId;
-				getVideoData('youtu.be/$id', data -> {
+				final obj = {
+					url: 'https://youtu.be/$id',
+					atEnd: data.atEnd
+				};
+				getVideoData(obj, data -> {
 					callback(data);
 					if (items.length > 0) loadNextItem();
 				});

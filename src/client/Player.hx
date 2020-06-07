@@ -5,6 +5,7 @@ import client.Main.ge;
 import client.players.Raw;
 import client.players.Youtube;
 import client.players.Iframe;
+import Types.VideoDataRequest;
 import Types.VideoData;
 import Types.VideoItem;
 using StringTools;
@@ -97,14 +98,14 @@ class Player {
 		player = newPlayer;
 	}
 
-	public function getVideoData(url:String, callback:(data:VideoData)->Void):Void {
-		var player = players.find(player -> player.isSupportedLink(url));
+	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+		var player = players.find(player -> player.isSupportedLink(data.url));
 		if (player == null) player = rawPlayer;
-		player.getVideoData(url, callback);
+		player.getVideoData(data, callback);
 	}
 
-	public function getIframeData(iframe:String, callback:(data:VideoData)->Void):Void {
-		iframePlayer.getVideoData(iframe, callback);
+	public function getIframeData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+		iframePlayer.getVideoData(data, callback);
 	}
 
 	public function setVideo(i:Int):Void {
