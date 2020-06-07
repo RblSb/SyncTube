@@ -209,10 +209,11 @@ class Player {
 
 	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
 		final url = item.url.htmlEscape(true);
+		final duration = item.isIframe ? "" : duration(item.duration);
 		final itemEl = Utils.nodeFromString(
 			'<li class="queue_entry info" title="${Lang.get("addedBy")}: ${item.author}">
 				<header>
-					<span class="qe_time">${duration(item.duration)}</span>
+					<span class="qe_time">$duration</span>
 					<h4><a class="qe_title" href="$url" target="_blank">${item.title.htmlEscape()}</a></h4>
 				</header>
 				<span class="controls">
@@ -323,7 +324,10 @@ class Player {
 
 	function totalDuration():String {
 		var time = 0.0;
-		for (item in items) time += item.duration;
+		for (item in items) {
+			if (item.isIframe) continue;
+			time += item.duration;
+		}
 		return duration(time);
 	}
 
