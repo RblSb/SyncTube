@@ -31,6 +31,7 @@ It's just works, but you can also check [user/ folder](/user/README.md) for serv
 
 ### Plugins
 - [octosubs](https://github.com/RblSb/SyncTube-octosubs) - `ASS`/`SSA` subtitles support
+- [qswitcher](https://github.com/aNNiMON/SyncTube-QSwitcher) - raw video quality switcher
 
 ### How to use
 - Login with any nickname
