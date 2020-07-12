@@ -48,7 +48,6 @@ class Main {
 		if (host == "") host = "localhost";
 		this.host = host;
 		if (port == null) port = Browser.location.port;
-		if (port == "") port = "80";
 
 		final defaults:ClientSettings = {
 			version: SETTINGS_VERSION,
@@ -102,9 +101,10 @@ class Main {
 	}
 
 	function openWebSocket(host:String, port:String):Void {
+		if (port.length > 0) port = ':$port';
 		var protocol = "ws:";
 		if (Browser.location.protocol == "https:") protocol = "wss:";
-		ws = new WebSocket('$protocol//$host:$port');
+		ws = new WebSocket('$protocol//$host$port');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
 			serverMessage(1);
