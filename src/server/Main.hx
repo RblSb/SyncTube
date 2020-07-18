@@ -294,7 +294,7 @@ class Main {
 
 		ws.on("message", data -> {
 			final obj = wsEventParser.fromJson(data);
-			if (wsEventParser.errors.length > 0) {
+			if (wsEventParser.errors.length > 0 || noTypeObj(obj)) {
 				final line = 'Wrong request for type "${obj.type}":';
 				final errorLines = ErrorUtils.convertErrorArray(wsEventParser.errors);
 				final errors = '$line\n$errorLines';
@@ -310,6 +310,16 @@ class Main {
 				type: Disconnected
 			}, true);
 		});
+	}
+
+	function noTypeObj(data:WsEvent):Bool {
+		if (data.type == GetTime) return false;
+		if (data.type == TogglePlaylistLock) return false;
+		if (data.type == UpdatePlaylist) return false;
+		if (data.type == Logout) return false;
+		final t:String = cast data.type;
+		final t = t.charAt(0).toLowerCase() + t.substr(1);
+		return js.Syntax.strictEq(Reflect.field(data, t), null);
 	}
 
 	function onMessage(client:Client, data:WsEvent, internal:Bool):Void {

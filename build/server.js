@@ -3945,7 +3945,7 @@ server_Main.prototype = {
 		this.onMessage(client,{ type : "Connected"},true);
 		ws.on("message",function(data) {
 			var obj = _gthis.wsEventParser.fromJson(data);
-			if(_gthis.wsEventParser.errors.length > 0) {
+			if(_gthis.wsEventParser.errors.length > 0 || _gthis.noTypeObj(obj)) {
 				var errors = "" + ("Wrong request for type \"" + obj.type + "\":") + "\n" + json2object_ErrorUtils.convertErrorArray(_gthis.wsEventParser.errors);
 				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 301, className : "server.Main", methodName : "onConnect"});
 				_gthis.serverMessage(client,errors);
@@ -3956,6 +3956,22 @@ server_Main.prototype = {
 		ws.on("close",function(err) {
 			_gthis.onMessage(client,{ type : "Disconnected"},true);
 		});
+	}
+	,noTypeObj: function(data) {
+		if(data.type == "GetTime") {
+			return false;
+		}
+		if(data.type == "TogglePlaylistLock") {
+			return false;
+		}
+		if(data.type == "UpdatePlaylist") {
+			return false;
+		}
+		if(data.type == "Logout") {
+			return false;
+		}
+		var t = data.type;
+		return ((Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))) === null);
 	}
 	,onMessage: function(client,data,internal) {
 		var _gthis = this;
@@ -4028,7 +4044,7 @@ server_Main.prototype = {
 			if(!internal) {
 				return;
 			}
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 346, className : "server.Main", methodName : "onMessage"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 356, className : "server.Main", methodName : "onMessage"});
 			server_Utils.sortedPush(this.freeIds,client.id);
 			HxOverrides.remove(this.clients,client);
 			this.sendClientList();
