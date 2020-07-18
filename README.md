@@ -14,6 +14,7 @@ Default channel example: http://synctube-example.herokuapp.com/
 - `/30`, `/-21`, etc to rewind video playback in seconds
 - Links mask: `foo.com/bar${1-4}.mp4` to add multiple items
 - Override every front-end file you want (`user/res` folder)
+- [Native mobile client](https://github.com/RblSb/SyncTubeApp)
 
 ### Supported players
 - Youtube (videos, streams and playlists)
