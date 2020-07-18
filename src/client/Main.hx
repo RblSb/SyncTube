@@ -101,10 +101,10 @@ class Main {
 	}
 
 	function openWebSocket(host:String, port:String):Void {
-		if (port.length > 0) port = ':$port';
+		final colonPort = port.length > 0 ? ':$port' : port;
 		var protocol = "ws:";
 		if (Browser.location.protocol == "https:") protocol = "wss:";
-		ws = new WebSocket('$protocol//$host$port');
+		ws = new WebSocket('$protocol//$host$colonPort');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
 			serverMessage(1);

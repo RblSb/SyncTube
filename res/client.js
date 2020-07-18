@@ -977,14 +977,12 @@ client_Main.prototype = {
 	}
 	,openWebSocket: function(host,port) {
 		var _gthis = this;
-		if(port.length > 0) {
-			port = ":" + port;
-		}
+		var colonPort = port.length > 0 ? ":" + port : port;
 		var protocol = "ws:";
 		if($global.location.protocol == "https:") {
 			protocol = "wss:";
 		}
-		this.ws = new WebSocket("" + protocol + "//" + host + port);
+		this.ws = new WebSocket("" + protocol + "//" + host + colonPort);
 		this.ws.onmessage = $bind(this,this.onMessage);
 		this.ws.onopen = function() {
 			_gthis.serverMessage(1);
