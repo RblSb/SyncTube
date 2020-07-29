@@ -110,9 +110,6 @@ class Main {
 					continue;
 				}
 				client.ws.terminate();
-				onMessage(client, {
-					type: Disconnected
-				}, true);
 			}
 		};
 	}
@@ -364,6 +361,14 @@ class Main {
 					if (waitVideoStart != null) waitVideoStart.stop();
 					videoTimer.pause();
 				}
+				Timer.delay(() -> {
+					if (clients.exists(i -> i.name == client.name)) return;
+					broadcast({
+						type: ServerMessage, serverMessage: {
+							textId: '${client.name} has left'
+						}
+					});
+				}, 5000);
 
 			case UpdateClients:
 				sendClientList();

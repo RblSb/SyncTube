@@ -1091,7 +1091,7 @@ client_Main.prototype = {
 			first = items.shift();
 		}
 		items.reverse();
-		if(this.player.isListEmpty()) {
+		if(first != null) {
 			items.unshift(first);
 		}
 	}

@@ -224,7 +224,7 @@ class Main {
 		var first:Null<T> = null;
 		if (player.isListEmpty()) first = items.shift();
 		items.reverse();
-		if (player.isListEmpty()) items.unshift(first);
+		if (first != null) items.unshift(first);
 	}
 
 	function addVideoArray(links:Array<String>, atEnd:Bool, isTemp:Bool):Void {
