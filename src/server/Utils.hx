@@ -1,8 +1,9 @@
 package server;
 
-import sys.FileSystem;
+import js.node.url.URL;
 import js.node.Https;
 import js.node.Os;
+import sys.FileSystem;
 
 class Utils {
 
@@ -11,16 +12,23 @@ class Utils {
 	}
 
 	public static function getGlobalIp(callback:(ip:String)->Void):Void {
-		// untyped to skip second null argument for node < v10
-		Https.get(untyped "https://myexternalip.com/raw", r -> {
+		function onError(e):Void {
+			trace("Warning: connection error, server is local.");
+			callback("127.0.0.1");
+		}
+		final url = new URL("https://myexternalip.com/raw");
+		Https.get({ // this overload for node < v10.9.0
+			timeout: 5000,
+			protocol: url.protocol,
+			host: url.host,
+			path: url.pathname
+		}, r -> {
 			r.setEncoding("utf8");
 			final data = new StringBuf();
 			r.on("data", chunk -> data.add(chunk));
 			r.on("end", _ -> callback(data.toString()));
-		}).on("error", e -> {
-			trace("Warning: connection error, server is local.");
-			callback("127.0.0.1");
-		});
+		}).on("error", onError)
+			.on("timeout", onError);
 	}
 
 	public static function getLocalIp():String {

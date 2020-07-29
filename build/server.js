@@ -3713,9 +3713,9 @@ var server_Main = function() {
 	if(envPort != null) {
 		this.port = envPort;
 	}
+	haxe_Log.trace("Local: http://" + this.localIp + ":" + this.port,{ fileName : "src/server/Main.hx", lineNumber : 88, className : "server.Main", methodName : "new"});
 	server_Utils.getGlobalIp(function(ip) {
 		_gthis.globalIp = ip;
-		haxe_Log.trace("Local: http://" + _gthis.localIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 90, className : "server.Main", methodName : "new"});
 		haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 91, className : "server.Main", methodName : "new"});
 	});
 	var dir = "" + this.rootDir + "/res";
@@ -4440,7 +4440,12 @@ server_Utils.ensureDir = function(path) {
 	}
 };
 server_Utils.getGlobalIp = function(callback) {
-	js_node_Https.get("https://myexternalip.com/raw",function(r) {
+	var onError = function(e) {
+		haxe_Log.trace("Warning: connection error, server is local.",{ fileName : "src/server/Utils.hx", lineNumber : 16, className : "server.Utils", methodName : "getGlobalIp"});
+		callback("127.0.0.1");
+	};
+	var url = new js_node_url_URL("https://myexternalip.com/raw");
+	js_node_Https.get({ timeout : 5000, protocol : url.protocol, host : url.host, path : url.pathname},function(r) {
 		r.setEncoding("utf8");
 		var data_b = "";
 		r.on("data",function(chunk) {
@@ -4449,10 +4454,7 @@ server_Utils.getGlobalIp = function(callback) {
 		r.on("end",function(_) {
 			callback(data_b);
 		});
-	}).on("error",function(e) {
-		haxe_Log.trace("Warning: connection error, server is local.",{ fileName : "src/server/Utils.hx", lineNumber : 21, className : "server.Utils", methodName : "getGlobalIp"});
-		callback("127.0.0.1");
-	});
+	}).on("error",onError).on("timeout",onError);
 };
 server_Utils.getLocalIp = function() {
 	var ifaces = js_node_Os.networkInterfaces();

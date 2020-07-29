@@ -85,9 +85,9 @@ class Main {
 		final envPort = (process.env : Dynamic).PORT;
 		if (envPort != null) port = envPort;
 
+		trace('Local: http://$localIp:$port');
 		Utils.getGlobalIp(ip -> {
 			globalIp = ip;
-			trace('Local: http://$localIp:$port');
 			trace('Global: http://$globalIp:$port');
 		});
 
