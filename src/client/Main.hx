@@ -412,7 +412,12 @@ class Main {
 			case Play:
 				player.setPauseIndicator(true);
 				if (isLeader()) return;
-				player.setTime(data.play.time);
+				final synchThreshold = settings.synchThreshold;
+				final newTime = data.play.time;
+				final time = player.getTime();
+				if (Math.abs(time - newTime) >= synchThreshold) {
+					player.setTime(newTime);
+				}
 				player.play();
 
 			case GetTime:

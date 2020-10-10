@@ -1286,7 +1286,11 @@ client_Main.prototype = {
 			if((this.personal.group & 2) != 0) {
 				return;
 			}
-			this.player.setTime(data.play.time);
+			var synchThreshold = this.settings.synchThreshold;
+			var newTime = data.play.time;
+			if(Math.abs(this.player.getTime() - newTime) >= synchThreshold) {
+				this.player.setTime(newTime);
+			}
 			this.player.play();
 			break;
 		case "PlayItem":
