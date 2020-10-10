@@ -672,7 +672,7 @@ html {
  * Media queries
  */
 
-@media only screen and (min-width: 50rem) {
+@media only screen and (orientation: landscape) {
   body {
     display: grid;
     grid-template-areas: "video gutter chat";
