@@ -3575,10 +3575,7 @@ server_HttpServer.proxyRequest = function(url,req,res,fn) {
 	if(url1.host == req.headers["host"]) {
 		return null;
 	}
-	if(url1.host.indexOf(":") != -1) {
-		url1.host = url1.host.split(":")[0];
-	}
-	var proxy = (url1.protocol == "https:" ? js_node_Https.request : js_node_Http.request)({ host : url1.host, port : Std.parseInt(url1.port), path : url1.pathname + url1.search, method : req.method},function(proxyReq) {
+	var proxy = (url1.protocol == "https:" ? js_node_Https.request : js_node_Http.request)({ host : url1.hostname, port : Std.parseInt(url1.port), path : url1.pathname + url1.search, method : req.method},function(proxyReq) {
 		if(fn(proxyReq)) {
 			return;
 		}

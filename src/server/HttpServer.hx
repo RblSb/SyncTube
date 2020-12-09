@@ -163,9 +163,8 @@ class HttpServer {
 			new URL(js.Node.global.decodeURI(url));
 		} catch (e) return null;
 		if (url.host == req.headers["host"]) return null;
-		if (url.host.contains(":")) url.host = url.host.split(":")[0];
 		final options = {
-			host: url.host,
+			host: url.hostname,
 			port: Std.parseInt(url.port),
 			path: url.pathname + url.search,
 			method: req.method
