@@ -837,6 +837,10 @@ class Main {
 		return config.youtubeApiKey;
 	}
 
+	public function getYoutubePlaylistLimit():Int {
+		return config.youtubePlaylistLimit;
+	}
+
 	public function isVerbose():Bool {
 		return config.isVerbose;
 	}

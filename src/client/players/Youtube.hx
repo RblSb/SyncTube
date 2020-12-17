@@ -125,7 +125,8 @@ class Youtube implements IPlayer {
 	function getPlaylistVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
 		final url = data.url;
 		final id = extractPlaylistId(url);
-		final dataUrl = '$playlistUrl$urlVideoId&maxResults=50&playlistId=$id&key=$apiKey';
+		final maxResults = main.getYoutubePlaylistLimit();
+		final dataUrl = '$playlistUrl$urlVideoId&maxResults=$maxResults&playlistId=$id&key=$apiKey';
 		final http = new Http(dataUrl);
 		http.onData = text -> {
 			final json = Json.parse(text);

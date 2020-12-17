@@ -7,8 +7,9 @@
 	"totalVideoLimit": 0,
 	"userVideoLimit": 0,
 	"localAdmins": true,
-	"templateUrl": "https://www.youtube.com/watch?v=craeyJdrCsE",
+	"templateUrl": "https://youtube.com/playlist?list=PL9FiZUDVMu9tc_85frYognMOVFC_-VkSX",
 	"youtubeApiKey": "AIzaSyDTk1OPRI9cDkAK_BKsBcv10DQCHse-QaA",
+	"youtubePlaylistLimit": 50,
 	"permissions": {
 		"guest": ["writeChat", "addVideo", "removeVideo", "changeOrder", "requestLeader", "rewind"],
 		"user": ["guest"],

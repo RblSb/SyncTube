@@ -25,6 +25,7 @@ typedef Config = {
 	localAdmins:Bool,
 	templateUrl:String,
 	youtubeApiKey:String,
+	youtubePlaylistLimit:Int,
 	permissions:{
 		guest:Array<Permission>,
 		user:Array<Permission>,
