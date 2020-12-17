@@ -21,7 +21,7 @@ class Youtube implements IPlayer {
 	final videosUrl = "https://www.googleapis.com/youtube/v3/videos";
 	final playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
 	final urlTitleDuration = "?part=snippet,contentDetails&fields=items(snippet/title,contentDetails/duration)";
-	final urlVideoId = "?part=snippet&fields=items(snippet/resourceId/videoId)";
+	final urlVideoId = "?part=snippet&fields=nextPageToken,items(snippet/resourceId/videoId)";
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
@@ -125,38 +125,47 @@ class Youtube implements IPlayer {
 	function getPlaylistVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
 		final url = data.url;
 		final id = extractPlaylistId(url);
-		final maxResults = main.getYoutubePlaylistLimit();
+		var maxResults = main.getYoutubePlaylistLimit();
 		final dataUrl = '$playlistUrl$urlVideoId&maxResults=$maxResults&playlistId=$id&key=$apiKey';
-		final http = new Http(dataUrl);
-		http.onData = text -> {
-			final json = Json.parse(text);
-			if (json.error != null) {
-				youtubeApiError(json.error);
-				callback({duration: 0});
-				return;
+
+		function loadJson(url:String):Void {
+			final http = new Http(url);
+			http.onData = text -> {
+				final json = Json.parse(text);
+				if (json.error != null) {
+					youtubeApiError(json.error);
+					callback({duration: 0});
+					return;
+				}
+				final items:Array<Dynamic> = json.items;
+				if (items == null || items.length == 0) {
+					callback({duration: 0});
+					return;
+				}
+				if (!data.atEnd) main.sortItemsForQueueNext(items);
+				function loadNextItem():Void {
+					final item = items.shift();
+					final id:String = item.snippet.resourceId.videoId;
+					final obj = {
+						url: 'https://youtu.be/$id',
+						atEnd: data.atEnd
+					};
+					getVideoData(obj, data -> {
+						callback(data);
+						maxResults--;
+						if (maxResults <= 0) return;
+						if (items.length > 0) loadNextItem();
+						else if (json.nextPageToken != null) {
+							loadJson('$dataUrl&pageToken=${json.nextPageToken}');
+						}
+					});
+				}
+				loadNextItem();
 			}
-			final items:Array<Dynamic> = json.items;
-			if (items == null || items.length == 0) {
-				callback({duration: 0});
-				return;
-			}
-			if (!data.atEnd) main.sortItemsForQueueNext(items);
-			function loadNextItem():Void {
-				final item = items.shift();
-				final id:String = item.snippet.resourceId.videoId;
-				final obj = {
-					url: 'https://youtu.be/$id',
-					atEnd: data.atEnd
-				};
-				getVideoData(obj, data -> {
-					callback(data);
-					if (items.length > 0) loadNextItem();
-				});
-			}
-			loadNextItem();
+			http.onError = msg -> callback({duration: 0});
+			http.request();
 		}
-		http.onError = msg -> callback({duration: 0});
-		http.request();
+		loadJson(dataUrl);
 	}
 
 	function youtubeApiError(error:Dynamic):Void {

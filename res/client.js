@@ -2477,7 +2477,7 @@ var client_players_Youtube = function(main,player) {
 	this.matchHours = new EReg("([0-9]+)H","");
 	this.isLoaded = false;
 	this.playerEl = window.document.querySelector("#ytapiplayer");
-	this.urlVideoId = "?part=snippet&fields=items(snippet/resourceId/videoId)";
+	this.urlVideoId = "?part=snippet&fields=nextPageToken,items(snippet/resourceId/videoId)";
 	this.urlTitleDuration = "?part=snippet,contentDetails&fields=items(snippet/title,contentDetails/duration)";
 	this.playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
 	this.videosUrl = "https://www.googleapis.com/youtube/v3/videos";
@@ -2579,38 +2579,49 @@ client_players_Youtube.prototype = {
 		var _gthis = this;
 		var id = this.extractPlaylistId(data.url);
 		var maxResults = this.main.getYoutubePlaylistLimit();
-		var http = new haxe_http_HttpJs("" + this.playlistUrl + this.urlVideoId + "&maxResults=" + maxResults + "&playlistId=" + id + "&key=" + this.apiKey);
-		http.onData = function(text) {
-			var json = JSON.parse(text);
-			if(json.error != null) {
-				_gthis.youtubeApiError(json.error);
-				callback({ duration : 0});
-				return;
-			}
-			var items = json.items;
-			if(items == null || items.length == 0) {
-				callback({ duration : 0});
-				return;
-			}
-			if(!data.atEnd) {
-				_gthis.main.sortItemsForQueueNext(items);
-			}
-			var loadNextItem = null;
-			loadNextItem = function() {
-				var obj = { url : "https://youtu.be/" + items.shift().snippet.resourceId.videoId, atEnd : data.atEnd};
-				_gthis.getVideoData(obj,function(data) {
-					callback(data);
-					if(items.length > 0) {
-						loadNextItem();
-					}
-				});
+		var dataUrl = "" + this.playlistUrl + this.urlVideoId + "&maxResults=" + maxResults + "&playlistId=" + id + "&key=" + this.apiKey;
+		var loadJson = null;
+		loadJson = function(url) {
+			var http = new haxe_http_HttpJs(url);
+			http.onData = function(text) {
+				var json = JSON.parse(text);
+				if(json.error != null) {
+					_gthis.youtubeApiError(json.error);
+					callback({ duration : 0});
+					return;
+				}
+				var items = json.items;
+				if(items == null || items.length == 0) {
+					callback({ duration : 0});
+					return;
+				}
+				if(!data.atEnd) {
+					_gthis.main.sortItemsForQueueNext(items);
+				}
+				var loadNextItem = null;
+				loadNextItem = function() {
+					var obj = { url : "https://youtu.be/" + items.shift().snippet.resourceId.videoId, atEnd : data.atEnd};
+					_gthis.getVideoData(obj,function(data) {
+						callback(data);
+						maxResults -= 1;
+						if(maxResults <= 0) {
+							return;
+						}
+						if(items.length > 0) {
+							loadNextItem();
+						} else if(json.nextPageToken != null) {
+							loadJson("" + dataUrl + "&pageToken=" + json.nextPageToken);
+						}
+					});
+				};
+				loadNextItem();
 			};
-			loadNextItem();
+			http.onError = function(msg) {
+				callback({ duration : 0});
+			};
+			http.request();
 		};
-		http.onError = function(msg) {
-			callback({ duration : 0});
-		};
-		http.request();
+		loadJson(dataUrl);
 	}
 	,youtubeApiError: function(error) {
 		this.main.serverMessage(4,"Error " + error.code + ": " + error.message,false);
@@ -2632,7 +2643,7 @@ client_players_Youtube.prototype = {
 			}
 			callback({ duration : _gthis.tempYoutube.getDuration()});
 		}, onError : function(e) {
-			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 192, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 201, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
