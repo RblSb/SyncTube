@@ -2,6 +2,7 @@ package server;
 
 import js.node.url.URL;
 import js.node.Https;
+import js.node.Http;
 import js.node.Os;
 import sys.FileSystem;
 
@@ -9,6 +10,29 @@ class Utils {
 
 	public static function ensureDir(path:String):Void {
 		if (!FileSystem.exists(path)) FileSystem.createDirectory(path);
+	}
+
+	public static function isPortFree(port:Int, callback:(free:Bool)->Void):Void {
+		final server = Http.createServer();
+		final timeout = 1000;
+		var status = false;
+
+		server.setTimeout(timeout);
+		server.once("error", function(err) {
+			status = false;
+			server.close();
+		});
+		server.once("timeout", function () {
+			status = false;
+			trace('Timeout (${timeout}ms) occurred waiting for port $port to be available');
+			server.close();
+		});
+		server.once("listening", function() {
+			status = true;
+			server.close();
+		});
+		server.once("close", () -> callback(status));
+		server.listen(port);
 	}
 
 	public static function getGlobalIp(callback:(ip:String)->Void):Void {

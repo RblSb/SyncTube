@@ -31,10 +31,10 @@ class Main {
 	public final logsDir:String;
 	final verbose:Bool;
 	final statePath:String;
-	final wss:WSServer;
+	var wss:WSServer;
 	final localIp:String;
 	var globalIp:String;
-	final port:Int;
+	var port:Int;
 	public final config:Config;
 	final userList:UserList;
 	final clients:Array<Client> = [];
@@ -85,6 +85,23 @@ class Main {
 		final envPort = (process.env : Dynamic).PORT;
 		if (envPort != null) port = envPort;
 
+		var attempts = 5;
+		function preparePort():Void {
+			Utils.isPortFree(port, free -> {
+				if (!free && attempts > 0) {
+					trace('Warning: port $port is already in use. Changed to ${port + 1}');
+					attempts--;
+					port++;
+					preparePort();
+					return;
+				}
+				runServer();
+			});
+		}
+		preparePort();
+	}
+
+	function runServer():Void {
 		trace('Local: http://$localIp:$port');
 		Utils.getGlobalIp(ip -> {
 			globalIp = ip;
