@@ -42,12 +42,10 @@ class Main {
 
 	static function main():Void new Main();
 
-	function new(?host:String, ?port:String) {
+	function new() {
 		player = new Player(this);
-		if (host == null) host = Browser.location.hostname;
+		host = Browser.location.hostname;
 		if (host == "") host = "localhost";
-		this.host = host;
-		if (port == null) port = Browser.location.port;
 
 		final defaults:ClientSettings = {
 			version: SETTINGS_VERSION,
@@ -78,7 +76,7 @@ class Main {
 		Lang.init("langs", () -> {
 			Buttons.initTextButtons(this);
 			Buttons.initHotkeys(this, player);
-			openWebSocket(host, port);
+			openWebSocket();
 		});
 		JsApi.init(this, player);
 	}
@@ -100,11 +98,13 @@ class Main {
 		send({type: GetTime});
 	}
 
-	function openWebSocket(host:String, port:String):Void {
-		final colonPort = port.length > 0 ? ':$port' : port;
+	function openWebSocket():Void {
 		var protocol = "ws:";
 		if (Browser.location.protocol == "https:") protocol = "wss:";
-		ws = new WebSocket('$protocol//$host$colonPort');
+		final port = Browser.location.port;
+		final colonPort = port.length > 0 ? ':$port' : port;
+		final path = Browser.location.pathname;
+		ws = new WebSocket('$protocol//$host$colonPort$path');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
 			serverMessage(1);
@@ -116,7 +116,7 @@ class Main {
 			if (isConnected) serverMessage(2);
 			isConnected = false;
 			player.pause();
-			Timer.delay(() -> openWebSocket(host, port), 2000);
+			Timer.delay(openWebSocket, 2000);
 		}
 	}
 

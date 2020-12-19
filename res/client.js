@@ -907,7 +907,7 @@ client_JsApi.fireVideoRemoveEvents = function(item) {
 	var _g1 = client_JsApi.videoRemove;
 	while(_g < _g1.length) _g1[_g++](item);
 };
-var client_Main = function(host,port) {
+var client_Main = function() {
 	this.matchNumbers = new EReg("^-?[0-9]+$","");
 	this.mask = new EReg("\\${([0-9]+)-([0-9]+)}","g");
 	this.isConnected = false;
@@ -920,15 +920,9 @@ var client_Main = function(host,port) {
 	this.isSyncActive = true;
 	var _gthis = this;
 	this.player = new client_Player(this);
-	if(host == null) {
-		host = $global.location.hostname;
-	}
-	if(host == "") {
-		host = "localhost";
-	}
-	this.host = host;
-	if(port == null) {
-		port = $global.location.port;
+	this.host = $global.location.hostname;
+	if(this.host == "") {
+		this.host = "localhost";
 	}
 	client_Settings.init({ version : 2, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
@@ -945,7 +939,7 @@ var client_Main = function(host,port) {
 	Lang.init("langs",function() {
 		client_Buttons.initTextButtons(_gthis);
 		client_Buttons.initHotkeys(_gthis,_gthis.player);
-		_gthis.openWebSocket(host,port);
+		_gthis.openWebSocket();
 	});
 	client_JsApi.init(this,this.player);
 };
@@ -975,14 +969,16 @@ client_Main.prototype = {
 		}
 		this.send({ type : "GetTime"});
 	}
-	,openWebSocket: function(host,port) {
+	,openWebSocket: function() {
 		var _gthis = this;
-		var colonPort = port.length > 0 ? ":" + port : port;
 		var protocol = "ws:";
 		if($global.location.protocol == "https:") {
 			protocol = "wss:";
 		}
-		this.ws = new WebSocket("" + protocol + "//" + host + colonPort);
+		var port = $global.location.port;
+		var colonPort = port.length > 0 ? ":" + port : port;
+		var path = $global.location.pathname;
+		this.ws = new WebSocket("" + protocol + "//" + this.host + colonPort + path);
 		this.ws.onmessage = $bind(this,this.onMessage);
 		this.ws.onopen = function() {
 			_gthis.serverMessage(1);
@@ -994,9 +990,7 @@ client_Main.prototype = {
 			}
 			_gthis.isConnected = false;
 			_gthis.player.pause();
-			return haxe_Timer.delay(function() {
-				_gthis.openWebSocket(host,port);
-			},2000);
+			return haxe_Timer.delay($bind(_gthis,_gthis.openWebSocket),2000);
 		};
 	}
 	,initListeners: function() {
