@@ -27,6 +27,12 @@ Default channel example: http://synctube-example.herokuapp.com/
 - Run `node build/server.js`
 - Open showed "Local" link for yourself and send "Global" link to friends
 
+### Setup (Docker)
+- As alternative, you can install Docker and run:
+- `docker build -t synctube .`
+- `docker run --rm -it -p 4200:4200 -v ${PWD}/user:/usr/src/app/user synctube`
+- (Docker container hides real local/global ips, so you need to checkout it manually)
+
 ### Configuration
 It's just works, but you can also check [user/ folder](/user/README.md) for server settings and additional customization.
 
@@ -50,7 +56,7 @@ It's just works, but you can also check [user/ folder](/user/README.md) for serv
 ### Development
 - Install [Haxe 4.1](https://haxe.org/download/), [VSCode](https://code.visualstudio.com) and [Haxe extension](https://marketplace.visualstudio.com/items?itemName=nadako.vshaxe)
 - `haxelib install all` to install extern libs
-- If you skipped `Setup` section before: `npm install`
+- If you skipped `Setup` section before: `npm ci`
 - Open project in VSCode and press `F5` for client+server build and run
 
 ### About
