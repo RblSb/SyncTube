@@ -270,7 +270,7 @@ class Buttons {
 				case S: ge("#voteskip").onclick();
 				case C: ge("#getplaylist").onclick();
 				case F: ge("#fullscreenbtn").onclick();
-				case L: ge("#leader_btn").onclick();
+				case L: main.toggleLeader();
 				case P:
 					if (!main.isLeader()) {
 						JsApi.once(SetLeader, event -> {
@@ -278,7 +278,7 @@ class Buttons {
 							if (name == main.getName()) player.pause();
 						});
 					}
-					ge("#leader_btn").onclick();
+					main.toggleLeader();
 				default: return;
 			}
 			e.preventDefault();

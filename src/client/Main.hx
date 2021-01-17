@@ -17,6 +17,8 @@ import Client.ClientData;
 import Types.VideoDataRequest;
 import Types.VideoData;
 import Types.Config;
+import Types.Permission;
+import Client.ClientGroup;
 import Types.WsEvent;
 using StringTools;
 using ClientTools;
@@ -123,17 +125,7 @@ class Main {
 	function initListeners():Void {
 		Buttons.init(this);
 
-		ge("#leader_btn").onclick = e -> {
-			// change button style before answer
-			setLeaderButton(!personal.isLeader);
-			final name = personal.isLeader ? "" : personal.name;
-			send({
-				type: SetLeader,
-				setLeader: {
-					clientName: name
-				}
-			});
-		}
+		ge("#leader_btn").onclick = toggleLeader;
 		final voteSkip = ge("#voteskip");
 		voteSkip.onclick = e -> {
 			if (Utils.isTouch() && !window.confirm(Lang.get("skipItemConfirm"))) return;
@@ -827,6 +819,32 @@ class Main {
 		onTimeGet.run = requestTime;
 		settings.synchThreshold = s;
 		Settings.write(settings);
+	}
+
+	public function hasPermission(group:ClientGroup, permission:Permission):Bool {
+		final id = group.getName().toLowerCase();
+		final arr:Array<Permission> = Reflect.field(config.permissions, id);
+		return arr.contains(permission);
+	}
+
+	public function toggleLeader():Void {
+		// change button style before answer
+		setLeaderButton(!personal.isLeader);
+		final name = personal.isLeader ? "" : personal.name;
+		send({
+			type: SetLeader,
+			setLeader: {
+				clientName: name
+			}
+		});
+	}
+
+	public function hasLeader():Bool {
+		return clients.hasLeader();
+	}
+
+	public function hasLeaderOnPauseRequest():Bool {
+		return config.requestLeaderOnPause;
 	}
 
 	public function getTemplateUrl():String {

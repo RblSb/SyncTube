@@ -170,9 +170,28 @@ class Player {
 				time: getTime()
 			}
 		});
+		if (main.hasLeaderOnPauseRequest()) {
+			// do not remove leader if user cannot request it back
+			final group:Client.ClientGroup = main.isAdmin() ? Admin : User;
+			if (main.hasPermission(group, RequestLeaderPerm)) main.toggleLeader();
+		}
 	}
 
 	public function onPause():Void {
+		if (main.hasLeaderOnPauseRequest() && !main.hasLeader()) {
+			JsApi.once(SetLeader, event -> {
+				final name = event.setLeader.clientName;
+				if (name != main.getName()) return;
+				main.send({
+					type: Pause, pause: {
+						time: getTime()
+					}
+				});
+				player.pause();
+			});
+			main.toggleLeader();
+			return;
+		}
 		if (!main.isLeader()) return;
 		main.send({
 			type: Pause, pause: {

@@ -6,6 +6,7 @@
 	"serverChatHistory": 50,
 	"totalVideoLimit": 0,
 	"userVideoLimit": 0,
+	"requestLeaderOnPause": false,
 	"localAdmins": true,
 	"templateUrl": "https://youtube.com/playlist?list=PL9FiZUDVMu9tc_85frYognMOVFC_-VkSX",
 	"youtubeApiKey": "AIzaSyDTk1OPRI9cDkAK_BKsBcv10DQCHse-QaA",
