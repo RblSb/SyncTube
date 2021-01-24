@@ -146,6 +146,9 @@ class Main {
 			addVideoUrl(true);
 			return false;
 		});
+		ge("#mediatitle").onkeydown = (e:KeyboardEvent) -> {
+			if (e.keyCode == KeyCode.Return) addVideoUrl(true);
+		}
 
 		ge("#ce_queue_next").onclick = e -> addIframe(false);
 		ge("#ce_queue_end").onclick = e -> addIframe(true);
@@ -208,6 +211,16 @@ class Main {
 		// if videos added as next, we need to load them in reverse order
 		if (!atEnd) sortItemsForQueueNext(links);
 		addVideoArray(links, atEnd, isTemp);
+	}
+
+	public function isRawPlayerLink(url:String):Bool {
+		return player.isRawPlayerLink(url);
+	}
+
+	public function isSingleVideoLink(url:String):Bool {
+		if (~/, ?(https?)/g.match(url)) return false;
+		if (mask.match(url)) return false;
+		return true;
 	}
 
 	public function sortItemsForQueueNext<T>(items:Array<T>):Void {

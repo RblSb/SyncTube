@@ -55,9 +55,14 @@
       </div>
       <!-- Add video -->
       <div class="collapse" id="addfromurl" aria-expanded="false">
-        <div>
-          <button id="insert_template" title="${addTemplateUrl}">&gt;</button>
+        <div class="display-flex">
+          <button id="insert_template" title="${addTemplateUrl}">
+            <div>&gt;</div>
+          </button>
           <input id="mediaurl" type="text" placeholder="${addVideoFromUrl}">
+        </div>
+        <div id="mediatitleblock" class="display-flex" style="display: none;">
+          <input id="mediatitle" type="text" placeholder="${optionalTitle}">
         </div>
         <div>
           <button id="queue_next">${queueNext}</button>

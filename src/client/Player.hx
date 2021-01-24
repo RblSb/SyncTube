@@ -104,6 +104,10 @@ class Player {
 		player.getVideoData(data, callback);
 	}
 
+	public function isRawPlayerLink(url:String):Bool {
+		return !players.exists(player -> player.isSupportedLink(url));
+	}
+
 	public function getIframeData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
 		iframePlayer.getVideoData(data, callback);
 	}

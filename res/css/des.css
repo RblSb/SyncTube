@@ -223,6 +223,10 @@ button.danger-bg:focus {
   visibility: visible;
 }
 
+.display-flex {
+  display: flex;
+}
+
 /* Info */
 
 .info {
@@ -342,6 +346,15 @@ header h4 {
 
 /* Add video */
 
+#insert_template {
+  min-width: 2rem;
+}
+
+#insert_template > div:first-child {
+  text-align: center;
+  flex-grow: 1;
+}
+
 #addfromurl,
 #customembed {
   padding: 1rem;
@@ -354,8 +367,9 @@ header h4 {
   margin-bottom: 1rem;
 }
 
-#addfromurl > div:first-child {
-  display: flex;
+#mediatitle {
+  margin-left: 2rem;
+  flex-grow: 1;
 }
 
 #mediaurl {

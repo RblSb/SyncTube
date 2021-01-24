@@ -3,6 +3,7 @@ package client.players;
 import js.hlsjs.Hls;
 import haxe.Timer;
 import js.html.Element;
+import js.html.InputElement;
 import js.html.VideoElement;
 import js.Browser.document;
 import client.Main.ge;
@@ -34,17 +35,20 @@ class Raw implements IPlayer {
 	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
 		final url = data.url;
 		final decodedUrl = url.urlDecode();
+
+		final optTitle = cutOptionalTitle();
 		var title = decodedUrl.substr(decodedUrl.lastIndexOf("/") + 1);
 		final isNameMatched = matchName.match(title);
-		if (isNameMatched) title = matchName.matched(1);
+		if (optTitle != "") title = optTitle;
+		else if (isNameMatched) title = matchName.matched(1);
 		else title = Lang.get("rawVideo");
+
 		var isHls = false;
-		if (isNameMatched) {
-			isHls = matchName.matched(2).contains("m3u8");
-			if (isHls && !isHlsLoaded) {
-				loadHlsPlugin(() -> getVideoData(data, callback));
-				return;
-			}
+		if (isNameMatched) isHls = matchName.matched(2).contains("m3u8");
+		else isHls = title.endsWith("m3u8");
+		if (isHls && !isHlsLoaded) {
+			loadHlsPlugin(() -> getVideoData(data, callback));
+			return;
 		}
 
 		final video = document.createVideoElement();
@@ -64,6 +68,13 @@ class Raw implements IPlayer {
 		if (isHls) initHlsSource(video, url);
 	}
 
+	function cutOptionalTitle():String {
+		final titleInput:InputElement = cast ge("#mediatitle");
+		final optTitle = titleInput.value.trim();
+		titleInput.value = "";
+		return optTitle;
+	}
+
 	function loadHlsPlugin(callback:()->Void):Void {
 		final url = "https://cdn.jsdelivr.net/npm/hls.js@latest";
 		JsApi.addScriptToHead(url, () -> {
@@ -81,7 +92,7 @@ class Raw implements IPlayer {
 
 	public function loadVideo(item:VideoItem):Void {
 		final url = main.tryLocalIp(item.url);
-		final isHls = item.url.contains("m3u8");
+		final isHls = item.url.contains("m3u8") || item.title.endsWith("m3u8");
 		if (isHls && !isHlsLoaded) {
 			loadHlsPlugin(() -> loadVideo(item));
 			return;

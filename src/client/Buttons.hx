@@ -8,6 +8,7 @@ import js.html.Element;
 import client.Main.ge;
 import js.Browser.window;
 import js.Browser.document;
+using StringTools;
 
 class Buttons {
 
@@ -150,10 +151,20 @@ class Buttons {
 		final showCustomEmbed = ge("#showcustomembed");
 		showCustomEmbed.onclick = e -> showPlayerGroup(showCustomEmbed);
 
+		final mediaUrl:InputElement = cast ge("#mediaurl");
+		mediaUrl.oninput = () -> {
+			final value = mediaUrl.value;
+			if (value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value)) {
+				ge("#mediatitleblock").style.display = "";
+			} else {
+				ge("#mediatitleblock").style.display = "none";
+			}
+		}
+		mediaUrl.onfocus = mediaUrl.oninput;
+
 		ge("#insert_template").onclick = e -> {
-			final input:InputElement = cast ge("#mediaurl");
-			input.value = main.getTemplateUrl();
-			input.focus();
+			mediaUrl.value = main.getTemplateUrl();
+			mediaUrl.focus();
 		}
 
 		final showOptions = ge("#showoptions");

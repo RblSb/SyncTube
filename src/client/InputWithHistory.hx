@@ -29,8 +29,9 @@ class InputWithHistory {
 	}
 
 	function onKeyDown(e:KeyboardEvent) {
-		switch (e.keyCode) {
-			case 13: // Enter
+		final key:KeyCode = cast e.keyCode;
+		switch (key) {
+			case Return:
 				final value = element.value;
 				if (value.length == 0) return;
 				final isAdd = onEnter(value);
@@ -38,23 +39,31 @@ class InputWithHistory {
 				if (history.length > maxItems) history.shift();
 				historyId = -1;
 				element.value = "";
-			case 38: // Up
+				onInput();
+			case Up:
 				historyId--;
 				if (historyId == -2) {
 					historyId = history.length - 1;
 					if (historyId == -1) return;
 				} else if (historyId == -1) historyId++;
 				element.value = history[historyId];
-			case 40: // Down
+				onInput();
+			case Down:
 				if (historyId == -1) return;
 				historyId++;
 				if (historyId > history.length - 1) {
 					historyId = -1;
 					element.value = "";
-					return;
+				} else {
+					element.value = history[historyId];
 				}
-				element.value = history[historyId];
+				onInput();
+			default:
 		}
+	}
+
+	function onInput():Void {
+		if (element.oninput != null) element.oninput();
 	}
 
 }
