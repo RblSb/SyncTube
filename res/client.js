@@ -1385,7 +1385,7 @@ client_Main.prototype = {
 			this.updateUserList();
 			this.setLeaderButton((this.personal.group & 2) != 0);
 			if((this.personal.group & 2) != 0) {
-				this.player.setTime(this.player.getTime(),false);
+				this.player.onSetTime();
 			}
 			break;
 		case "SetNextItem":

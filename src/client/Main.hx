@@ -469,7 +469,7 @@ class Main {
 				clients.setLeader(data.setLeader.clientName);
 				updateUserList();
 				setLeaderButton(isLeader());
-				if (isLeader()) player.setTime(player.getTime(), false);
+				if (isLeader()) player.onSetTime();
 
 			case PlayItem:
 				player.setVideo(data.playItem.pos);
