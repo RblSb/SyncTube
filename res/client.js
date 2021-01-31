@@ -2599,9 +2599,9 @@ var client_players_Youtube = function(main,player) {
 	this.playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
 	this.videosUrl = "https://www.googleapis.com/youtube/v3/videos";
 	this.matchPlaylist = new EReg("youtube\\.com.*list=([A-z0-9_-]+)","");
-	this.matchEmbed = new EReg("embed/([A-z0-9_-]+)","");
-	this.matchShort = new EReg("youtu.be/([A-z0-9_-]+)","");
-	this.matchId = new EReg("v=([A-z0-9_-]+)","");
+	this.matchEmbed = new EReg("youtube\\.com/embed/([A-z0-9_-]+)","");
+	this.matchShort = new EReg("youtu\\.be/([A-z0-9_-]+)","");
+	this.matchId = new EReg("youtube\\.com.*v=([A-z0-9_-]+)","");
 	this.main = main;
 	this.player = player;
 };
@@ -2615,18 +2615,16 @@ client_players_Youtube.prototype = {
 		}
 	}
 	,extractVideoId: function(url) {
-		if(url.indexOf("youtu.be/") != -1) {
-			this.matchShort.match(url);
+		if(this.matchId.match(url)) {
+			return this.matchId.matched(1);
+		}
+		if(this.matchShort.match(url)) {
 			return this.matchShort.matched(1);
 		}
-		if(url.indexOf("youtube.com/embed/") != -1) {
-			this.matchEmbed.match(url);
+		if(this.matchEmbed.match(url)) {
 			return this.matchEmbed.matched(1);
 		}
-		if(!this.matchId.match(url)) {
-			return "";
-		}
-		return this.matchId.matched(1);
+		return "";
 	}
 	,extractPlaylistId: function(url) {
 		if(!this.matchPlaylist.match(url)) {

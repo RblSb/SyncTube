@@ -14,9 +14,9 @@ using StringTools;
 
 class Youtube implements IPlayer {
 
-	final matchId = ~/v=([A-z0-9_-]+)/;
-	final matchShort = ~/youtu.be\/([A-z0-9_-]+)/;
-	final matchEmbed = ~/embed\/([A-z0-9_-]+)/;
+	final matchId = ~/youtube\.com.*v=([A-z0-9_-]+)/;
+	final matchShort = ~/youtu\.be\/([A-z0-9_-]+)/;
+	final matchEmbed = ~/youtube\.com\/embed\/([A-z0-9_-]+)/;
 	final matchPlaylist = ~/youtube\.com.*list=([A-z0-9_-]+)/;
 	final videosUrl = "https://www.googleapis.com/youtube/v3/videos";
 	final playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
@@ -41,16 +41,16 @@ class Youtube implements IPlayer {
 	}
 
 	function extractVideoId(url:String):String {
-		if (url.contains("youtu.be/")) {
-			matchShort.match(url);
+		if (matchId.match(url)) {
+			return matchId.matched(1);
+		}
+		if (matchShort.match(url)) {
 			return matchShort.matched(1);
 		}
-		if (url.contains("youtube.com/embed/")) {
-			matchEmbed.match(url);
+		if (matchEmbed.match(url)) {
 			return matchEmbed.matched(1);
 		}
-		if (!matchId.match(url)) return "";
-		return matchId.matched(1);
+		return "";
 	}
 
 	function extractPlaylistId(url:String):String {
