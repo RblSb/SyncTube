@@ -17,6 +17,7 @@ class Raw implements IPlayer {
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
+	final titleInput:InputElement = cast ge("#mediatitle");
 	final matchName = ~/^(.+)\.(.+)/;
 	var controlsHider:Timer;
 	var playAllowed = true;
@@ -36,7 +37,7 @@ class Raw implements IPlayer {
 		final url = data.url;
 		final decodedUrl = url.urlDecode();
 
-		final optTitle = cutOptionalTitle();
+		final optTitle = titleInput.value.trim();
 		var title = decodedUrl.substr(decodedUrl.lastIndexOf("/") + 1);
 		final isNameMatched = matchName.match(title);
 		if (optTitle != "") title = optTitle;
@@ -51,6 +52,7 @@ class Raw implements IPlayer {
 			return;
 		}
 
+		titleInput.value = "";
 		final video = document.createVideoElement();
 		video.src = url;
 		video.onerror = e -> {
@@ -66,13 +68,6 @@ class Raw implements IPlayer {
 		}
 		Utils.prepend(playerEl, video);
 		if (isHls) initHlsSource(video, url);
-	}
-
-	function cutOptionalTitle():String {
-		final titleInput:InputElement = cast ge("#mediatitle");
-		final optTitle = titleInput.value.trim();
-		titleInput.value = "";
-		return optTitle;
 	}
 
 	function loadHlsPlugin(callback:()->Void):Void {

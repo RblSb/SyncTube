@@ -2416,6 +2416,7 @@ var client_players_Raw = function(main,player) {
 	this.isHlsLoaded = false;
 	this.playAllowed = true;
 	this.matchName = new EReg("^(.+)\\.(.+)","");
+	this.titleInput = window.document.querySelector("#mediatitle");
 	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.main = main;
 	this.player = player;
@@ -2429,7 +2430,7 @@ client_players_Raw.prototype = {
 		var _gthis = this;
 		var url = data.url;
 		var decodedUrl = decodeURIComponent(url.split("+").join(" "));
-		var optTitle = this.cutOptionalTitle();
+		var optTitle = StringTools.trim(this.titleInput.value);
 		var title = HxOverrides.substr(decodedUrl,decodedUrl.lastIndexOf("/") + 1,null);
 		var isNameMatched = this.matchName.match(title);
 		if(optTitle != "") {
@@ -2451,6 +2452,7 @@ client_players_Raw.prototype = {
 			});
 			return;
 		}
+		this.titleInput.value = "";
 		var video = window.document.createElement("video");
 		video.src = url;
 		video.onerror = function(e) {
@@ -2469,12 +2471,6 @@ client_players_Raw.prototype = {
 		if(isHls) {
 			this.initHlsSource(video,url);
 		}
-	}
-	,cutOptionalTitle: function() {
-		var titleInput = window.document.querySelector("#mediatitle");
-		var optTitle = StringTools.trim(titleInput.value);
-		titleInput.value = "";
-		return optTitle;
 	}
 	,loadHlsPlugin: function(callback) {
 		var _gthis = this;
