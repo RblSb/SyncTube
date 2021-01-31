@@ -8,9 +8,9 @@ RUN apk add nodejs npm git; \
 COPY res ./res
 COPY src ./src
 COPY user ./user
-COPY build-*.hxml .
-COPY package*.json .
-COPY default-config.json .
+COPY build-*.hxml ./
+COPY package*.json ./
+COPY default-config.json ./
 
 RUN npm ci; \
     haxelib install all --always; \
