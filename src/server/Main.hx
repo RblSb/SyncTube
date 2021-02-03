@@ -472,6 +472,9 @@ class Main {
 					serverMessage(client, "videoLimitPerUserError");
 					return;
 				}
+				if (!data.addVideo.atEnd && !checkPermission(client, ChangeOrderPerm)) {
+					data.addVideo.atEnd = true;
+				}
 				final item = data.addVideo.item;
 				item.author = client.name;
 				final local = '$localIp:$port';
@@ -721,21 +724,13 @@ class Main {
 	}
 
 	function checkPermission(client:Client, perm:Permission):Bool {
-		final state = hasPermission(client, perm);
+		final state = client.hasPermission(perm, config.permissions);
 		if (!state) send(client, {
 			type: ServerMessage, serverMessage: {
 				textId: "accessError"
 			}
 		});
 		return state;
-	}
-
-	function hasPermission(client:Client, perm:Permission):Bool {
-		final p = config.permissions;
-		if (client.isAdmin) return p.admin.indexOf(cast perm) != -1;
-		if (client.isLeader) return p.leader.indexOf(cast perm) != -1;
-		if (client.isUser) return p.user.indexOf(cast perm) != -1;
-		return p.guest.indexOf(cast perm) != -1;
 	}
 
 	final htmlChars = ~/[&^<>'"]/;

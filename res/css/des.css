@@ -132,6 +132,14 @@ button:focus ion-icon {
   color: var(--foreground);
 }
 
+button[disabled],
+button[disabled]:hover {
+  background-color: var(--background-chat);
+  color: var(--midground);
+  opacity: 0.5;
+  cursor: default;
+}
+
 button > * {
   line-height: 1;
 }

@@ -9,6 +9,7 @@ import js.html.Event;
 import js.html.Element;
 import js.html.VideoElement;
 import js.html.InputElement;
+import js.html.ButtonElement;
 import js.html.WebSocket;
 import js.Browser;
 import js.Browser.document;
@@ -368,14 +369,17 @@ class Main {
 			case Logout:
 				updateClients(data.logout.clients);
 				personal = new Client(data.logout.clientName, 0);
+				onUserGroupChanged();
+				showGuestLoginPanel();
 				settings.name = "";
 				settings.hash = "";
 				Settings.write(settings);
-				showGuestLoginPanel();
 
 			case UpdateClients:
 				updateClients(data.updateClients.clients);
+				final oldGroup = personal.group.toInt();
 				personal = clients.getByName(personal.name, personal);
+				if (personal.group.toInt() != oldGroup) onUserGroupChanged();
 
 			case Message:
 				addMessage(data.message.clientName, data.message.text);
@@ -522,6 +526,19 @@ class Main {
 			addMessage(message.name, message.text, message.time);
 		}
 		player.setItems(connected.videoList, connected.itemPos);
+		onUserGroupChanged();
+	}
+
+	function onUserGroupChanged():Void {
+		final button:ButtonElement = cast ge("#queue_next");
+		if (personal.hasPermission(ChangeOrderPerm, config.permissions)) {
+			button.disabled = false;
+		} else {
+			button.disabled = true;
+		}
+		final adminMenu = ge("#adminMenu");
+		if (isAdmin()) adminMenu.style.display = "block";
+		else adminMenu.style.display = "none";
 	}
 
 	public function guestLogin(name:String):Void {
@@ -602,6 +619,7 @@ class Main {
 		final newPersonal = clients.getByName(clientName);
 		if (newPersonal == null) return;
 		personal = newPersonal;
+		onUserGroupChanged();
 		hideGuestLoginPanel();
 	}
 
@@ -617,7 +635,6 @@ class Main {
 		ge("#guestpassword").style.display = "none";
 		ge("#chatbox").style.display = "flex";
 		ge("#exitBtn").textContent = Lang.get("exit");
-		if (isAdmin()) ge("#adminMenu").style.display = "block";
 	}
 
 	function showGuestPasswordPanel():Void {

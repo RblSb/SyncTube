@@ -27,17 +27,19 @@ typedef Config = {
 	templateUrl:String,
 	youtubeApiKey:String,
 	youtubePlaylistLimit:Int,
-	permissions:{
-		guest:Array<Permission>,
-		user:Array<Permission>,
-		leader:Array<Permission>,
-		admin:Array<Permission>
-	},
+	permissions:Permissions,
 	emotes:Array<Emote>,
 	filters:Array<Filter>,
 	?isVerbose:Bool,
 	?salt:String
-};
+}
+
+typedef Permissions = {
+	guest:Array<Permission>,
+	user:Array<Permission>,
+	leader:Array<Permission>,
+	admin:Array<Permission>
+}
 
 enum abstract Permission(String) {
 	var GuestPerm = "guest";

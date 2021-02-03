@@ -68,6 +68,18 @@ ClientTools.getByName = function(clients,name,def) {
 	}
 	return def;
 };
+ClientTools.hasPermission = function(client,permission,permissions) {
+	if((client.group & 4) != 0) {
+		return permissions.admin.indexOf(permission) != -1;
+	}
+	if((client.group & 2) != 0) {
+		return permissions.leader.indexOf(permission) != -1;
+	}
+	if((client.group & 1) != 0) {
+		return permissions.user.indexOf(permission) != -1;
+	}
+	return permissions.guest.indexOf(permission) != -1;
+};
 var EReg = function(r,opt) {
 	this.r = new RegExp(r,opt.split("u").join(""));
 };
@@ -1259,7 +1271,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 347, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 348, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1333,10 +1345,11 @@ client_Main.prototype = {
 		case "Logout":
 			this.updateClients(data.logout.clients);
 			this.personal = new Client(data.logout.clientName,0);
+			this.onUserGroupChanged();
+			this.showGuestLoginPanel();
 			this.settings.name = "";
 			this.settings.hash = "";
 			client_Settings.write(this.settings);
-			this.showGuestLoginPanel();
 			break;
 		case "Message":
 			this.addMessage(data.message.clientName,data.message.text);
@@ -1421,7 +1434,11 @@ client_Main.prototype = {
 			break;
 		case "UpdateClients":
 			this.updateClients(data.updateClients.clients);
+			var oldGroup = this.personal.group;
 			this.personal = ClientTools.getByName(this.clients,this.personal.name,this.personal);
+			if(this.personal.group != oldGroup) {
+				this.onUserGroupChanged();
+			}
 			break;
 		case "UpdatePlaylist":
 			this.player.setItems(data.updatePlaylist.videoList);
@@ -1469,6 +1486,21 @@ client_Main.prototype = {
 			this.addMessage(message.name,message.text,message.time);
 		}
 		this.player.setItems(connected.videoList,connected.itemPos);
+		this.onUserGroupChanged();
+	}
+	,onUserGroupChanged: function() {
+		var button = window.document.querySelector("#queue_next");
+		if(ClientTools.hasPermission(this.personal,"changeOrder",this.config.permissions)) {
+			button.disabled = false;
+		} else {
+			button.disabled = true;
+		}
+		var adminMenu = window.document.querySelector("#adminMenu");
+		if((this.personal.group & 4) != 0) {
+			adminMenu.style.display = "block";
+		} else {
+			adminMenu.style.display = "none";
+		}
 	}
 	,guestLogin: function(name) {
 		if(name.length == 0) {
@@ -1550,6 +1582,7 @@ client_Main.prototype = {
 			return;
 		}
 		this.personal = newPersonal;
+		this.onUserGroupChanged();
 		this.hideGuestLoginPanel();
 	}
 	,showGuestLoginPanel: function() {
@@ -1563,9 +1596,6 @@ client_Main.prototype = {
 		window.document.querySelector("#guestpassword").style.display = "none";
 		window.document.querySelector("#chatbox").style.display = "flex";
 		window.document.querySelector("#exitBtn").textContent = Lang.get("exit");
-		if((this.personal.group & 4) != 0) {
-			window.document.querySelector("#adminMenu").style.display = "block";
-		}
 	}
 	,showGuestPasswordPanel: function() {
 		window.document.querySelector("#guestlogin").style.display = "none";
