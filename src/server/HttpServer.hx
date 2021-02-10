@@ -53,10 +53,17 @@ class HttpServer {
 		var url = req.url;
 		if (url == "/") url = "/index.html";
 		var filePath = dir + url;
+		final ext = Path.extension(filePath).toLowerCase();
+
+		res.setHeader("Accept-Ranges", "bytes");
+		res.setHeader("Content-Type", getMimeType(ext));
 
 		if (allowLocalRequests && req.connection.remoteAddress == req.connection.localAddress
 			|| allowedLocalFiles[url]) {
-			if (serveLocalFile(res, url)) return;
+			if (isMediaExtension(ext)) {
+				allowedLocalFiles[url] = true;
+				if (serveMedia(req, res, url)) return;
+			}
 		}
 
 		if (!isChildOf(dir, filePath)) {
@@ -81,13 +88,15 @@ class HttpServer {
 			}
 		}
 
+		if (isMediaExtension(ext)) {
+			if (serveMedia(req, res, filePath)) return;
+		}
+
 		Fs.readFile(filePath, (err:Dynamic, data:Buffer) -> {
 			if (err != null) {
 				readFileError(err, res, filePath);
 				return;
 			}
-			final ext = Path.extension(filePath).toLowerCase();
-			res.setHeader("Content-Type", getMimeType(ext));
 			if (ext == "html") {
 				// replace ${textId} to localized strings
 				data = cast localizeHtml(data.toString(), req.headers["accept-language"]);
@@ -107,20 +116,30 @@ class HttpServer {
 		}
 	}
 
-	static function serveLocalFile(res:ServerResponse, filePath:String):Bool {
-		final ext = Path.extension(filePath).toLowerCase();
-		if (ext != "mp4" && ext != "mp3" && ext != "wav") return false;
+	static function serveMedia(req:IncomingMessage, res:ServerResponse, filePath:String):Bool {
+		final range:String = req.headers["range"];
+		if (range == null) return false;
 		if (!Fs.existsSync(filePath)) return false;
-		allowedLocalFiles[filePath] = true;
-		Fs.readFile(filePath, (err:Dynamic, data:Buffer) -> {
-			if (err != null) {
-				readFileError(err, res, filePath);
-				return;
-			}
-			res.setHeader("Content-Type", getMimeType(ext));
-			res.end(data);
-		});
+		final videoSize = Fs.statSync(filePath).size;
+		// range example: "bytes=24182784-"
+		final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
+		final start = Std.parseInt(~/[^0-9]/g.replace(range, ""));
+		final end = Std.int(Math.min(start + CHUNK_SIZE, videoSize - 1));
+		final contentLength = end - start + 1;
+
+		res.setHeader("Content-Range", 'bytes ${start}-${end}/${videoSize}');
+		res.setHeader("Content-Length", '$contentLength');
+		// HTTP Status 206 for Partial Content
+		res.statusCode = 206;
+		// create video read stream for this particular chunk
+		final videoStream = Fs.createReadStream(filePath, {start: start, end: end});
+		// stream the video chunk to the client
+		videoStream.pipe(res);
 		return true;
+	}
+
+	static function isMediaExtension(ext:String):Bool {
+		return ext == "mp4" || ext == "mp3" || ext == "wav";
 	}
 
 	static final matchLang = ~/^[A-z]+/;
