@@ -48,7 +48,7 @@ class JsApi {
 
 	@:expose
 	public static function addScriptToHead(url:String, ?onLoaded:()->Void):Void {
-		var script = document.createScriptElement();
+		final script = document.createScriptElement();
 		script.type = "text/javascript";
 		script.onload = onLoaded;
 		script.src = url;
@@ -86,6 +86,18 @@ class JsApi {
 	@:expose
 	static function setVideoSrc(src:String):Void {
 		player.changeVideoSrc(src);
+	}
+
+	/** Returns current page hostname (domain without protocol) **/
+	@:expose
+	static function getLocalIp():String {
+		return main.host;
+	}
+
+	/** Returns server global ip. **/
+	@:expose
+	static function getGlobalIp():String {
+		return main.globalIp;
 	}
 
 	@:expose

@@ -32,8 +32,8 @@ class Main {
 	public var forceSyncNextTick = false;
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
-	final host:String;
-	var globalIp = "";
+	public final host:String;
+	public var globalIp(default, null) = "";
 	var config:Null<Config>;
 	final filters:Array<{regex:EReg, replace:String}> = [];
 	var personal = new Client("Unknown", 0);

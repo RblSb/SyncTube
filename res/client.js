@@ -945,6 +945,12 @@ client_JsApi.forceSyncNextTick = $hx_exports["client"]["JsApi"]["forceSyncNextTi
 client_JsApi.setVideoSrc = $hx_exports["client"]["JsApi"]["setVideoSrc"] = function(src) {
 	client_JsApi.player.changeVideoSrc(src);
 };
+client_JsApi.getLocalIp = $hx_exports["client"]["JsApi"]["getLocalIp"] = function() {
+	return client_JsApi.main.host;
+};
+client_JsApi.getGlobalIp = $hx_exports["client"]["JsApi"]["getGlobalIp"] = function() {
+	return client_JsApi.main.globalIp;
+};
 client_JsApi.once = $hx_exports["client"]["JsApi"]["once"] = function(type,func) {
 	client_JsApi.onceListeners.push({ type : type, func : func});
 };
