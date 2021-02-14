@@ -150,6 +150,9 @@ class Main {
 		ge("#mediatitle").onkeydown = (e:KeyboardEvent) -> {
 			if (e.keyCode == KeyCode.Return) addVideoUrl(true);
 		}
+		ge("#subsurl").onkeydown = (e:KeyboardEvent) -> {
+			if (e.keyCode == KeyCode.Return) addVideoUrl(true);
+		}
 
 		ge("#ce_queue_next").onclick = e -> addIframe(false);
 		ge("#ce_queue_end").onclick = e -> addIframe(true);
@@ -267,6 +270,7 @@ class Main {
 						author: personal.name,
 						duration: data.duration,
 						isTemp: isTemp,
+						subs: data.subs,
 						isIframe: data.isIframe == true
 					},
 					atEnd: atEnd

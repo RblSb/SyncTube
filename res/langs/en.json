@@ -65,6 +65,7 @@
 	"addAsTemporary": "Add as temporary",
 	"mediaUrl": "Media URL",
 	"optionalTitle": "Title (optional)",
+	"subtitlesUrlOptional": "Subtitles URL (optional)",
 	"addTemplateUrl": "Add template URL",
 	"queueNext": "Queue next",
 	"queueLast": "Queue last",

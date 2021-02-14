@@ -11,6 +11,7 @@ typedef VideoData = {
 	duration:Float,
 	?title:String,
 	?url:String,
+	?subs:String,
 	?isIframe:Bool
 }
 
@@ -90,6 +91,7 @@ typedef VideoItem = {
 	title:String,
 	author:String,
 	duration:Float,
+	?subs:String,
 	isTemp:Bool,
 	isIframe:Bool
 }

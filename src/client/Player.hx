@@ -142,6 +142,7 @@ class Player {
 			title: item.title,
 			author: item.author,
 			duration: item.duration,
+			subs: item.subs,
 			isTemp: item.isTemp,
 			isIframe: item.isIframe
 		});

@@ -154,10 +154,10 @@ class Buttons {
 		final mediaUrl:InputElement = cast ge("#mediaurl");
 		mediaUrl.oninput = () -> {
 			final value = mediaUrl.value;
-			if (value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value)) {
-				ge("#mediatitleblock").style.display = "";
-			} else {
-				ge("#mediatitleblock").style.display = "none";
+			final isRawSingleVideo = value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value);
+			ge("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
+			if (JsApi.hasSubtitleSupport()) {
+				ge("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
 			}
 		}
 		mediaUrl.onfocus = mediaUrl.oninput;

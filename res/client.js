@@ -610,10 +610,10 @@ client_Buttons.init = function(main) {
 	var mediaUrl = window.document.querySelector("#mediaurl");
 	mediaUrl.oninput = function() {
 		var value = mediaUrl.value;
-		if(value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value)) {
-			return window.document.querySelector("#mediatitleblock").style.display = "";
-		} else {
-			return window.document.querySelector("#mediatitleblock").style.display = "none";
+		var isRawSingleVideo = value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value);
+		window.document.querySelector("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
+		if(client_JsApi.hasSubtitleSupport()) {
+			window.document.querySelector("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
 		}
 	};
 	mediaUrl.onfocus = mediaUrl.oninput;
@@ -951,6 +951,19 @@ client_JsApi.getLocalIp = $hx_exports["client"]["JsApi"]["getLocalIp"] = functio
 client_JsApi.getGlobalIp = $hx_exports["client"]["JsApi"]["getGlobalIp"] = function() {
 	return client_JsApi.main.globalIp;
 };
+client_JsApi.addSubtitleSupport = $hx_exports["client"]["JsApi"]["addSubtitleSupport"] = function(format) {
+	format = StringTools.trim(format).toLowerCase();
+	if(client_JsApi.subtitleFormats.indexOf(format) != -1) {
+		return;
+	}
+	client_JsApi.subtitleFormats.push(format);
+};
+client_JsApi.hasSubtitleSupport = $hx_exports["client"]["JsApi"]["hasSubtitleSupport"] = function(format) {
+	if(format == null) {
+		return client_JsApi.subtitleFormats.length > 0;
+	}
+	return client_JsApi.subtitleFormats.indexOf(format) != -1;
+};
 client_JsApi.once = $hx_exports["client"]["JsApi"]["once"] = function(type,func) {
 	client_JsApi.onceListeners.push({ type : type, func : func});
 };
@@ -1104,6 +1117,11 @@ client_Main.prototype = {
 				_gthis.addVideoUrl(true);
 			}
 		};
+		window.document.querySelector("#subsurl").onkeydown = function(e) {
+			if(e.keyCode == 13) {
+				_gthis.addVideoUrl(true);
+			}
+		};
 		window.document.querySelector("#ce_queue_next").onclick = function(e) {
 			_gthis.addIframe(false);
 		};
@@ -1213,7 +1231,7 @@ client_Main.prototype = {
 			if(data.url == null) {
 				data.url = url;
 			}
-			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : data.isIframe == true}, atEnd : atEnd}});
+			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, subs : data.subs, isIframe : data.isIframe == true}, atEnd : atEnd}});
 			callback();
 		});
 	}
@@ -1277,7 +1295,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 348, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 352, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1954,7 +1972,7 @@ client_Player.prototype = {
 		if(item == null) {
 			return;
 		}
-		this.player.loadVideo({ url : src, title : item.title, author : item.author, duration : item.duration, isTemp : item.isTemp, isIframe : item.isIframe});
+		this.player.loadVideo({ url : src, title : item.title, author : item.author, duration : item.duration, subs : item.subs, isTemp : item.isTemp, isIframe : item.isIframe});
 	}
 	,removeVideo: function() {
 		client_JsApi.fireVideoRemoveEvents(this.items[this.itemPos]);
@@ -2452,6 +2470,7 @@ var client_players_Raw = function(main,player) {
 	this.isHlsLoaded = false;
 	this.playAllowed = true;
 	this.matchName = new EReg("^(.+)\\.(.+)","");
+	this.subsInput = window.document.querySelector("#subsurl");
 	this.titleInput = window.document.querySelector("#mediatitle");
 	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.main = main;
@@ -2489,6 +2508,11 @@ client_players_Raw.prototype = {
 			return;
 		}
 		this.titleInput.value = "";
+		var subs = "";
+		if(client_JsApi.hasSubtitleSupport()) {
+			subs = StringTools.trim(this.subsInput.value);
+			this.subsInput.value = "";
+		}
 		var video = window.document.createElement("video");
 		video.src = url;
 		video.onerror = function(e) {
@@ -2501,7 +2525,7 @@ client_players_Raw.prototype = {
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
-			callback({ duration : video.duration, title : title});
+			callback({ duration : video.duration, title : title, subs : subs});
 		};
 		client_Utils.prepend(this.playerEl,video);
 		if(isHls) {
@@ -3565,6 +3589,7 @@ js_Boot.__toStr = ({ }).toString;
 Lang.langs = new haxe_ds_StringMap();
 Lang.ids = ["en","ru"];
 Lang.lang = HxOverrides.substr($global.navigator.language,0,2).toLowerCase();
+client_JsApi.subtitleFormats = [];
 client_JsApi.videoChange = [];
 client_JsApi.videoRemove = [];
 client_JsApi.onceListeners = [];

@@ -375,7 +375,7 @@ header h4 {
   margin-bottom: 1rem;
 }
 
-#mediatitle {
+#mediatitle, #subsurl {
   margin-left: 2rem;
   flex-grow: 1;
 }

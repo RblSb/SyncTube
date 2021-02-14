@@ -18,6 +18,7 @@ class Raw implements IPlayer {
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
 	final titleInput:InputElement = cast ge("#mediatitle");
+	final subsInput:InputElement = cast ge("#subsurl");
 	final matchName = ~/^(.+)\.(.+)/;
 	var controlsHider:Timer;
 	var playAllowed = true;
@@ -53,6 +54,11 @@ class Raw implements IPlayer {
 		}
 
 		titleInput.value = "";
+		var subs = "";
+		if (JsApi.hasSubtitleSupport()) {
+			subs = subsInput.value.trim();
+			subsInput.value = "";
+		}
 		final video = document.createVideoElement();
 		video.src = url;
 		video.onerror = e -> {
@@ -63,7 +69,8 @@ class Raw implements IPlayer {
 			if (playerEl.contains(video)) playerEl.removeChild(video);
 			callback({
 				duration: video.duration,
-				title: title
+				title: title,
+				subs: subs
 			});
 		}
 		Utils.prepend(playerEl, video);

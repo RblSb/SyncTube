@@ -6,6 +6,7 @@ import Types.VideoItem;
 import js.Browser.document;
 import js.Browser.window;
 import js.Syntax;
+using StringTools;
 
 private typedef VideoChangeFunc = (item:VideoItem)->Void;
 private typedef OnceEventFunc = (event:WsEvent)->Void;
@@ -14,6 +15,7 @@ class JsApi {
 
 	static var main:Main;
 	static var player:Player;
+	static final subtitleFormats = [];
 	static final videoChange:Array<VideoChangeFunc> = [];
 	static final videoRemove:Array<VideoChangeFunc> = [];
 	static final onceListeners:Array<{type:WsEventType, func:OnceEventFunc}> = [];
@@ -98,6 +100,19 @@ class JsApi {
 	@:expose
 	static function getGlobalIp():String {
 		return main.globalIp;
+	}
+
+	@:expose
+	static function addSubtitleSupport(format:String):Void {
+		format = format.trim().toLowerCase();
+		if (subtitleFormats.contains(format)) return;
+		subtitleFormats.push(format);
+	}
+
+	@:expose
+	public static function hasSubtitleSupport(?format:String):Bool {
+		if (format == null) return subtitleFormats.length > 0;
+		return subtitleFormats.contains(format);
 	}
 
 	@:expose
