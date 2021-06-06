@@ -3,7 +3,7 @@ WORKDIR /usr/src/app
 
 RUN apk add nodejs npm git; \
     npm install --global lix; \
-    lix install haxe 4.1.5 --global
+    lix install haxe 4.2.2 --global
 
 COPY res ./res
 COPY src ./src

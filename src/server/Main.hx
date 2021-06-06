@@ -390,22 +390,22 @@ class Main {
 			case UpdateClients:
 				sendClientList();
 			case Login:
-				final name = data.login.clientName;
-				if (badNickName(name) || name.length > config.maxLoginLength
-					|| clients.getByName(name) != null) {
+				final name = data.login.clientName.trim();
+				final lcName = name.toLowerCase();
+				if (badNickName(lcName)) {
 					serverMessage(client, "usernameError");
 					send(client, {type: LoginError});
 					return;
 				}
 				final hash = data.login.passHash;
 				if (hash == null) {
-					if (userList.admins.exists(a -> a.name == name)) {
+					if (userList.admins.exists(a -> a.name.toLowerCase() == lcName)) {
 						send(client, {type: PasswordRequest});
 						return;
 					}
 				} else {
 					if (userList.admins.exists(
-						a -> a.name == name && a.hash == hash
+						a -> a.name.toLowerCase() == lcName && a.hash == hash
 					)) client.isAdmin = true;
 					else {
 						serverMessage(client, "passwordMatchError");
@@ -733,11 +733,15 @@ class Main {
 		return state;
 	}
 
-	final htmlChars = ~/[&^<>'"]/;
+	final matchHtmlChars = ~/[&^<>'"]/;
+	final matchGuestName = ~/guest [0-9]+/;
 
 	public function badNickName(name:String):Bool {
+		if (name.length > config.maxLoginLength) return true;
 		if (name.length == 0) return true;
-		if (htmlChars.match(name)) return true;
+		if (matchHtmlChars.match(name)) return true;
+		if (matchGuestName.match(name)) return true;
+		if (clients.exists(i -> i.name.toLowerCase() == name)) return true;
 		return false;
 	}
 
