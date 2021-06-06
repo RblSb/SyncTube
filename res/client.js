@@ -265,6 +265,20 @@ Reflect.compareMethods = function(f1,f2) {
 		return false;
 	}
 };
+Reflect.copy = function(o) {
+	if(o == null) {
+		return null;
+	}
+	var o2 = { };
+	var _g = 0;
+	var _g1 = Reflect.fields(o);
+	while(_g < _g1.length) {
+		var f = _g1[_g];
+		++_g;
+		o2[f] = Reflect.field(o,f);
+	}
+	return o2;
+};
 var Std = function() { };
 Std.__name__ = true;
 Std.string = function(s) {
@@ -931,6 +945,19 @@ client_JsApi.hasScriptInHead = $hx_exports["client"]["JsApi"]["hasScriptInHead"]
 	}
 	return false;
 };
+client_JsApi.getVideoItems = $hx_exports["client"]["JsApi"]["getVideoItems"] = function() {
+	var _g = [];
+	var _g1 = 0;
+	var _g2 = client_JsApi.player.getItems();
+	while(_g1 < _g2.length) _g.push(Reflect.copy(_g2[_g1++]));
+	return _g;
+};
+client_JsApi.addVideoItem = $hx_exports["client"]["JsApi"]["addVideoItem"] = function(url,atEnd,isTemp,callback) {
+	client_JsApi.main.addVideo(url,atEnd,isTemp,callback);
+};
+client_JsApi.removeVideoItem = $hx_exports["client"]["JsApi"]["removeVideoItem"] = function(url) {
+	client_JsApi.main.removeVideoItem(url);
+};
 client_JsApi.getTime = $hx_exports["client"]["JsApi"]["getTime"] = function() {
 	return client_JsApi.player.getTime();
 };
@@ -1233,7 +1260,9 @@ client_Main.prototype = {
 				data.url = url;
 			}
 			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, subs : data.subs, isIframe : data.isIframe == true}, atEnd : atEnd}});
-			callback();
+			if(callback != null) {
+				callback();
+			}
 		});
 	}
 	,addIframe: function(atEnd) {
@@ -1264,6 +1293,9 @@ client_Main.prototype = {
 			}
 			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : true}, atEnd : atEnd}});
 		});
+	}
+	,removeVideoItem: function(url) {
+		this.send({ type : "RemoveVideo", removeVideo : { url : url}});
 	}
 	,toggleVideoElement: function() {
 		if(this.player.hasVideo()) {
@@ -1296,7 +1328,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 352, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 360, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1898,7 +1930,7 @@ client_Player.prototype = {
 				_gthis.main.send({ type : "ToggleItemType", toggleItemType : { pos : i}});
 			}
 			if(btn.classList.contains("qbtn-delete")) {
-				_gthis.main.send({ type : "RemoveVideo", removeVideo : { url : item.querySelector(".qe_title").getAttribute("href")}});
+				_gthis.main.removeVideoItem(item.querySelector(".qe_title").getAttribute("href"));
 			}
 		};
 	}

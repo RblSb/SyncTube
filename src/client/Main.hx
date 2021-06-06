@@ -242,7 +242,7 @@ class Main {
 		addVideo(link, atEnd, isTemp, () -> addVideoArray(links, atEnd, isTemp));
 	}
 
-	function addVideo(url:String, atEnd:Bool, isTemp:Bool, callback:()->Void):Void {
+	public function addVideo(url:String, atEnd:Bool, isTemp:Bool, ?callback:()->Void):Void {
 		final protocol = Browser.location.protocol;
 		if (url.startsWith("/")) {
 			final host = Browser.location.hostname;
@@ -275,7 +275,7 @@ class Main {
 					},
 					atEnd: atEnd
 			}});
-			callback();
+			if (callback != null) callback();
 		});
 	}
 
@@ -313,6 +313,14 @@ class Main {
 					},
 					atEnd: atEnd
 			}});
+		});
+	}
+
+	public function removeVideoItem(url:String) {
+		send({
+			type: RemoveVideo, removeVideo: {
+				url: url
+			}
 		});
 	}
 

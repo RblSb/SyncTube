@@ -66,6 +66,24 @@ class JsApi {
 	}
 
 	@:expose
+	static function getVideoItems():VideoList {
+		final items = player.getItems();
+		return [
+			for (item in items) Reflect.copy(item)
+		];
+	}
+
+	@:expose
+	static function addVideoItem(url:String, atEnd:Bool, isTemp:Bool, ?callback:() -> Void):Void {
+		main.addVideo(url, atEnd, isTemp, callback);
+	}
+
+	@:expose
+	static function removeVideoItem(url:String):Void {
+		main.removeVideoItem(url);
+	}
+
+	@:expose
 	static function getTime():Float {
 		return player.getTime();
 	}
@@ -102,6 +120,13 @@ class JsApi {
 		return main.globalIp;
 	}
 
+	/**
+	 * If plugin adds any subtitle format (like `ass`),
+	 * you will see subtitle input below video url input on client page.
+	 * Plugins can listen to `notifyOnVideoChange(item => {...}`
+	 * for raw videos and load that input data from `item.subs` url to do something.
+	 * See `https://github.com/RblSb/SyncTube-octosubs` as example.
+	 */
 	@:expose
 	static function addSubtitleSupport(format:String):Void {
 		format = format.trim().toLowerCase();
@@ -115,6 +140,13 @@ class JsApi {
 		return subtitleFormats.contains(format);
 	}
 
+	/**
+	 * Listen to server event once before that event is parsed by client.
+	 * Example:
+	 * `JsApi.once("RemoveVideo", event => {`
+	 * `  if (event.removeVideo.url == url) {...}`
+	 * `});`
+	 */
 	@:expose
 	public static function once(type:WsEventType, func:OnceEventFunc):Void {
 		onceListeners.push({type: type, func: func});

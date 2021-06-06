@@ -64,11 +64,7 @@ class Player {
 				});
 			}
 			if (btn.classList.contains("qbtn-delete")) {
-				main.send({
-					type: RemoveVideo, removeVideo: {
-						url: item.querySelector(".qe_title").getAttribute("href")
-					}
-				});
+				main.removeVideoItem(item.querySelector(".qe_title").getAttribute("href"));
 			}
 		}
 	}
