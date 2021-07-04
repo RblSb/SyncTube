@@ -1,19 +1,19 @@
 package client.players;
 
-import js.hlsjs.Hls;
+import Types.VideoData;
+import Types.VideoDataRequest;
+import Types.VideoItem;
+import client.Main.ge;
 import haxe.Timer;
+import js.Browser.document;
+import js.hlsjs.Hls;
 import js.html.Element;
 import js.html.InputElement;
 import js.html.VideoElement;
-import js.Browser.document;
-import client.Main.ge;
-import Types.VideoDataRequest;
-import Types.VideoData;
-import Types.VideoItem;
+
 using StringTools;
 
 class Raw implements IPlayer {
-
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
@@ -34,7 +34,7 @@ class Raw implements IPlayer {
 		return true;
 	}
 
-	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
 		final url = data.url;
 		final decodedUrl = url.urlDecode();
 
@@ -77,7 +77,7 @@ class Raw implements IPlayer {
 		if (isHls) initHlsSource(video, url);
 	}
 
-	function loadHlsPlugin(callback:()->Void):Void {
+	function loadHlsPlugin(callback:() -> Void):Void {
 		final url = "https://cdn.jsdelivr.net/npm/hls.js@latest";
 		JsApi.addScriptToHead(url, () -> {
 			isHlsLoaded = true;
@@ -177,5 +177,4 @@ class Raw implements IPlayer {
 	public function setPlaybackRate(rate:Float):Void {
 		video.playbackRate = rate;
 	}
-
 }

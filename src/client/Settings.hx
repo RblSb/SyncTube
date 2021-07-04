@@ -1,14 +1,13 @@
 package client;
 
 import haxe.Json;
-import js.html.Storage;
 import js.Browser;
+import js.html.Storage;
 
 private typedef Vers = {version:Int};
-private typedef Updater = (data:Any, version:Int)->Any;
+private typedef Updater = (data:Any, version:Int) -> Any;
 
 class Settings {
-
 	static var defaults:Null<Vers>;
 	static var updater:Null<Updater>;
 	static var storage:Storage;
@@ -61,5 +60,4 @@ class Settings {
 		if (defaults == null) throw "reset: default data is null";
 		write(defaults);
 	}
-
 }

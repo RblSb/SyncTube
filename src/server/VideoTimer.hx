@@ -3,8 +3,8 @@ package server;
 import haxe.Timer.stamp;
 
 class VideoTimer {
-
 	public var isStarted(default, null) = false;
+
 	var startTime = 0.0;
 	var pauseStartTime = 0.0;
 	var rateStartTime = 0.0;
@@ -75,5 +75,4 @@ class VideoTimer {
 		if (rateStartTime == 0) return 0;
 		return stamp() - rateStartTime - pauseTime();
 	}
-
 }

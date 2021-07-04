@@ -1,18 +1,18 @@
 package client;
 
-import js.html.Element;
+import Types.VideoData;
+import Types.VideoDataRequest;
+import Types.VideoItem;
 import client.Main.ge;
+import client.players.Iframe;
 import client.players.Raw;
 import client.players.Youtube;
-import client.players.Iframe;
-import Types.VideoDataRequest;
-import Types.VideoData;
-import Types.VideoItem;
-using StringTools;
+import js.html.Element;
+
 using Lambda;
+using StringTools;
 
 class Player {
-
 	final main:Main;
 	final players:Array<IPlayer>;
 	final iframePlayer:IPlayer;
@@ -44,21 +44,24 @@ class Player {
 			final i = Utils.getIndex(item.parentElement, item);
 			if (btn.classList.contains("qbtn-play")) {
 				main.send({
-					type: PlayItem, playItem: {
+					type: PlayItem,
+					playItem: {
 						pos: i
 					}
 				});
 			}
 			if (btn.classList.contains("qbtn-next")) {
 				main.send({
-					type: SetNextItem, setNextItem: {
+					type: SetNextItem,
+					setNextItem: {
 						pos: i
 					}
 				});
 			}
 			if (btn.classList.contains("qbtn-tmp")) {
 				main.send({
-					type: ToggleItemType, toggleItemType: {
+					type: ToggleItemType,
+					toggleItemType: {
 						pos: i
 					}
 				});
@@ -94,7 +97,7 @@ class Player {
 		player = newPlayer;
 	}
 
-	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
 		var player = players.find(player -> player.isSupportedLink(data.url));
 		if (player == null) player = rawPlayer;
 		player.getVideoData(data, callback);
@@ -104,7 +107,7 @@ class Player {
 		return !players.exists(player -> player.isSupportedLink(url));
 	}
 
-	public function getIframeData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+	public function getIframeData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
 		iframePlayer.getVideoData(data, callback);
 	}
 
@@ -167,7 +170,8 @@ class Player {
 	public function onPlay():Void {
 		if (!main.isLeader()) return;
 		main.send({
-			type: Play, play: {
+			type: Play,
+			play: {
 				time: getTime()
 			}
 		});
@@ -184,7 +188,8 @@ class Player {
 				final name = event.setLeader.clientName;
 				if (name != main.getName()) return;
 				main.send({
-					type: Pause, pause: {
+					type: Pause,
+					pause: {
 						time: getTime()
 					}
 				});
@@ -195,7 +200,8 @@ class Player {
 		}
 		if (!main.isLeader()) return;
 		main.send({
-			type: Pause, pause: {
+			type: Pause,
+			pause: {
 				time: getTime()
 			}
 		});
@@ -208,7 +214,8 @@ class Player {
 		}
 		if (!main.isLeader()) return;
 		main.send({
-			type: SetTime, setTime: {
+			type: SetTime,
+			setTime: {
 				time: getTime()
 			}
 		});
@@ -221,7 +228,8 @@ class Player {
 		}
 		if (!main.isLeader()) return;
 		main.send({
-			type: SetRate, setRate: {
+			type: SetRate,
+			setRate: {
 				rate: getPlaybackRate()
 			}
 		});
@@ -307,7 +315,9 @@ class Player {
 		clearItems();
 		if (pos != null) itemPos = pos;
 		if (list.length == 0) return;
-		for (video in list) addVideoItem(video, true);
+		for (video in list) {
+			addVideoItem(video, true);
+		}
 		if (currentUrl != items[itemPos].url) setVideo(itemPos);
 		else videoItemsEl.children[itemPos].classList.add("queue_active");
 	}
@@ -417,5 +427,4 @@ class Player {
 		skipSetRate = isLocal;
 		player.setPlaybackRate(rate);
 	}
-
 }

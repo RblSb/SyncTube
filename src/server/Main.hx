@@ -1,41 +1,44 @@
 package server;
 
-import haxe.crypto.Sha256;
-import sys.FileSystem;
-import sys.io.File;
-import haxe.Timer;
-import haxe.Json;
-import js.Node.process;
-import js.Node.__dirname;
-import js.npm.ws.Server as WSServer;
-import js.npm.ws.WebSocket;
-import js.node.http.IncomingMessage;
-import js.node.Http;
-import json2object.JsonParser;
-import json2object.ErrorUtils;
 import Client.ClientData;
 import Types.Config;
+import Types.Message;
 import Types.Permission;
 import Types.UserList;
-import Types.Message;
 import Types.WsEvent;
-using StringTools;
+import haxe.Json;
+import haxe.Timer;
+import haxe.crypto.Sha256;
+import js.Node.__dirname;
+import js.Node.process;
+import js.node.Http;
+import js.node.http.IncomingMessage;
+import js.npm.ws.Server as WSServer;
+import js.npm.ws.WebSocket;
+import json2object.ErrorUtils;
+import json2object.JsonParser;
+import sys.FileSystem;
+import sys.io.File;
+
 using ClientTools;
 using Lambda;
+using StringTools;
 
 class Main {
-
 	static inline var VIDEO_START_MAX_DELAY = 3000;
 	static inline var VIDEO_SKIP_DELAY = 1000;
+
 	final rootDir = '$__dirname/..';
+
 	public final logsDir:String;
+	public final config:Config;
+
 	final verbose:Bool;
 	final statePath:String;
 	var wss:WSServer;
 	final localIp:String;
 	var globalIp:String;
 	var port:Int;
-	public final config:Config;
 	final userList:UserList;
 	final clients:Array<Client> = [];
 	final freeIds:Array<Int> = [];
@@ -48,7 +51,9 @@ class Main {
 	var isPlaylistOpen = true;
 	var itemPos = 0;
 
-	static function main():Void new Main();
+	static function main():Void {
+		new Main();
+	}
 
 	function new() {
 		verbose = Sys.args().has("--verbose");
@@ -87,8 +92,8 @@ class Main {
 
 		var attempts = 5;
 		function preparePort():Void {
-			Utils.isPortFree(port, free -> {
-				if (!free && attempts > 0) {
+			Utils.isPortFree(port, isFree -> {
+				if (!isFree && attempts > 0) {
 					trace('Warning: port $port is already in use. Changed to ${port + 1}');
 					attempts--;
 					port++;
@@ -138,8 +143,9 @@ class Main {
 	}
 
 	function generateConfigSalt():String {
-		if (userList.salt == null)
+		if (userList.salt == null) {
 			userList.salt = Sha256.encode('${Math.random()}');
+		}
 		return userList.salt;
 	}
 
@@ -155,7 +161,9 @@ class Main {
 				if (type == field) continue;
 				if (group.indexOf(type) == -1) continue;
 				group.remove(type);
-				for (item in getPermissions(type)) group.push(item);
+				for (item in getPermissions(type)) {
+					group.push(item);
+				}
 			}
 		}
 		return config;
@@ -167,7 +175,9 @@ class Main {
 		if (!FileSystem.exists(customPath)) return config;
 		final customConfig:Config = Json.parse(File.getContent(customPath));
 		for (field in Reflect.fields(customConfig)) {
-			if (Reflect.field(config, field) == null) trace('Warning: config field "$field" is unknown');
+			if (Reflect.field(config, field) == null) {
+				trace('Warning: config field "$field" is unknown');
+			}
 			Reflect.setField(config, field, Reflect.field(customConfig, field));
 		}
 		final emoteCopies:Map<String, Bool> = [];
@@ -175,7 +185,9 @@ class Main {
 			if (emoteCopies[emote.name]) trace('Warning: emote name "${emote.name}" has copy');
 			emoteCopies[emote.name] = true;
 			if (!verbose) continue;
-			if (emoteCopies[emote.image]) trace('Warning: emote url of name "${emote.name}" has copy');
+			if (emoteCopies[emote.image]) {
+				trace('Warning: emote url of name "${emote.name}" has copy');
+			}
 			emoteCopies[emote.image] = true;
 		}
 		return config;
@@ -218,10 +230,14 @@ class Main {
 		final data:ServerState = Json.parse(File.getContent(statePath));
 		videoList.resize(0);
 		messages.resize(0);
-		for (item in data.videoList) videoList.push(item);
+		for (item in data.videoList) {
+			videoList.push(item);
+		}
 		isPlaylistOpen = data.isPlaylistOpen;
 		itemPos = data.itemPos;
-		for (message in data.messages) messages.push(message);
+		for (message in data.messages) {
+			messages.push(message);
+		}
 		videoTimer.start();
 		videoTimer.setTime(data.timer.time);
 		videoTimer.pause();
@@ -346,8 +362,9 @@ class Main {
 		switch (data.type) {
 			case Connected:
 				if (!internal) return;
-				if (clients.length == 1 && videoList.length > 0)
+				if (clients.length == 1 && videoList.length > 0) {
 					if (videoTimer.isPaused()) videoTimer.play();
+				}
 
 				send(client, {
 					type: Connected,
@@ -381,7 +398,8 @@ class Main {
 				Timer.delay(() -> {
 					if (clients.exists(i -> i.name == client.name)) return;
 					broadcast({
-						type: ServerMessage, serverMessage: {
+						type: ServerMessage,
+						serverMessage: {
 							textId: '${client.name} has left'
 						}
 					});
@@ -405,8 +423,9 @@ class Main {
 					}
 				} else {
 					if (userList.admins.exists(
-						a -> a.name.toLowerCase() == lcName && a.hash == hash
-					)) client.isAdmin = true;
+						a -> a.name.toLowerCase() == lcName && a.hash == hash)) {
+						client.isAdmin = true;
+					}
 					else {
 						serverMessage(client, "passwordMatchError");
 						send(client, {type: LoginError});
@@ -462,8 +481,7 @@ class Main {
 				if (!isPlaylistOpen) {
 					if (!checkPermission(client, LockPlaylistPerm)) return;
 				}
-				if (config.totalVideoLimit != 0
-					&& videoList.length >= config.totalVideoLimit) {
+				if (config.totalVideoLimit != 0 && videoList.length >= config.totalVideoLimit) {
 					serverMessage(client, "totalVideoLimitError");
 					return;
 				}
@@ -540,7 +558,8 @@ class Main {
 						if (videoList.length != currentLength) return;
 						if (itemPos != currentPos) return;
 						skipVideo({
-							type: SkipVideo, skipVideo: {
+							type: SkipVideo,
+							skipVideo: {
 								url: videoList[itemPos].url
 							}
 						});
@@ -548,7 +567,8 @@ class Main {
 					return;
 				}
 				final obj:WsEvent = {
-					type: GetTime, getTime: {
+					type: GetTime,
+					getTime: {
 						time: videoTimer.getTime()
 					}
 				};
@@ -588,7 +608,8 @@ class Main {
 				}
 				clients.setLeader(clientName);
 				broadcast({
-					type: SetLeader, setLeader: {
+					type: SetLeader,
+					setLeader: {
 						clientName: clientName
 					}
 				});
@@ -597,7 +618,8 @@ class Main {
 					if (videoTimer.isPaused()) videoTimer.play();
 					videoTimer.setRate(1);
 					broadcast({
-						type: Play, play: {
+						type: Play,
+						play: {
 							time: videoTimer.getTime()
 						}
 					});
@@ -643,15 +665,17 @@ class Main {
 				broadcast({
 					type: UpdatePlaylist,
 					updatePlaylist: {
-					videoList: videoList
-				}});
+						videoList: videoList
+					}
+				});
 
 			case UpdatePlaylist:
 				broadcast({
 					type: UpdatePlaylist,
 					updatePlaylist: {
-					videoList: videoList
-				}});
+						videoList: videoList
+					}
+				});
 
 			case TogglePlaylistLock:
 				if (!checkPermission(client, LockPlaylistPerm)) return;
@@ -691,7 +715,8 @@ class Main {
 
 	function serverMessage(client:Client, textId:String):Void {
 		send(client, {
-			type: ServerMessage, serverMessage: {
+			type: ServerMessage,
+			serverMessage: {
 				textId: textId
 			}
 		});
@@ -703,7 +728,8 @@ class Main {
 
 	function broadcast(data:WsEvent):Void {
 		final json = Json.stringify(data);
-		for (client in clients) client.ws.send(json, null);
+		for (client in clients)
+			client.ws.send(json, null);
 	}
 
 	function broadcastExcept(skipped:Client, data:WsEvent):Void {
@@ -726,7 +752,8 @@ class Main {
 	function checkPermission(client:Client, perm:Permission):Bool {
 		final state = client.hasPermission(perm, config.permissions);
 		if (!state) send(client, {
-			type: ServerMessage, serverMessage: {
+			type: ServerMessage,
+			serverMessage: {
 				textId: "accessError"
 			}
 		});
@@ -767,5 +794,4 @@ class Main {
 		broadcast({type: VideoLoaded});
 		videoTimer.start();
 	}
-
 }

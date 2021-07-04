@@ -9,7 +9,6 @@ typedef ServerState = {
 	itemPos:Int,
 	messages:Array<Message>,
 	timer:{
-		time:Float,
-		paused:Bool
+		time:Float, paused:Bool
 	}
 }

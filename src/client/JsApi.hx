@@ -1,18 +1,18 @@
 package client;
 
-import Types.WsEventType;
-import Types.WsEvent;
 import Types.VideoItem;
+import Types.WsEvent;
+import Types.WsEventType;
 import js.Browser.document;
 import js.Browser.window;
 import js.Syntax;
+
 using StringTools;
 
-private typedef VideoChangeFunc = (item:VideoItem)->Void;
-private typedef OnceEventFunc = (event:WsEvent)->Void;
+private typedef VideoChangeFunc = (item:VideoItem) -> Void;
+private typedef OnceEventFunc = (event:WsEvent) -> Void;
 
 class JsApi {
-
 	static var main:Main;
 	static var player:Player;
 	static final subtitleFormats = [];
@@ -32,7 +32,7 @@ class JsApi {
 	}
 
 	@:expose
-	static function addPlugin(id:String, ?onLoaded:()->Void):Void {
+	static function addPlugin(id:String, ?onLoaded:() -> Void):Void {
 		addScriptToHead('/plugins/$id/index.js', () -> {
 			final obj = {
 				api: Syntax.plainCode("client.JsApi"),
@@ -49,7 +49,7 @@ class JsApi {
 	}
 
 	@:expose
-	public static function addScriptToHead(url:String, ?onLoaded:()->Void):Void {
+	public static function addScriptToHead(url:String, ?onLoaded:() -> Void):Void {
 		final script = document.createScriptElement();
 		script.type = "text/javascript";
 		script.onload = onLoaded;
@@ -176,7 +176,9 @@ class JsApi {
 	}
 
 	public static function fireVideoChangeEvents(item:VideoItem):Void {
-		for (func in videoChange) func(item);
+		for (func in videoChange) {
+			func(item);
+		}
 	}
 
 	@:expose
@@ -190,7 +192,8 @@ class JsApi {
 	}
 
 	public static function fireVideoRemoveEvents(item:VideoItem):Void {
-		for (func in videoRemove) func(item);
+		for (func in videoRemove) {
+			func(item);
+		}
 	}
-
 }

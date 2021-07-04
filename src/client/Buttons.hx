@@ -1,17 +1,17 @@
 package client;
 
-import js.html.ImageElement;
-import haxe.Timer;
-import js.html.KeyboardEvent;
-import js.html.InputElement;
-import js.html.Element;
 import client.Main.ge;
-import js.Browser.window;
+import haxe.Timer;
 import js.Browser.document;
+import js.Browser.window;
+import js.html.Element;
+import js.html.ImageElement;
+import js.html.InputElement;
+import js.html.KeyboardEvent;
+
 using StringTools;
 
 class Buttons {
-
 	static inline var CHAT_MIN_SIZE = 200;
 	static var split:Split;
 	static var settings:ClientSettings;
@@ -59,8 +59,9 @@ class Buttons {
 			if (!main.isAdmin()) return;
 			var el:Element = cast e.target;
 			if (userList == el) return;
-			if (!el.classList.contains("userlist_item"))
+			if (!el.classList.contains("userlist_item")) {
 				el = el.parentElement;
+			}
 			var name = "";
 			if (el.children.length == 1) {
 				name = el.lastElementChild.innerText;
@@ -126,7 +127,7 @@ class Buttons {
 			final icon = getPlaylist.firstElementChild;
 			icon.setAttribute("name", "checkmark");
 			Timer.delay(() -> {
-			icon.setAttribute("name", "link");
+				icon.setAttribute("name", "link");
 			}, 2000);
 		}
 		final clearPlaylist = ge("#clearplaylist");
@@ -154,7 +155,8 @@ class Buttons {
 		final mediaUrl:InputElement = cast ge("#mediaurl");
 		mediaUrl.oninput = () -> {
 			final value = mediaUrl.value;
-			final isRawSingleVideo = value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value);
+			final isRawSingleVideo = value != "" && main.isRawPlayerLink(value)
+				&& main.isSingleVideoLink(value);
 			ge("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
 			if (JsApi.hasSubtitleSupport()) {
 				ge("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
@@ -228,7 +230,7 @@ class Buttons {
 		document.body.style.gridTemplateColumns = sizes.join(" ");
 	}
 
-	static function	saveSplitSize():Void {
+	static function saveSplitSize():Void {
 		final sizes = document.body.style.gridTemplateColumns.split(" ");
 		if (settings.isSwapped) sizes.reverse();
 		settings.chatSize = Std.parseFloat(sizes[sizes.length - 1]);
@@ -277,11 +279,16 @@ class Buttons {
 			if (key == Backspace) e.preventDefault();
 			if (!e.altKey) return;
 			switch (key) {
-				case R: ge("#mediarefresh").onclick();
-				case S: ge("#voteskip").onclick();
-				case C: ge("#getplaylist").onclick();
-				case F: ge("#fullscreenbtn").onclick();
-				case L: main.toggleLeader();
+				case R:
+					ge("#mediarefresh").onclick();
+				case S:
+					ge("#voteskip").onclick();
+				case C:
+					ge("#getplaylist").onclick();
+				case F:
+					ge("#fullscreenbtn").onclick();
+				case L:
+					main.toggleLeader();
 				case P:
 					if (!main.isLeader()) {
 						JsApi.once(SetLeader, event -> {
@@ -290,7 +297,8 @@ class Buttons {
 						});
 					}
 					main.toggleLeader();
-				default: return;
+				default:
+					return;
 			}
 			e.preventDefault();
 		}
@@ -346,5 +354,4 @@ class Buttons {
 			} else el.classList.remove("mobile-view");
 		}
 	}
-
 }

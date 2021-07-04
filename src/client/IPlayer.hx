@@ -1,12 +1,12 @@
 package client;
 
-import Types.VideoDataRequest;
 import Types.VideoData;
+import Types.VideoDataRequest;
 import Types.VideoItem;
 
 interface IPlayer {
 	function isSupportedLink(url:String):Bool;
-	function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void;
+	function getVideoData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void;
 	function loadVideo(item:VideoItem):Void;
 	function removeVideo():Void;
 	function isVideoLoaded():Bool;

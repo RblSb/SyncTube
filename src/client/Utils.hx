@@ -1,11 +1,10 @@
 package client;
 
-import js.html.Element;
 import js.Browser.document;
 import js.Browser.window;
+import js.html.Element;
 
 class Utils {
-
 	public static function isTouch():Bool {
 		return js.Syntax.code("'ontouchstart' in window");
 	}
@@ -37,11 +36,8 @@ class Utils {
 
 	public static function hasFullscreen():Bool {
 		final doc:Dynamic = document;
-		return (
-			document.fullscreenElement != null
-			|| doc.mozFullScreenElement != null
-			|| doc.webkitFullscreenElement != null
-		);
+		return (document.fullscreenElement != null || doc.mozFullScreenElement != null
+			|| doc.webkitFullscreenElement != null);
 	}
 
 	public static function requestFullscreen(el:Element):Bool {
@@ -91,5 +87,4 @@ class Utils {
 			document.body.removeChild(textarea);
 		}
 	}
-
 }

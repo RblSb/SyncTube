@@ -1,13 +1,14 @@
 {
 	"configurations": [
 		{
-			"type": "node",
+			"type": "pwa-node",
 			"request": "launch",
 			"name": "Node: build and run",
 			"program": "${workspaceFolder}/build/server.js",
 			"args": ["--verbose"],
 			"sourceMaps": true,
 			"preLaunchTask": "Build all",
+			"killBehavior": "polite",
 			"console": "integratedTerminal"
 		}
 	]

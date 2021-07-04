@@ -1,13 +1,14 @@
 package server;
 
+import haxe.Json;
 import haxe.extern.EitherType as Or;
 import haxe.io.Path;
-import haxe.Json;
-import sys.FileSystem;
-import sys.io.File;
+import js.Node.process;
 import js.html.Console;
 import js.node.Readline;
-import js.Node.process;
+import sys.FileSystem;
+import sys.io.File;
+
 using StringTools;
 
 private typedef CommandData = {
@@ -23,7 +24,6 @@ private enum abstract Command(String) from String {
 }
 
 class ConsoleInput {
-
 	final main:Main;
 	final commands:Map<Command, CommandData> = [
 		AddAdmin => {
@@ -118,7 +118,9 @@ class ConsoleInput {
 				Utils.ensureDir(main.logsDir);
 				final names = FileSystem.readDirectory(main.logsDir)
 					.filter(s -> s.endsWith(".json"));
-				for (name in names) trace(Path.withoutExtension(name));
+				for (name in names) {
+					trace(Path.withoutExtension(name));
+				}
 
 			case Exit:
 				main.exit();
@@ -150,5 +152,4 @@ class ConsoleInput {
 		final desc = list.join("\n");
 		trace('Unknown command "$line". List:\n$desc');
 	}
-
 }

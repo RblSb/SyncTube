@@ -1,19 +1,20 @@
 package client;
 
-import js.html.KeyboardEvent;
 import js.html.InputElement;
+import js.html.KeyboardEvent;
 
 class InputWithHistory {
-
 	final element:InputElement;
 	final maxItems:Int;
 	final history:Array<String>;
-	final onEnter:(value:String)->Bool;
+	final onEnter:(value:String) -> Bool;
 	var historyId = -1;
 
 	public function new(
-		element:InputElement, ?history:Array<String>, maxItems:Int,
-		onEnter:(value:String)->Bool
+		element:InputElement,
+		?history:Array<String>,
+		maxItems:Int,
+		onEnter:(value:String) -> Bool
 	) {
 		this.element = element;
 		if (history != null) this.history = history;
@@ -65,5 +66,4 @@ class InputWithHistory {
 	function onInput():Void {
 		if (element.oninput != null) element.oninput();
 	}
-
 }

@@ -1,10 +1,9 @@
 package;
 
-import Types.Permissions;
 import Types.Permission;
+import Types.Permissions;
 
 class ClientTools {
-
 	public static function setLeader(clients:Array<Client>, name:String):Void {
 		for (client in clients) {
 			if (client.name == name) client.isLeader = true;
@@ -35,5 +34,4 @@ class ClientTools {
 		if (client.isUser) return p.user.contains(permission);
 		return p.guest.contains(permission);
 	}
-
 }

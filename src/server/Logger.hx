@@ -1,14 +1,14 @@
 package server;
 
-import haxe.io.Path;
-import sys.io.File;
 import haxe.Json;
+import haxe.io.Path;
 import sys.FileSystem;
-using StringTools;
+import sys.io.File;
+
 using Lambda;
+using StringTools;
 
 class Logger {
-
 	final folder:String;
 	final maxCount:Int;
 	final verbose:Bool;
@@ -65,5 +65,4 @@ class Logger {
 		final s = '${d[0]}-${d[1]}-${d[2]} ${t[0]}:${t[1]}:${t[2]}';
 		return Date.fromString(s);
 	}
-
 }

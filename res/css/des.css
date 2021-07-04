@@ -1,4 +1,5 @@
 @charset "utf-8";
+
 /* CSS Document */
 
 @import url(https://rsms.me/inter/inter.css);
@@ -19,7 +20,10 @@
 html {
   box-sizing: border-box;
 }
-*, *:before, *:after {
+
+*,
+*:before,
+*:after {
   box-sizing: inherit;
 }
 
@@ -140,7 +144,7 @@ button[disabled]:hover {
   cursor: default;
 }
 
-button > * {
+button>* {
   line-height: 1;
 }
 
@@ -174,7 +178,7 @@ textarea {
   color: var(--foreground);
   background-color: var(--background-video);
   border: .125rem solid;
-  border-color:  var(--border);
+  border-color: var(--border);
   transition: border-color ease-in-out .15s;
 }
 
@@ -218,14 +222,16 @@ button.danger-bg:focus {
   background-color: var(--error);
 }
 
-.server-msg-disconnect, .server-msg-reconnect {
+.server-msg-disconnect,
+.server-msg-reconnect {
   text-align: center;
 }
 
 .collapse {
-  display :none;
-  visibility :hidden;
+  display: none;
+  visibility: hidden;
 }
+
 .collapse.in {
   display: block;
   visibility: visible;
@@ -260,7 +266,7 @@ button.danger-bg:focus {
   margin-right: .5rem;
 }
 
-.info header > *:not(:last-child) {
+.info header>*:not(:last-child) {
   margin-right: .5rem;
 }
 
@@ -342,7 +348,7 @@ header h4 {
   padding-top: 0;
 }
 
-.metadata > span {
+.metadata>span {
   display: flex;
   align-items: center;
   margin-right: 1rem;
@@ -358,7 +364,7 @@ header h4 {
   min-width: 2rem;
 }
 
-#insert_template > div:first-child {
+#insert_template>div:first-child {
   text-align: center;
   flex-grow: 1;
 }
@@ -370,12 +376,13 @@ header h4 {
   max-width: 32rem;
 }
 
-#addfromurl > *,
-#customembed > * {
+#addfromurl>*,
+#customembed>* {
   margin-bottom: 1rem;
 }
 
-#mediatitle, #subsurl {
+#mediatitle,
+#subsurl {
   margin-left: 2rem;
   flex-grow: 1;
 }
@@ -384,8 +391,8 @@ header h4 {
   flex-grow: 2;
 }
 
-#customembed > input,
-#customembed > textarea {
+#customembed>input,
+#customembed>textarea {
   display: block;
   width: 100%;
 }
@@ -452,7 +459,7 @@ footer#footer {
   flex-direction: column;
   flex-wrap: nowrap;
   padding: 1rem;
-  height: calc( 100vh - 56.25vw );
+  height: calc(100vh - 56.25vw);
 }
 
 #chat header {
@@ -486,7 +493,7 @@ footer#footer {
   cursor: pointer;
 }
 
-.userlist_item > *:not(:last-child) {
+.userlist_item>*:not(:last-child) {
   margin-right: .25em;
 }
 
@@ -552,6 +559,7 @@ footer#footer {
 }
 
 /* Message buffer */
+
 #messagebuffer {
   flex-grow: 2;
   flex-shrink: 8;
@@ -562,7 +570,7 @@ footer#footer {
   height: 100%;
 }
 
-#messagebuffer > * {
+#messagebuffer>* {
   margin-bottom: 1em;
 }
 
@@ -601,7 +609,7 @@ footer#footer {
   flex-direction: row;
 }
 
-#chatbox > *:not(:first-child) {
+#chatbox>*:not(:first-child) {
   margin-left: .5rem;
 }
 
@@ -614,14 +622,14 @@ footer#footer {
 
 #smileswrap {
   display: none;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   width: 100%;
   height: 12rem;
   padding: 1rem;
   border-radius: 1rem;
   overflow-y: scroll;
   text-align: center;
-  grid-template-columns: repeat( auto-fit, minmax( 4rem, 1fr ) );
+  grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
   grid-gap: .5rem;
   gap: .5rem;
 }
@@ -643,7 +651,8 @@ footer#footer {
   max-height: 12.5rem;
 }
 
-#guestlogin, #guestpassword {
+#guestlogin,
+#guestpassword {
   display: flex;
   flex-direction: column;
   padding-top: 1rem;
@@ -653,17 +662,28 @@ footer#footer {
 
 /* Guest login */
 
-#guestlogin label, #guestpassword label {
+#guestlogin label,
+#guestpassword label {
   display: block;
   margin-bottom: 1em;
 }
 
-#guestpassword span > *:not(:first-child) {
+#guestpassword span>*:not(:first-child) {
   margin-left: .5rem;
 }
 
 #guestpass_icon:hover {
   cursor: pointer;
+}
+
+#passwordbox {
+  display: flex;
+  flex-direction: row;
+}
+
+#guestpass {
+  flex-grow: 2;
+  width: 2rem;
 }
 
 /*
@@ -673,19 +693,24 @@ footer#footer {
 /*
  * Scrollbar
  */
+
 html {
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
   scrollbar-width: thin;
 }
+
 ::-webkit-scrollbar {
   width: 5px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -703,12 +728,15 @@ html {
     width: 100%;
     height: 100vh;
   }
+
   body.swap {
     grid-template-areas: "chat gutter video";
   }
+
   .info {
     flex-wrap: nowrap;
   }
+
   #video {
     grid-area: video;
     width: 100%;
@@ -716,6 +744,7 @@ html {
     overflow: auto;
     background: var(--background-video);
   }
+
   #header {
     display: flex;
     flex: 1;
@@ -725,10 +754,12 @@ html {
     text-overflow: ellipsis;
     font-size: 1.953rem;
   }
+
   #currenttitle {
     text-overflow: ellipsis;
     overflow: hidden;
   }
+
   .gutter {
     grid-area: gutter;
     display: block;
@@ -736,9 +767,11 @@ html {
     background-color: var(--border);
     transition: background-color ease-in-out .15s;
   }
+
   .gutter:hover {
     background-color: var(--accent);
   }
+
   #chat {
     grid-area: chat;
     height: 100vh;

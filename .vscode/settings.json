@@ -1,10 +1,24 @@
 {
 	"haxe.configurations": [
-			["build-server.hxml"]
+		["build-server.hxml"]
 	],
 	"search.exclude": {
 		"build": true,
 		"res/temp": true,
 		"res/client.js": true
-	}
+	},
+	"[haxe]": {
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": true
+		}
+	},
+	"[html]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "vscode.html-language-features"
+	},
+	"[css]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "HookyQR.beautify"
+	},
 }

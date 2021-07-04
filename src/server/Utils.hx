@@ -1,18 +1,17 @@
 package server;
 
-import js.node.url.URL;
-import js.node.Https;
 import js.node.Http;
+import js.node.Https;
 import js.node.Os;
+import js.node.url.URL;
 import sys.FileSystem;
 
 class Utils {
-
 	public static function ensureDir(path:String):Void {
 		if (!FileSystem.exists(path)) FileSystem.createDirectory(path);
 	}
 
-	public static function isPortFree(port:Int, callback:(free:Bool)->Void):Void {
+	public static function isPortFree(port:Int, callback:(isFree:Bool) -> Void):Void {
 		final server = Http.createServer();
 		final timeout = 1000;
 		var status = false;
@@ -22,7 +21,7 @@ class Utils {
 			status = false;
 			server.close();
 		});
-		server.once("timeout", function () {
+		server.once("timeout", function() {
 			status = false;
 			trace('Timeout (${timeout}ms) occurred waiting for port $port to be available');
 			server.close();
@@ -35,7 +34,7 @@ class Utils {
 		server.listen(port);
 	}
 
-	public static function getGlobalIp(callback:(ip:String)->Void):Void {
+	public static function getGlobalIp(callback:(ip:String) -> Void):Void {
 		function onError(e):Void {
 			trace("Warning: connection error, server is local.");
 			callback("127.0.0.1");
@@ -51,8 +50,7 @@ class Utils {
 			final data = new StringBuf();
 			r.on("data", chunk -> data.add(chunk));
 			r.on("end", _ -> callback(data.toString()));
-		}).on("error", onError)
-			.on("timeout", onError);
+		}).on("error", onError).on("timeout", onError);
 	}
 
 	public static function getLocalIp():String {
@@ -89,5 +87,4 @@ class Utils {
 			arr[n] = a;
 		}
 	}
-
 }

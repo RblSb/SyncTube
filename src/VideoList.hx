@@ -7,10 +7,8 @@ import Types.VideoItem;
 // 	items:Array<VideoItem>,
 // 	itemPos:Int
 // }
-
 @:forward
 abstract VideoList(Array<VideoItem>) from Array<VideoItem> to Array<VideoItem> {
-
 	public function new() {
 		this = [];
 	}
@@ -68,8 +66,9 @@ abstract VideoList(Array<VideoItem>) from Array<VideoItem> to Array<VideoItem> {
 
 	public function itemsByUser(client:Client):Int {
 		var i = 0;
-		for (item in this) if (item.author == client.name) i++;
+		for (item in this) {
+			if (item.author == client.name) i++;
+		}
 		return i;
 	}
-
 }

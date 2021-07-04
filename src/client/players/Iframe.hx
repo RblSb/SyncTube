@@ -1,14 +1,13 @@
 package client.players;
 
-import js.html.Element;
-import js.Browser.document;
-import client.Main.ge;
-import Types.VideoDataRequest;
 import Types.VideoData;
+import Types.VideoDataRequest;
 import Types.VideoItem;
+import client.Main.ge;
+import js.Browser.document;
+import js.html.Element;
 
 class Iframe implements IPlayer {
-
 	final main:Main;
 	final player:Player;
 	final playerEl:Element = ge("#ytapiplayer");
@@ -23,7 +22,7 @@ class Iframe implements IPlayer {
 		return true;
 	}
 
-	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData)->Void):Void {
+	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
 		final iframe = document.createDivElement();
 		iframe.innerHTML = data.url;
 		if (isValidIframe(iframe)) {
@@ -35,8 +34,7 @@ class Iframe implements IPlayer {
 
 	function isValidIframe(iframe:Element):Bool {
 		if (iframe.children.length != 1) return false;
-		return (iframe.firstChild.nodeName == "IFRAME"
-			|| iframe.firstChild.nodeName == "OBJECT");
+		return (iframe.firstChild.nodeName == "IFRAME" || iframe.firstChild.nodeName == "OBJECT");
 	}
 
 	public function loadVideo(item:VideoItem):Void {
@@ -79,5 +77,4 @@ class Iframe implements IPlayer {
 	}
 
 	public function setPlaybackRate(rate:Float):Void {}
-
 }

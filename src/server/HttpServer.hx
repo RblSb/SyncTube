@@ -1,20 +1,20 @@
 package server;
 
-import sys.FileSystem;
-import js.node.Buffer;
 import haxe.io.Path;
+import js.node.Buffer;
 import js.node.Fs;
-import js.node.Https;
 import js.node.Http;
-import js.node.url.URL;
+import js.node.Https;
+import js.node.Path as JsPath;
+import js.node.http.ClientRequest;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
-import js.node.http.ClientRequest;
-import js.node.Path as JsPath;
+import js.node.url.URL;
+import sys.FileSystem;
+
 using StringTools;
 
 class HttpServer {
-
 	static final mimeTypes = [
 		"html" => "text/html",
 		"js" => "text/javascript",
@@ -58,7 +58,8 @@ class HttpServer {
 		res.setHeader("Accept-Ranges", "bytes");
 		res.setHeader("Content-Type", getMimeType(ext));
 
-		if (allowLocalRequests && req.connection.remoteAddress == req.connection.localAddress
+		if (allowLocalRequests
+			&& req.connection.remoteAddress == req.connection.localAddress
 			|| allowedLocalFiles[url]) {
 			if (isMediaExtension(ext)) {
 				allowedLocalFiles[url] = true;
@@ -176,7 +177,7 @@ class HttpServer {
 
 	static function proxyRequest(
 		url:String, req:IncomingMessage, res:ServerResponse,
-		fn:(req:IncomingMessage)->Bool
+		fn:(req:IncomingMessage) -> Bool
 	):Null<ClientRequest> {
 		final url = try {
 			new URL(js.Node.global.decodeURI(url));
@@ -211,5 +212,4 @@ class HttpServer {
 		if (contentType == null) return "application/octet-stream";
 		return contentType;
 	}
-
 }

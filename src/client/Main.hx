@@ -1,39 +1,41 @@
 package client;
 
-import haxe.crypto.Sha256;
-import haxe.Timer;
-import haxe.Json;
-import js.html.MouseEvent;
-import js.html.KeyboardEvent;
-import js.html.Event;
-import js.html.Element;
-import js.html.VideoElement;
-import js.html.InputElement;
-import js.html.ButtonElement;
-import js.html.WebSocket;
-import js.Browser;
-import js.Browser.document;
-import js.Browser.window;
 import Client.ClientData;
-import Types.VideoDataRequest;
-import Types.VideoData;
+import Client.ClientGroup;
 import Types.Config;
 import Types.Permission;
-import Client.ClientGroup;
+import Types.VideoData;
+import Types.VideoDataRequest;
 import Types.WsEvent;
-using StringTools;
+import haxe.Json;
+import haxe.Timer;
+import haxe.crypto.Sha256;
+import js.Browser.document;
+import js.Browser.window;
+import js.Browser;
+import js.html.ButtonElement;
+import js.html.Element;
+import js.html.Event;
+import js.html.InputElement;
+import js.html.KeyboardEvent;
+import js.html.MouseEvent;
+import js.html.VideoElement;
+import js.html.WebSocket;
+
 using ClientTools;
+using StringTools;
 
 class Main {
-
 	static inline var SETTINGS_VERSION = 2;
+
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
 	public var forceSyncNextTick = false;
-	final clients:Array<Client> = [];
-	var pageTitle = document.title;
 	public final host:String;
 	public var globalIp(default, null) = "";
+
+	final clients:Array<Client> = [];
+	var pageTitle = document.title;
 	var config:Null<Config>;
 	final filters:Array<{regex:EReg, replace:String}> = [];
 	var personal = new Client("Unknown", 0);
@@ -43,7 +45,9 @@ class Main {
 	var onTimeGet:Timer;
 	var onBlinkTab:Null<Timer>;
 
-	static function main():Void new Main();
+	static function main():Void {
+		new Main();
+	}
 
 	function new() {
 		player = new Player(this);
@@ -162,8 +166,7 @@ class Main {
 				e.preventDefault();
 			}
 		}
-		ge("#customembed-content").onkeydown =
-			ge("#customembed-title").onkeydown;
+		ge("#customembed-content").onkeydown = ge("#customembed-title").onkeydown;
 	}
 
 	public inline function isUser():Bool {
@@ -242,7 +245,7 @@ class Main {
 		addVideo(link, atEnd, isTemp, () -> addVideoArray(links, atEnd, isTemp));
 	}
 
-	public function addVideo(url:String, atEnd:Bool, isTemp:Bool, ?callback:()->Void):Void {
+	public function addVideo(url:String, atEnd:Bool, isTemp:Bool, ?callback:() -> Void):Void {
 		final protocol = Browser.location.protocol;
 		if (url.startsWith("/")) {
 			final host = Browser.location.hostname;
@@ -263,7 +266,8 @@ class Main {
 			if (data.title == null) data.title = Lang.get("rawVideo");
 			if (data.url == null) data.url = url;
 			send({
-				type: AddVideo, addVideo: {
+				type: AddVideo,
+				addVideo: {
 					item: {
 						url: data.url,
 						title: data.title,
@@ -274,7 +278,8 @@ class Main {
 						isIframe: data.isIframe == true
 					},
 					atEnd: atEnd
-			}});
+				}
+			});
 			if (callback != null) callback();
 		});
 	}
@@ -302,7 +307,8 @@ class Main {
 			if (data.title == null) data.title = "Custom Media";
 			if (data.url == null) data.url = iframe;
 			send({
-				type: AddVideo, addVideo: {
+				type: AddVideo,
+				addVideo: {
 					item: {
 						url: data.url,
 						title: data.title,
@@ -312,13 +318,15 @@ class Main {
 						isIframe: true
 					},
 					atEnd: atEnd
-			}});
+				}
+			});
 		});
 	}
 
 	public function removeVideoItem(url:String) {
 		send({
-			type: RemoveVideo, removeVideo: {
+			type: RemoveVideo,
+			removeVideo: {
 				url: url
 			}
 		});
@@ -343,7 +351,8 @@ class Main {
 	public function getPlaylistLinks():Array<String> {
 		final items = player.getItems();
 		return [
-			for (item in items) item.url
+			for (item in items)
+				item.url
 		];
 	}
 
@@ -556,7 +565,8 @@ class Main {
 	public function guestLogin(name:String):Void {
 		if (name.length == 0) return;
 		send({
-			type: Login, login: {
+			type: Login,
+			login: {
 				clientName: name
 			}
 		});
@@ -576,7 +586,8 @@ class Main {
 
 	public function loginRequest(name:String, hash:String):Void {
 		send({
-			type: Login, login: {
+			type: Login,
+			login: {
 				clientName: name,
 				passHash: hash
 			}
@@ -769,7 +780,9 @@ class Main {
 		userDiv.appendChild(textDiv);
 		msgBuf.appendChild(userDiv);
 		if (isInChatEnd) {
-			while (msgBuf.children.length > 200) msgBuf.removeChild(msgBuf.firstChild);
+			while (msgBuf.children.length > 200) {
+				msgBuf.removeChild(msgBuf.firstChild);
+			}
 			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
 		if (name == personal.name) {
@@ -813,9 +826,12 @@ class Main {
 				if (isAdmin()) send({type: ClearChat});
 		}
 		if (matchNumbers.match(text)) {
-			send({type: Rewind, rewind: {
-				time: Std.parseInt(text)
-			}});
+			send({
+				type: Rewind,
+				rewind: {
+					time: Std.parseInt(text)
+				}
+			});
 		}
 	}
 
@@ -824,9 +840,11 @@ class Main {
 		if (onBlinkTab != null) onBlinkTab.stop();
 		onBlinkTab = new Timer(1000);
 		onBlinkTab.run = () -> {
-			if (document.title.startsWith(pageTitle))
+			if (document.title.startsWith(pageTitle)) {
 				document.title = title;
-			else document.title = getPageTitle();
+			} else {
+				document.title = getPageTitle();
+			}
 		}
 		onBlinkTab.run();
 	}
@@ -912,5 +930,4 @@ class Main {
 	public static inline function ge(id:String):Element {
 		return document.querySelector(id);
 	}
-
 }

@@ -18,7 +18,6 @@ typedef ClientData = {
 }
 
 class Client {
-
 	#if nodejs
 	public final ws:WebSocket;
 	public final id:Int;
@@ -33,17 +32,18 @@ class Client {
 
 	#if nodejs
 	public function new(?ws:WebSocket, ?req:IncomingMessage, ?id:Int, name:String, group:Int) {
-	#else
-	public function new(name:String, group:Int) {
-	#end
-		#if nodejs
 		this.ws = ws;
 		this.req = req;
 		this.id = id;
-		#end
 		this.name = name;
 		this.group = new EnumFlags(group);
 	}
+	#else
+	public function new(name:String, group:Int) {
+		this.name = name;
+		this.group = new EnumFlags(group);
+	}
+	#end
 
 	inline function get_isUser():Bool {
 		return group.has(User);
@@ -85,5 +85,4 @@ class Client {
 	public static function fromData(data:ClientData):Client {
 		return new Client(data.name, data.group);
 	}
-
 }
