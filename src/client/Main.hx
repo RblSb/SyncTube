@@ -26,7 +26,7 @@ using ClientTools;
 using StringTools;
 
 class Main {
-	static inline var SETTINGS_VERSION = 2;
+	static inline var SETTINGS_VERSION = 3;
 
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
@@ -65,6 +65,7 @@ class Main {
 			isSwapped: false,
 			isUserListHidden: true,
 			latestLinks: [],
+			latestSubs: [],
 			hotkeysEnabled: true
 		}
 		Settings.init(defaults, settingsPatcher);
@@ -93,6 +94,9 @@ class Main {
 			case 1:
 				final data:ClientSettings = data;
 				data.hotkeysEnabled = true;
+			case 2:
+				final data:ClientSettings = data;
+				data.latestSubs = [];
 			case SETTINGS_VERSION, _:
 				throw 'skipped version $version';
 		}
@@ -154,9 +158,10 @@ class Main {
 		ge("#mediatitle").onkeydown = (e:KeyboardEvent) -> {
 			if (e.keyCode == KeyCode.Return) addVideoUrl(true);
 		}
-		ge("#subsurl").onkeydown = (e:KeyboardEvent) -> {
-			if (e.keyCode == KeyCode.Return) addVideoUrl(true);
-		}
+		new InputWithHistory(cast ge("#subsurl"), settings.latestSubs, 10, value -> {
+			addVideoUrl(true);
+			return false;
+		});
 
 		ge("#ce_queue_next").onclick = e -> addIframe(false);
 		ge("#ce_queue_end").onclick = e -> addIframe(true);
@@ -205,12 +210,17 @@ class Main {
 
 	function addVideoUrl(atEnd:Bool):Void {
 		final mediaUrl:InputElement = cast ge("#mediaurl");
+		final subsUrl:InputElement = cast ge("#subsurl");
 		final checkbox:InputElement = cast ge("#addfromurl").querySelector(".add-temp");
 		final isTemp = checkbox.checked;
 		final url = mediaUrl.value;
+		final subs = subsUrl.value;
 		if (url.length == 0) return;
 		mediaUrl.value = "";
 		InputWithHistory.pushIfNotLast(settings.latestLinks, url);
+		if (subs.length != 0) {
+			InputWithHistory.pushIfNotLast(settings.latestSubs, subs);
+		}
 		Settings.write(settings);
 		final url = ~/, ?(https?)/g.replace(url, "|$1");
 		final links = url.split("|");
@@ -351,8 +361,7 @@ class Main {
 	public function getPlaylistLinks():Array<String> {
 		final items = player.getItems();
 		return [
-			for (item in items)
-				item.url
+			for (item in items) item.url
 		];
 	}
 
@@ -801,7 +810,8 @@ class Main {
 	function onChatVideoLoaded(e:Event):Void {
 		final el:VideoElement = cast e.target;
 		if (emoteMaxSize == null) {
-			emoteMaxSize = Std.parseInt(window.getComputedStyle(el).getPropertyValue("max-width"));
+			emoteMaxSize = Std.parseInt(window.getComputedStyle(el)
+				.getPropertyValue("max-width"));
 		}
 		// fixes default video tag size in chat when tab unloads videos in background
 		// (some browsers optimization i guess)

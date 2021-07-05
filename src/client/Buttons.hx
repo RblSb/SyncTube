@@ -158,9 +158,7 @@ class Buttons {
 			final isRawSingleVideo = value != "" && main.isRawPlayerLink(value)
 				&& main.isSingleVideoLink(value);
 			ge("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
-			if (JsApi.hasSubtitleSupport()) {
-				ge("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
-			}
+			ge("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
 		}
 		mediaUrl.onfocus = mediaUrl.oninput;
 

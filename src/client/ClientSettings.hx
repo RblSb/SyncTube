@@ -11,5 +11,6 @@ typedef ClientSettings = {
 	isSwapped:Bool,
 	isUserListHidden:Bool,
 	latestLinks:Array<String>,
+	latestSubs:Array<String>,
 	hotkeysEnabled:Bool
 }

@@ -54,11 +54,8 @@ class Raw implements IPlayer {
 		}
 
 		titleInput.value = "";
-		var subs = "";
-		if (JsApi.hasSubtitleSupport()) {
-			subs = subsInput.value.trim();
-			subsInput.value = "";
-		}
+		final subs = subsInput.value.trim();
+		subsInput.value = "";
 		final video = document.createVideoElement();
 		video.src = url;
 		video.onerror = e -> {
@@ -101,24 +98,27 @@ class Raw implements IPlayer {
 		}
 		if (video != null) {
 			video.src = url;
-			if (isHls) initHlsSource(video, url);
-			restartControlsHider();
-			return;
+			for (element in video.children) {
+				if (element.nodeName != "TRACK") continue;
+				element.remove();
+			}
+		} else {
+			video = document.createVideoElement();
+			video.id = "videoplayer";
+			video.src = url;
+			video.oncanplaythrough = player.onCanBePlayed;
+			video.onseeking = player.onSetTime;
+			video.onplay = e -> {
+				playAllowed = true;
+				player.onPlay();
+			}
+			video.onpause = player.onPause;
+			video.onratechange = player.onRateChange;
+			playerEl.appendChild(video);
 		}
-		video = document.createVideoElement();
-		video.id = "videoplayer";
-		video.src = url;
-		restartControlsHider();
-		video.oncanplaythrough = player.onCanBePlayed;
-		video.onseeking = player.onSetTime;
-		video.onplay = e -> {
-			playAllowed = true;
-			player.onPlay();
-		}
-		video.onpause = player.onPause;
-		video.onratechange = player.onRateChange;
-		playerEl.appendChild(video);
 		if (isHls) initHlsSource(video, url);
+		restartControlsHider();
+		RawSubs.loadSubs(item, video);
 	}
 
 	function restartControlsHider():Void {

@@ -101,6 +101,9 @@ EReg.prototype = {
 			throw haxe_Exception.thrown("EReg::matched");
 		}
 	}
+	,split: function(s) {
+		return s.replace(this.r,"#__delim__#").split("#__delim__#");
+	}
 };
 var HxOverrides = function() { };
 HxOverrides.__name__ = true;
@@ -224,6 +227,11 @@ Lang.get = function(key) {
 	}
 };
 Math.__name__ = true;
+var PathTools = function() { };
+PathTools.__name__ = true;
+PathTools.urlExtension = function(url) {
+	return StringTools.trim(haxe_io_Path.extension(new EReg("[#?]","").split(url)[0])).toLowerCase();
+};
 var Reflect = function() { };
 Reflect.__name__ = true;
 Reflect.field = function(o,field) {
@@ -627,9 +635,7 @@ client_Buttons.init = function(main) {
 		var value = mediaUrl.value;
 		var isRawSingleVideo = value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value);
 		window.document.querySelector("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
-		if(client_JsApi.hasSubtitleSupport()) {
-			window.document.querySelector("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
-		}
+		return window.document.querySelector("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
 	};
 	mediaUrl.onfocus = mediaUrl.oninput;
 	window.document.querySelector("#insert_template").onclick = function(e) {
@@ -1035,9 +1041,9 @@ var client_Main = function() {
 	this.isConnected = false;
 	this.personal = new Client("Unknown",0);
 	this.filters = [];
-	this.globalIp = "";
 	this.pageTitle = window.document.title;
 	this.clients = [];
+	this.globalIp = "";
 	this.forceSyncNextTick = false;
 	this.isSyncActive = true;
 	var _gthis = this;
@@ -1046,7 +1052,7 @@ var client_Main = function() {
 	if(this.host == "") {
 		this.host = "localhost";
 	}
-	client_Settings.init({ version : 2, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
+	client_Settings.init({ version : 3, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], latestSubs : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
 	this.initListeners();
 	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
@@ -1076,6 +1082,9 @@ client_Main.prototype = {
 			data.hotkeysEnabled = true;
 			break;
 		case 2:
+			data.latestSubs = [];
+			break;
+		case 3:
 			throw haxe_Exception.thrown("skipped version " + version);
 		default:
 			throw haxe_Exception.thrown("skipped version " + version);
@@ -1145,11 +1154,10 @@ client_Main.prototype = {
 				_gthis.addVideoUrl(true);
 			}
 		};
-		window.document.querySelector("#subsurl").onkeydown = function(e) {
-			if(e.keyCode == 13) {
-				_gthis.addVideoUrl(true);
-			}
-		};
+		new client_InputWithHistory(window.document.querySelector("#subsurl"),this.settings.latestSubs,10,function(value) {
+			_gthis.addVideoUrl(true);
+			return false;
+		});
 		window.document.querySelector("#ce_queue_next").onclick = function(e) {
 			_gthis.addIframe(false);
 		};
@@ -1189,13 +1197,18 @@ client_Main.prototype = {
 	}
 	,addVideoUrl: function(atEnd) {
 		var mediaUrl = window.document.querySelector("#mediaurl");
+		var subsUrl = window.document.querySelector("#subsurl");
 		var isTemp = window.document.querySelector("#addfromurl").querySelector(".add-temp").checked;
 		var url = mediaUrl.value;
+		var subs = subsUrl.value;
 		if(url.length == 0) {
 			return;
 		}
 		mediaUrl.value = "";
 		client_InputWithHistory.pushIfNotLast(this.settings.latestLinks,url);
+		if(subs.length != 0) {
+			client_InputWithHistory.pushIfNotLast(this.settings.latestSubs,subs);
+		}
 		client_Settings.write(this.settings);
 		var _this_r = new RegExp(", ?(https?)","g".split("u").join(""));
 		var links = url.replace(_this_r,"|$1").split("|");
@@ -1328,7 +1341,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 360, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 378, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -2541,11 +2554,8 @@ client_players_Raw.prototype = {
 			return;
 		}
 		this.titleInput.value = "";
-		var subs = "";
-		if(client_JsApi.hasSubtitleSupport()) {
-			subs = StringTools.trim(this.subsInput.value);
-			this.subsInput.value = "";
-		}
+		var subs = StringTools.trim(this.subsInput.value);
+		this.subsInput.value = "";
 		var video = window.document.createElement("video");
 		video.src = url;
 		video.onerror = function(e) {
@@ -2592,28 +2602,35 @@ client_players_Raw.prototype = {
 		}
 		if(this.video != null) {
 			this.video.src = url;
-			if(isHls) {
-				this.initHlsSource(this.video,url);
+			var _g = 0;
+			var _g1 = this.video.children;
+			while(_g < _g1.length) {
+				var element = _g1[_g];
+				++_g;
+				if(element.nodeName != "TRACK") {
+					continue;
+				}
+				element.remove();
 			}
-			this.restartControlsHider();
-			return;
+		} else {
+			this.video = window.document.createElement("video");
+			this.video.id = "videoplayer";
+			this.video.src = url;
+			this.video.oncanplaythrough = ($_=this.player,$bind($_,$_.onCanBePlayed));
+			this.video.onseeking = ($_=this.player,$bind($_,$_.onSetTime));
+			this.video.onplay = function(e) {
+				_gthis.playAllowed = true;
+				_gthis.player.onPlay();
+			};
+			this.video.onpause = ($_=this.player,$bind($_,$_.onPause));
+			this.video.onratechange = ($_=this.player,$bind($_,$_.onRateChange));
+			this.playerEl.appendChild(this.video);
 		}
-		this.video = window.document.createElement("video");
-		this.video.id = "videoplayer";
-		this.video.src = url;
-		this.restartControlsHider();
-		this.video.oncanplaythrough = ($_=this.player,$bind($_,$_.onCanBePlayed));
-		this.video.onseeking = ($_=this.player,$bind($_,$_.onSetTime));
-		this.video.onplay = function(e) {
-			_gthis.playAllowed = true;
-			_gthis.player.onPlay();
-		};
-		this.video.onpause = ($_=this.player,$bind($_,$_.onPause));
-		this.video.onratechange = ($_=this.player,$bind($_,$_.onRateChange));
-		this.playerEl.appendChild(this.video);
 		if(isHls) {
 			this.initHlsSource(this.video,url);
 		}
+		this.restartControlsHider();
+		client_players_RawSubs.loadSubs(item,this.video);
 	}
 	,restartControlsHider: function() {
 		var _gthis = this;
@@ -2676,6 +2693,69 @@ client_players_Raw.prototype = {
 	,setPlaybackRate: function(rate) {
 		this.video.playbackRate = rate;
 	}
+};
+var client_players_RawSubs = function() { };
+client_players_RawSubs.__name__ = true;
+client_players_RawSubs.loadSubs = function(item,video) {
+	var ext = PathTools.urlExtension(item.subs);
+	if(client_JsApi.hasSubtitleSupport(ext)) {
+		return;
+	}
+	var url = "/proxy?url=" + client_players_RawSubs.encodeURI(item.subs);
+	switch(ext) {
+	case "ass":
+		break;
+	case "srt":
+		client_players_RawSubs.parseSrt(video,url);
+		break;
+	case "vtt":
+		client_players_RawSubs.onParsed(video,"VTT subtitles",url);
+		break;
+	}
+};
+client_players_RawSubs.parseSrt = function(video,url) {
+	window.fetch(url).then(function(response) {
+		return response.text();
+	}).then(function(text) {
+		var subs = [];
+		var blocks = StringTools.replace(text,"\r\n","\n").split("\n\n");
+		var _g = 0;
+		while(_g < blocks.length) {
+			var lines = blocks[_g++].split("\n");
+			if(lines.length < 3) {
+				continue;
+			}
+			var _g1 = [];
+			var _g2 = 2;
+			var _g3 = lines.length;
+			while(_g2 < _g3) _g1.push(lines[_g2++]);
+			subs.push({ counter : lines[0], time : StringTools.replace(lines[1],",","."), text : _g1.join("\n")});
+		}
+		var data = "WEBVTT\n\n";
+		var _g = 0;
+		while(_g < subs.length) {
+			var sub = subs[_g];
+			++_g;
+			data += "" + sub.counter + "\n";
+			data += "" + sub.time + "\n";
+			data += "" + sub.text + "\n\n";
+		}
+		haxe_Log.trace(data,{ fileName : "src/client/players/RawSubs.hx", lineNumber : 64, className : "client.players.RawSubs", methodName : "parseSrt"});
+		var url = "data:text/plain;base64," + haxe_crypto_Base64.encode(haxe_io_Bytes.ofString(data));
+		client_players_RawSubs.onParsed(video,"SRT subtitles",url);
+	});
+};
+client_players_RawSubs.onParsed = function(video,name,dataUrl) {
+	var trackEl = window.document.createElement("track");
+	trackEl.label = name;
+	trackEl.kind = "subtitles";
+	trackEl.src = dataUrl;
+	trackEl.default = true;
+	trackEl.track.mode = "showing";
+	video.appendChild(trackEl);
+};
+client_players_RawSubs.encodeURI = function(data) {
+	return encodeURI(data);
 };
 var client_players_Youtube = function(main,player) {
 	this.matchSeconds = new EReg("([0-9]+)S","");
@@ -3023,6 +3103,167 @@ haxe_ValueException.prototype = $extend(haxe_Exception.prototype,{
 		return this.value;
 	}
 });
+var haxe_io_Bytes = function(data) {
+	this.length = data.byteLength;
+	this.b = new Uint8Array(data);
+	this.b.bufferValue = data;
+	data.hxBytes = this;
+	data.bytes = this.b;
+};
+haxe_io_Bytes.__name__ = true;
+haxe_io_Bytes.ofString = function(s,encoding) {
+	if(encoding == haxe_io_Encoding.RawNative) {
+		var buf = new Uint8Array(s.length << 1);
+		var _g = 0;
+		var _g1 = s.length;
+		while(_g < _g1) {
+			var i = _g++;
+			var c = s.charCodeAt(i);
+			buf[i << 1] = c & 255;
+			buf[i << 1 | 1] = c >> 8;
+		}
+		return new haxe_io_Bytes(buf.buffer);
+	}
+	var a = [];
+	var i = 0;
+	while(i < s.length) {
+		var c = s.charCodeAt(i++);
+		if(55296 <= c && c <= 56319) {
+			c = c - 55232 << 10 | s.charCodeAt(i++) & 1023;
+		}
+		if(c <= 127) {
+			a.push(c);
+		} else if(c <= 2047) {
+			a.push(192 | c >> 6);
+			a.push(128 | c & 63);
+		} else if(c <= 65535) {
+			a.push(224 | c >> 12);
+			a.push(128 | c >> 6 & 63);
+			a.push(128 | c & 63);
+		} else {
+			a.push(240 | c >> 18);
+			a.push(128 | c >> 12 & 63);
+			a.push(128 | c >> 6 & 63);
+			a.push(128 | c & 63);
+		}
+	}
+	return new haxe_io_Bytes(new Uint8Array(a).buffer);
+};
+haxe_io_Bytes.ofData = function(b) {
+	var hb = b.hxBytes;
+	if(hb != null) {
+		return hb;
+	}
+	return new haxe_io_Bytes(b);
+};
+haxe_io_Bytes.prototype = {
+	getString: function(pos,len,encoding) {
+		if(pos < 0 || len < 0 || pos + len > this.length) {
+			throw haxe_Exception.thrown(haxe_io_Error.OutsideBounds);
+		}
+		if(encoding == null) {
+			encoding = haxe_io_Encoding.UTF8;
+		}
+		var s = "";
+		var b = this.b;
+		var i = pos;
+		var max = pos + len;
+		switch(encoding._hx_index) {
+		case 0:
+			while(i < max) {
+				var c = b[i++];
+				if(c < 128) {
+					if(c == 0) {
+						break;
+					}
+					s += String.fromCodePoint(c);
+				} else if(c < 224) {
+					var code = (c & 63) << 6 | b[i++] & 127;
+					s += String.fromCodePoint(code);
+				} else if(c < 240) {
+					var code1 = (c & 31) << 12 | (b[i++] & 127) << 6 | b[i++] & 127;
+					s += String.fromCodePoint(code1);
+				} else {
+					var u = (c & 15) << 18 | (b[i++] & 127) << 12 | (b[i++] & 127) << 6 | b[i++] & 127;
+					s += String.fromCodePoint(u);
+				}
+			}
+			break;
+		case 1:
+			while(i < max) {
+				var c = b[i++] | b[i++] << 8;
+				s += String.fromCodePoint(c);
+			}
+			break;
+		}
+		return s;
+	}
+	,toString: function() {
+		return this.getString(0,this.length);
+	}
+};
+var haxe_io_Encoding = $hxEnums["haxe.io.Encoding"] = { __ename__:true,__constructs__:null
+	,UTF8: {_hx_name:"UTF8",_hx_index:0,__enum__:"haxe.io.Encoding",toString:$estr}
+	,RawNative: {_hx_name:"RawNative",_hx_index:1,__enum__:"haxe.io.Encoding",toString:$estr}
+};
+haxe_io_Encoding.__constructs__ = [haxe_io_Encoding.UTF8,haxe_io_Encoding.RawNative];
+var haxe_crypto_Base64 = function() { };
+haxe_crypto_Base64.__name__ = true;
+haxe_crypto_Base64.encode = function(bytes,complement) {
+	if(complement == null) {
+		complement = true;
+	}
+	var str = new haxe_crypto_BaseCode(haxe_crypto_Base64.BYTES).encodeBytes(bytes).toString();
+	if(complement) {
+		switch(bytes.length % 3) {
+		case 1:
+			str += "==";
+			break;
+		case 2:
+			str += "=";
+			break;
+		default:
+		}
+	}
+	return str;
+};
+var haxe_crypto_BaseCode = function(base) {
+	var len = base.length;
+	var nbits = 1;
+	while(len > 1 << nbits) ++nbits;
+	if(nbits > 8 || len != 1 << nbits) {
+		throw haxe_Exception.thrown("BaseCode : base length must be a power of two.");
+	}
+	this.base = base;
+	this.nbits = nbits;
+};
+haxe_crypto_BaseCode.__name__ = true;
+haxe_crypto_BaseCode.prototype = {
+	encodeBytes: function(b) {
+		var nbits = this.nbits;
+		var base = this.base;
+		var size = b.length * 8 / nbits | 0;
+		var out = new haxe_io_Bytes(new ArrayBuffer(size + (b.length * 8 % nbits == 0 ? 0 : 1)));
+		var buf = 0;
+		var curbits = 0;
+		var mask = (1 << nbits) - 1;
+		var pin = 0;
+		var pout = 0;
+		while(pout < size) {
+			while(curbits < nbits) {
+				curbits += 8;
+				buf <<= 8;
+				buf |= b.b[pin++];
+			}
+			curbits -= nbits;
+			out.b[pout++] = base.b[buf >> curbits & mask];
+		}
+		if(curbits > 0) {
+			out.b[pout++] = base.b[buf << nbits - curbits & mask];
+		}
+		return out;
+	}
+};
 var haxe_crypto_Sha256 = function() {
 };
 haxe_crypto_Sha256.__name__ = true;
@@ -3315,107 +3556,6 @@ haxe_http_HttpJs.prototype = $extend(haxe_http_HttpBase.prototype,{
 		}
 	}
 });
-var haxe_io_Bytes = function(data) {
-	this.length = data.byteLength;
-	this.b = new Uint8Array(data);
-	this.b.bufferValue = data;
-	data.hxBytes = this;
-	data.bytes = this.b;
-};
-haxe_io_Bytes.__name__ = true;
-haxe_io_Bytes.ofString = function(s,encoding) {
-	if(encoding == haxe_io_Encoding.RawNative) {
-		var buf = new Uint8Array(s.length << 1);
-		var _g = 0;
-		var _g1 = s.length;
-		while(_g < _g1) {
-			var i = _g++;
-			var c = s.charCodeAt(i);
-			buf[i << 1] = c & 255;
-			buf[i << 1 | 1] = c >> 8;
-		}
-		return new haxe_io_Bytes(buf.buffer);
-	}
-	var a = [];
-	var i = 0;
-	while(i < s.length) {
-		var c = s.charCodeAt(i++);
-		if(55296 <= c && c <= 56319) {
-			c = c - 55232 << 10 | s.charCodeAt(i++) & 1023;
-		}
-		if(c <= 127) {
-			a.push(c);
-		} else if(c <= 2047) {
-			a.push(192 | c >> 6);
-			a.push(128 | c & 63);
-		} else if(c <= 65535) {
-			a.push(224 | c >> 12);
-			a.push(128 | c >> 6 & 63);
-			a.push(128 | c & 63);
-		} else {
-			a.push(240 | c >> 18);
-			a.push(128 | c >> 12 & 63);
-			a.push(128 | c >> 6 & 63);
-			a.push(128 | c & 63);
-		}
-	}
-	return new haxe_io_Bytes(new Uint8Array(a).buffer);
-};
-haxe_io_Bytes.ofData = function(b) {
-	var hb = b.hxBytes;
-	if(hb != null) {
-		return hb;
-	}
-	return new haxe_io_Bytes(b);
-};
-haxe_io_Bytes.prototype = {
-	getString: function(pos,len,encoding) {
-		if(pos < 0 || len < 0 || pos + len > this.length) {
-			throw haxe_Exception.thrown(haxe_io_Error.OutsideBounds);
-		}
-		if(encoding == null) {
-			encoding = haxe_io_Encoding.UTF8;
-		}
-		var s = "";
-		var b = this.b;
-		var i = pos;
-		var max = pos + len;
-		switch(encoding._hx_index) {
-		case 0:
-			while(i < max) {
-				var c = b[i++];
-				if(c < 128) {
-					if(c == 0) {
-						break;
-					}
-					s += String.fromCodePoint(c);
-				} else if(c < 224) {
-					var code = (c & 63) << 6 | b[i++] & 127;
-					s += String.fromCodePoint(code);
-				} else if(c < 240) {
-					var code1 = (c & 31) << 12 | (b[i++] & 127) << 6 | b[i++] & 127;
-					s += String.fromCodePoint(code1);
-				} else {
-					var u = (c & 15) << 18 | (b[i++] & 127) << 12 | (b[i++] & 127) << 6 | b[i++] & 127;
-					s += String.fromCodePoint(u);
-				}
-			}
-			break;
-		case 1:
-			while(i < max) {
-				var c = b[i++] | b[i++] << 8;
-				s += String.fromCodePoint(c);
-			}
-			break;
-		}
-		return s;
-	}
-};
-var haxe_io_Encoding = $hxEnums["haxe.io.Encoding"] = { __ename__:true,__constructs__:null
-	,UTF8: {_hx_name:"UTF8",_hx_index:0,__enum__:"haxe.io.Encoding",toString:$estr}
-	,RawNative: {_hx_name:"RawNative",_hx_index:1,__enum__:"haxe.io.Encoding",toString:$estr}
-};
-haxe_io_Encoding.__constructs__ = [haxe_io_Encoding.UTF8,haxe_io_Encoding.RawNative];
 var haxe_io_Error = $hxEnums["haxe.io.Error"] = { __ename__:true,__constructs__:null
 	,Blocked: {_hx_name:"Blocked",_hx_index:0,__enum__:"haxe.io.Error",toString:$estr}
 	,Overflow: {_hx_name:"Overflow",_hx_index:1,__enum__:"haxe.io.Error",toString:$estr}
@@ -3456,6 +3596,13 @@ haxe_io_Path.withoutExtension = function(path) {
 	var s = new haxe_io_Path(path);
 	s.ext = null;
 	return s.toString();
+};
+haxe_io_Path.extension = function(path) {
+	var s = new haxe_io_Path(path);
+	if(s.ext == null) {
+		return "";
+	}
+	return s.ext;
 };
 haxe_io_Path.prototype = {
 	toString: function() {
@@ -3636,6 +3783,8 @@ client_JsApi.videoChange = [];
 client_JsApi.videoRemove = [];
 client_JsApi.onceListeners = [];
 client_Settings.isSupported = false;
+haxe_crypto_Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+haxe_crypto_Base64.BYTES = haxe_io_Bytes.ofString(haxe_crypto_Base64.CHARS);
 js_youtube_Youtube.isLoadedAPI = false;
 client_Main.main();
 })(typeof exports != "undefined" ? exports : typeof window != "undefined" ? window : typeof self != "undefined" ? self : this, typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);
