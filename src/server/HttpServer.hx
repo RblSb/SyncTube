@@ -120,6 +120,7 @@ class HttpServer {
 	static function serveMedia(req:IncomingMessage, res:ServerResponse, filePath:String):Bool {
 		final range:String = req.headers["range"];
 		if (range == null) return false;
+		filePath = filePath.urlDecode();
 		if (!Fs.existsSync(filePath)) return false;
 		final videoSize = Fs.statSync(filePath).size;
 		// range example: "bytes=24182784-"

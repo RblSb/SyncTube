@@ -3559,6 +3559,7 @@ server_HttpServer.serveMedia = function(req,res,filePath) {
 	if(range == null) {
 		return false;
 	}
+	filePath = decodeURIComponent(filePath.split("+").join(" "));
 	if(!js_node_Fs.existsSync(filePath)) {
 		return false;
 	}
