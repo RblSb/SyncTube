@@ -225,6 +225,9 @@ EReg.prototype = {
 			return b;
 		}
 	}
+	,split: function(s) {
+		return s.replace(this.r,"#__delim__#").split("#__delim__#");
+	}
 	,map: function(s,f) {
 		var offset = 0;
 		var buf_b = "";
@@ -3555,18 +3558,25 @@ server_HttpServer.readFileError = function(err,res,filePath) {
 	}
 };
 server_HttpServer.serveMedia = function(req,res,filePath) {
-	var range = req.headers["range"];
-	if(range == null) {
-		return false;
-	}
 	filePath = decodeURIComponent(filePath.split("+").join(" "));
 	if(!js_node_Fs.existsSync(filePath)) {
 		return false;
 	}
 	var videoSize = js_node_Fs.statSync(filePath).size;
-	var _this_r = new RegExp("[^0-9]","g".split("u").join(""));
-	var start = Std.parseInt(range.replace(_this_r,""));
-	var end = Math.min(start + 5242880,videoSize - 1) | 0;
+	var range = req.headers["range"];
+	if(range == null) {
+		range = "bytes=0-";
+	}
+	var ranges = new EReg("[-=]","g").split(range);
+	var start = Std.parseInt(ranges[1]);
+	if(start == null) {
+		start = 0;
+	}
+	var end = Std.parseInt(ranges[2]);
+	if(end == null) {
+		end = start + 5242880;
+	}
+	end = Math.min(end,videoSize - 1) | 0;
 	res.setHeader("Content-Range","bytes " + start + "-" + end + "/" + videoSize);
 	res.setHeader("Content-Length","" + (end - start + 1));
 	res.statusCode = 206;

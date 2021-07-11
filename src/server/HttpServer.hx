@@ -118,15 +118,18 @@ class HttpServer {
 	}
 
 	static function serveMedia(req:IncomingMessage, res:ServerResponse, filePath:String):Bool {
-		final range:String = req.headers["range"];
-		if (range == null) return false;
 		filePath = filePath.urlDecode();
 		if (!Fs.existsSync(filePath)) return false;
 		final videoSize = Fs.statSync(filePath).size;
-		// range example: "bytes=24182784-"
+		var range:String = req.headers["range"];
+		if (range == null) range = "bytes=0-";
+		final ranges = ~/[-=]/g.split(range);
+		var start = Std.parseInt(ranges[1]);
+		if (start == null) start = 0;
 		final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
-		final start = Std.parseInt(~/[^0-9]/g.replace(range, ""));
-		final end = Std.int(Math.min(start + CHUNK_SIZE, videoSize - 1));
+		var end = Std.parseInt(ranges[2]);
+		if (end == null) end = start + CHUNK_SIZE;
+		end = Std.int(Math.min(end, videoSize - 1));
 		final contentLength = end - start + 1;
 
 		res.setHeader("Content-Range", 'bytes ${start}-${end}/${videoSize}');
