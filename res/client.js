@@ -407,6 +407,25 @@ StringTools.rtrim = function(s) {
 StringTools.trim = function(s) {
 	return StringTools.ltrim(StringTools.rtrim(s));
 };
+StringTools.lpad = function(s,c,l) {
+	if(c.length <= 0) {
+		return s;
+	}
+	var buf_b = "";
+	l -= s.length;
+	while(buf_b.length < l) buf_b += c == null ? "null" : "" + c;
+	buf_b += s == null ? "null" : "" + s;
+	return buf_b;
+};
+StringTools.rpad = function(s,c,l) {
+	if(c.length <= 0) {
+		return s;
+	}
+	var buf_b = "";
+	buf_b = "" + (s == null ? "null" : "" + s);
+	while(buf_b.length < l) buf_b += c == null ? "null" : "" + c;
+	return buf_b;
+};
 StringTools.replace = function(s,sub,by) {
 	return s.split(sub).join(by);
 };
@@ -2701,9 +2720,10 @@ client_players_RawSubs.loadSubs = function(item,video) {
 	if(client_JsApi.hasSubtitleSupport(ext)) {
 		return;
 	}
-	var url = "/proxy?url=" + client_players_RawSubs.encodeURI(item.subs);
+	var url = "/proxy?url=" + encodeURI(item.subs);
 	switch(ext) {
 	case "ass":
+		client_players_RawSubs.parseAss(video,url);
 		break;
 	case "srt":
 		client_players_RawSubs.parseSrt(video,url);
@@ -2740,10 +2760,90 @@ client_players_RawSubs.parseSrt = function(video,url) {
 			data += "" + sub.time + "\n";
 			data += "" + sub.text + "\n\n";
 		}
-		haxe_Log.trace(data,{ fileName : "src/client/players/RawSubs.hx", lineNumber : 64, className : "client.players.RawSubs", methodName : "parseSrt"});
 		var url = "data:text/plain;base64," + haxe_crypto_Base64.encode(haxe_io_Bytes.ofString(data));
 		client_players_RawSubs.onParsed(video,"SRT subtitles",url);
 	});
+};
+client_players_RawSubs.parseAss = function(video,url) {
+	window.fetch(url).then(function(response) {
+		return response.text();
+	}).then(function(text) {
+		var subs = [];
+		var lines = StringTools.replace(text,"\r\n","\n").split("\n");
+		var matchFormat = new EReg("^Format:","");
+		var matchDialogue = new EReg("^Dialogue:","");
+		var blockTags_r = new RegExp("\\{\\\\[^}]*\\}","g".split("u").join(""));
+		var tags_r = new RegExp("\\\\[^ ]+","g".split("u").join(""));
+		var drawingMode = new EReg("\\\\p[124]","");
+		var eventStart = false;
+		var formatFound = false;
+		var ids_h = Object.create(null);
+		var subsCounter = 1;
+		var _g = 0;
+		while(_g < lines.length) {
+			var line = StringTools.trim(lines[_g++]);
+			if(!eventStart) {
+				eventStart = StringTools.startsWith(line,"[Events]");
+				continue;
+			}
+			if(!formatFound) {
+				formatFound = matchFormat.match(line);
+				if(!formatFound) {
+					continue;
+				}
+				var list = line.replace(matchFormat.r,"").split(",");
+				var _g1 = 0;
+				var _g2 = list.length;
+				while(_g1 < _g2) {
+					var i = _g1++;
+					ids_h[StringTools.trim(list[i])] = i;
+				}
+				ids_h["_length"] = list.length;
+			}
+			if(!matchDialogue.match(line)) {
+				continue;
+			}
+			var list1 = line.replace(matchDialogue.r,"").split(",");
+			while(list1.length > ids_h["_length"]) {
+				var el = list1.pop();
+				list1[list1.length - 1] += el;
+			}
+			var result = new Array(list1.length);
+			var _g3 = 0;
+			var _g11 = list1.length;
+			while(_g3 < _g11) {
+				var i1 = _g3++;
+				result[i1] = StringTools.trim(list1[i1]);
+			}
+			list1 = result;
+			var text = result[ids_h["Text"]];
+			if(drawingMode.match(text)) {
+				text = "";
+			}
+			text = text.replace(blockTags_r,"");
+			text = text.replace(tags_r,"");
+			subs.push({ counter : subsCounter, start : client_players_RawSubs.convertAssTime(result[ids_h["Start"]]), end : client_players_RawSubs.convertAssTime(result[ids_h["End"]]), text : text});
+			++subsCounter;
+		}
+		var data = "WEBVTT\n\n";
+		var _g = 0;
+		while(_g < subs.length) {
+			var sub = subs[_g];
+			++_g;
+			data += "" + sub.counter + "\n";
+			data += "" + sub.start + " --> " + sub.end + "\n";
+			data += "" + sub.text + "\n\n";
+		}
+		var url = "data:text/plain;base64," + haxe_crypto_Base64.encode(haxe_io_Bytes.ofString(data));
+		client_players_RawSubs.onParsed(video,"ASS subtitles",url);
+	});
+};
+client_players_RawSubs.convertAssTime = function(time) {
+	if(!client_players_RawSubs.assTimeStamp.match(time)) {
+		return "" + StringTools.lpad("" + 0,"0",2) + ":" + StringTools.lpad("" + 0,"0",2) + ":" + StringTools.lpad("" + 0,"0",2) + "." + HxOverrides.substr(StringTools.rpad("" + 0,"0",3),0,3);
+	}
+	var time = { h : Std.parseInt(client_players_RawSubs.assTimeStamp.matched(1)), m : Std.parseInt(client_players_RawSubs.assTimeStamp.matched(2)), s : Std.parseInt(client_players_RawSubs.assTimeStamp.matched(3)), ms : Std.parseInt(client_players_RawSubs.assTimeStamp.matched(4))};
+	return "" + StringTools.lpad("" + time.h,"0",2) + ":" + StringTools.lpad("" + time.m,"0",2) + ":" + StringTools.lpad("" + time.s,"0",2) + "." + HxOverrides.substr(StringTools.rpad("" + time.ms,"0",3),0,3);
 };
 client_players_RawSubs.onParsed = function(video,name,dataUrl) {
 	var trackEl = window.document.createElement("track");
@@ -2753,9 +2853,6 @@ client_players_RawSubs.onParsed = function(video,name,dataUrl) {
 	trackEl.default = true;
 	trackEl.track.mode = "showing";
 	video.appendChild(trackEl);
-};
-client_players_RawSubs.encodeURI = function(data) {
-	return encodeURI(data);
 };
 var client_players_Youtube = function(main,player) {
 	this.matchSeconds = new EReg("([0-9]+)S","");
@@ -3783,6 +3880,7 @@ client_JsApi.videoChange = [];
 client_JsApi.videoRemove = [];
 client_JsApi.onceListeners = [];
 client_Settings.isSupported = false;
+client_players_RawSubs.assTimeStamp = new EReg("([0-9]+):([0-9][0-9]):([0-9][0-9]).([0-9][0-9])","");
 haxe_crypto_Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 haxe_crypto_Base64.BYTES = haxe_io_Bytes.ofString(haxe_crypto_Base64.CHARS);
 js_youtube_Youtube.isLoadedAPI = false;

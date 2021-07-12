@@ -25,6 +25,7 @@ class RawSubs {
 
 		switch ext {
 			case "ass":
+				parseAss(video, url);
 			case "srt":
 				parseSrt(video, url);
 			case "vtt":
@@ -61,57 +62,102 @@ class RawSubs {
 				data += '${sub.time}\n';
 				data += '${sub.text}\n\n';
 			}
-			trace(data);
 			final textBase64 = "data:text/plain;base64,";
 			final url = textBase64 + Base64.encode(Bytes.ofString(data));
 			onParsed(video, "SRT subtitles", url);
 		});
 	}
 
-	// function saveSubs() {
-	// 	final options = [
-	// 		for (i in 0...subsSelect.options.length)
-	// 			subsSelect.item(i)
-	// 	];
-	// 	var inputId = (cast el("#id-offset") : InputElement).value;
-	// 	var id = Std.parseInt(inputId);
-	// 	if (id == null) id = 1;
-	// 	final data:Array<String> = options.map(element -> {
-	// 		final value = element.textContent;
-	// 		final firstTime = Std.parseFloat(value.split("|")[0]);
-	// 		final secondTime = Std.parseFloat(value.split("|")[1]);
-	// 		// 00:00:00,498 --> 00:00:02,827
-	// 		var time = '$id\n';
-	// 		time += srvTimeFormat(stringDuration(firstTime));
-	// 		time += " --> ";
-	// 		time += srvTimeFormat(stringDuration(secondTime));
-	// 		time += '\ntext$id\n';
-	// 		id++;
-	// 		return time;
-	// 	});
-	// 	final data = data.join("\n");
-	// 	Utils.saveFile("subs.srv", TextPlain, data);
-	// }
+	static function parseAss(video:VideoElement, url:String):Void {
+		window.fetch(url).then(response -> {
+			return response.text();
+		}).then(text -> {
+			final subs:Array<{
+				counter:Int,
+				start:String,
+				end:String,
+				text:String,
+			}> = [];
+			final lines = text.replace("\r\n", "\n").split("\n");
+			final matchFormat = ~/^Format:/;
+			final matchDialogue = ~/^Dialogue:/;
+			final blockTags = ~/\{\\[^}]*\}/g;
+			final tags = ~/\\[^ ]+/g;
+			final drawingMode = ~/\\p[124]/;
+			var eventStart = false;
+			var formatFound = false;
+			final ids:Map<String, Int> = [];
+			var subsCounter = 1;
+			for (rawLine in lines) {
+				final line = rawLine.trim();
+				if (!eventStart) {
+					eventStart = line.startsWith("[Events]");
+					continue;
+				}
 
-	function stringDuration(seconds:Float):Duration {
-		final h = Std.int(seconds / 60 / 60);
-		final m = Std.int(seconds / 60) - h * 60;
-		final s = Std.int(seconds % 60);
-		final ms = Std.int((seconds - Std.int(seconds)) * 1000);
-		return {
+				if (!formatFound) {
+					formatFound = matchFormat.match(line);
+					if (!formatFound) continue;
+					final list = matchFormat.replace(line, "").split(",");
+					for (i in 0...list.length) {
+						ids[list[i].trim()] = i;
+					}
+					ids["_length"] = list.length;
+				}
+
+				if (!matchDialogue.match(line)) continue;
+				var list = matchDialogue.replace(line, "").split(",");
+				while (list.length > ids["_length"]) {
+					final el = list.pop();
+					list[list.length - 1] += el;
+				}
+				list = list.map((e) -> e.trim());
+				var text = list[ids["Text"]];
+				if (drawingMode.match(text)) text = "";
+				text = blockTags.replace(text, "");
+				text = tags.replace(text, "");
+				subs.push({
+					counter: subsCounter,
+					start: convertAssTime(list[ids["Start"]]),
+					end: convertAssTime(list[ids["End"]]),
+					text: text,
+				});
+				subsCounter++;
+			}
+
+			var data = "WEBVTT\n\n";
+			for (sub in subs) {
+				data += '${sub.counter}\n';
+				data += '${sub.start} --> ${sub.end}\n';
+				data += '${sub.text}\n\n';
+			}
+			final textBase64 = "data:text/plain;base64,";
+			final url = textBase64 + Base64.encode(Bytes.ofString(data));
+			onParsed(video, "ASS subtitles", url);
+		});
+	}
+
+	static final assTimeStamp = ~/([0-9]+):([0-9][0-9]):([0-9][0-9]).([0-9][0-9])/;
+
+	static function convertAssTime(time:String):String {
+		if (!assTimeStamp.match(time)) {
+			return toVttTime({
+				h: 0,
+				m: 0,
+				s: 0,
+				ms: 0,
+			});
+		}
+		final h = Std.parseInt(assTimeStamp.matched(1));
+		final m = Std.parseInt(assTimeStamp.matched(2));
+		final s = Std.parseInt(assTimeStamp.matched(3));
+		final ms = Std.parseInt(assTimeStamp.matched(4));
+		return toVttTime({
 			h: h,
 			m: m,
 			s: s,
-			ms: ms
-		}
-	}
-
-	function srvTimeFormat(time:Duration):String {
-		final h = '${time.h}'.lpad("0", 2);
-		final m = '${time.m}'.lpad("0", 2);
-		final s = '${time.s}'.lpad("0", 2);
-		final ms = '${time.ms}'.rpad("0", 3);
-		return '$h:$m:$s,$ms';
+			ms: ms,
+		});
 	}
 
 	static function parseVtt(video:VideoElement, url:String):Void {
@@ -133,7 +179,28 @@ class RawSubs {
 		video.appendChild(trackEl);
 	}
 
-	static function encodeURI(data:String):String {
+	static inline function encodeURI(data:String):String {
 		return js.Syntax.code("encodeURI({0})", data);
+	}
+
+	static inline function toVttTime(time:Duration):String {
+		final h = '${time.h}'.lpad("0", 2);
+		final m = '${time.m}'.lpad("0", 2);
+		final s = '${time.s}'.lpad("0", 2);
+		final ms = '${time.ms}'.rpad("0", 3).substr(0, 3);
+		return '$h:$m:$s.$ms';
+	}
+
+	static inline function secondsToDuration(seconds:Float):Duration {
+		final h = Std.int(seconds / 60 / 60);
+		final m = Std.int(seconds / 60) - h * 60;
+		final s = Std.int(seconds % 60);
+		final ms = Std.int((seconds - Std.int(seconds)) * 1000);
+		return {
+			h: h,
+			m: m,
+			s: s,
+			ms: ms
+		}
 	}
 }
