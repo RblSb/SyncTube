@@ -2842,8 +2842,11 @@ client_players_RawSubs.convertAssTime = function(time) {
 	if(!client_players_RawSubs.assTimeStamp.match(time)) {
 		return "" + StringTools.lpad("" + 0,"0",2) + ":" + StringTools.lpad("" + 0,"0",2) + ":" + StringTools.lpad("" + 0,"0",2) + "." + HxOverrides.substr(StringTools.rpad("" + 0,"0",3),0,3);
 	}
-	var time = { h : Std.parseInt(client_players_RawSubs.assTimeStamp.matched(1)), m : Std.parseInt(client_players_RawSubs.assTimeStamp.matched(2)), s : Std.parseInt(client_players_RawSubs.assTimeStamp.matched(3)), ms : Std.parseInt(client_players_RawSubs.assTimeStamp.matched(4))};
-	return "" + StringTools.lpad("" + time.h,"0",2) + ":" + StringTools.lpad("" + time.m,"0",2) + ":" + StringTools.lpad("" + time.s,"0",2) + "." + HxOverrides.substr(StringTools.rpad("" + time.ms,"0",3),0,3);
+	var h = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(1));
+	var m = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(2));
+	var s = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(3));
+	var ms = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(4));
+	return "" + StringTools.lpad("" + h,"0",2) + ":" + StringTools.lpad("" + m,"0",2) + ":" + StringTools.lpad("" + s,"0",2) + "." + HxOverrides.substr(StringTools.rpad("" + ms,"0",3),0,3);
 };
 client_players_RawSubs.onParsed = function(video,name,dataUrl) {
 	var trackEl = window.document.createElement("track");

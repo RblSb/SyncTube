@@ -148,10 +148,10 @@ class RawSubs {
 				ms: 0,
 			});
 		}
-		final h = Std.parseInt(assTimeStamp.matched(1));
-		final m = Std.parseInt(assTimeStamp.matched(2));
-		final s = Std.parseInt(assTimeStamp.matched(3));
-		final ms = Std.parseInt(assTimeStamp.matched(4));
+		final h:Int = Std.parseInt(assTimeStamp.matched(1));
+		final m:Int = Std.parseInt(assTimeStamp.matched(2));
+		final s:Int = Std.parseInt(assTimeStamp.matched(3));
+		final ms:Int = Std.parseInt(assTimeStamp.matched(4));
 		return toVttTime({
 			h: h,
 			m: m,
