@@ -82,7 +82,9 @@ class RawSubs {
 			final matchFormat = ~/^Format:/;
 			final matchDialogue = ~/^Dialogue:/;
 			final blockTags = ~/\{\\[^}]*\}/g;
-			final tags = ~/\\[^ ]+/g;
+			final spaceTags = ~/\\(n|h)/g;
+			final newLineTag = ~/\\N/g;
+			final manyNewLineTags = ~/\\N(\\N)+/g;
 			final drawingMode = ~/\\p[124]/;
 			var eventStart = false;
 			var formatFound = false;
@@ -115,7 +117,12 @@ class RawSubs {
 				var text = list[ids["Text"]];
 				if (drawingMode.match(text)) text = "";
 				text = blockTags.replace(text, "");
-				text = tags.replace(text, "");
+				text = spaceTags.replace(text, " ");
+				final nTag = "\\N";
+				text = manyNewLineTags.replace(text, nTag);
+				if (text.startsWith(nTag)) text = text.substr(nTag.length);
+				if (text.endsWith(nTag)) text = text.substr(0, text.length - 2);
+				text = newLineTag.replace(text, "\n");
 				subs.push({
 					counter: subsCounter,
 					start: convertAssTime(list[ids["Start"]]),
@@ -131,6 +138,7 @@ class RawSubs {
 				data += '${sub.start} --> ${sub.end}\n';
 				data += '${sub.text}\n\n';
 			}
+			// trace(data);
 			final textBase64 = "data:text/plain;base64,";
 			final url = textBase64 + Base64.encode(Bytes.ofString(data));
 			onParsed(video, "ASS subtitles", url);
@@ -151,7 +159,7 @@ class RawSubs {
 		final h:Int = Std.parseInt(assTimeStamp.matched(1));
 		final m:Int = Std.parseInt(assTimeStamp.matched(2));
 		final s:Int = Std.parseInt(assTimeStamp.matched(3));
-		final ms:Int = Std.parseInt(assTimeStamp.matched(4));
+		final ms:Int = Std.parseInt(assTimeStamp.matched(4)) * 10;
 		return toVttTime({
 			h: h,
 			m: m,
@@ -174,9 +182,9 @@ class RawSubs {
 		trackEl.kind = "subtitles";
 		trackEl.src = dataUrl;
 		trackEl.default_ = true;
+		video.appendChild(trackEl);
 		final track = trackEl.track;
 		track.mode = SHOWING;
-		video.appendChild(trackEl);
 	}
 
 	static inline function encodeURI(data:String):String {
@@ -187,7 +195,7 @@ class RawSubs {
 		final h = '${time.h}'.lpad("0", 2);
 		final m = '${time.m}'.lpad("0", 2);
 		final s = '${time.s}'.lpad("0", 2);
-		final ms = '${time.ms}'.rpad("0", 3).substr(0, 3);
+		final ms = '${time.ms}'.lpad("0", 3).substr(0, 3);
 		return '$h:$m:$s.$ms';
 	}
 

@@ -417,15 +417,6 @@ StringTools.lpad = function(s,c,l) {
 	buf_b += s == null ? "null" : "" + s;
 	return buf_b;
 };
-StringTools.rpad = function(s,c,l) {
-	if(c.length <= 0) {
-		return s;
-	}
-	var buf_b = "";
-	buf_b = "" + (s == null ? "null" : "" + s);
-	while(buf_b.length < l) buf_b += c == null ? "null" : "" + c;
-	return buf_b;
-};
 StringTools.replace = function(s,sub,by) {
 	return s.split(sub).join(by);
 };
@@ -2773,7 +2764,9 @@ client_players_RawSubs.parseAss = function(video,url) {
 		var matchFormat = new EReg("^Format:","");
 		var matchDialogue = new EReg("^Dialogue:","");
 		var blockTags_r = new RegExp("\\{\\\\[^}]*\\}","g".split("u").join(""));
-		var tags_r = new RegExp("\\\\[^ ]+","g".split("u").join(""));
+		var spaceTags_r = new RegExp("\\\\(n|h)","g".split("u").join(""));
+		var newLineTag_r = new RegExp("\\\\N","g".split("u").join(""));
+		var manyNewLineTags_r = new RegExp("\\\\N(\\\\N)+","g".split("u").join(""));
 		var drawingMode = new EReg("\\\\p[124]","");
 		var eventStart = false;
 		var formatFound = false;
@@ -2821,7 +2814,15 @@ client_players_RawSubs.parseAss = function(video,url) {
 				text = "";
 			}
 			text = text.replace(blockTags_r,"");
-			text = text.replace(tags_r,"");
+			text = text.replace(spaceTags_r," ");
+			text = text.replace(manyNewLineTags_r,"\\N");
+			if(StringTools.startsWith(text,"\\N")) {
+				text = HxOverrides.substr(text,"\\N".length,null);
+			}
+			if(StringTools.endsWith(text,"\\N")) {
+				text = HxOverrides.substr(text,0,text.length - 2);
+			}
+			text = text.replace(newLineTag_r,"\n");
 			subs.push({ counter : subsCounter, start : client_players_RawSubs.convertAssTime(result[ids_h["Start"]]), end : client_players_RawSubs.convertAssTime(result[ids_h["End"]]), text : text});
 			++subsCounter;
 		}
@@ -2840,13 +2841,13 @@ client_players_RawSubs.parseAss = function(video,url) {
 };
 client_players_RawSubs.convertAssTime = function(time) {
 	if(!client_players_RawSubs.assTimeStamp.match(time)) {
-		return "" + StringTools.lpad("" + 0,"0",2) + ":" + StringTools.lpad("" + 0,"0",2) + ":" + StringTools.lpad("" + 0,"0",2) + "." + HxOverrides.substr(StringTools.rpad("" + 0,"0",3),0,3);
+		return "" + StringTools.lpad("" + 0,"0",2) + ":" + StringTools.lpad("" + 0,"0",2) + ":" + StringTools.lpad("" + 0,"0",2) + "." + HxOverrides.substr(StringTools.lpad("" + 0,"0",3),0,3);
 	}
 	var h = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(1));
 	var m = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(2));
 	var s = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(3));
-	var ms = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(4));
-	return "" + StringTools.lpad("" + h,"0",2) + ":" + StringTools.lpad("" + m,"0",2) + ":" + StringTools.lpad("" + s,"0",2) + "." + HxOverrides.substr(StringTools.rpad("" + ms,"0",3),0,3);
+	var ms = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(4)) * 10;
+	return "" + StringTools.lpad("" + h,"0",2) + ":" + StringTools.lpad("" + m,"0",2) + ":" + StringTools.lpad("" + s,"0",2) + "." + HxOverrides.substr(StringTools.lpad("" + ms,"0",3),0,3);
 };
 client_players_RawSubs.onParsed = function(video,name,dataUrl) {
 	var trackEl = window.document.createElement("track");
@@ -2854,8 +2855,8 @@ client_players_RawSubs.onParsed = function(video,name,dataUrl) {
 	trackEl.kind = "subtitles";
 	trackEl.src = dataUrl;
 	trackEl.default = true;
-	trackEl.track.mode = "showing";
 	video.appendChild(trackEl);
+	trackEl.track.mode = "showing";
 };
 var client_players_Youtube = function(main,player) {
 	this.matchSeconds = new EReg("([0-9]+)S","");
