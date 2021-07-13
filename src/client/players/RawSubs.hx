@@ -18,6 +18,7 @@ private typedef Duration = {
 
 class RawSubs {
 	public static function loadSubs(item:VideoItem, video:VideoElement):Void {
+		if (item.subs == null || item.subs.length == 0) return;
 		final ext = PathTools.urlExtension(item.subs);
 		// do not load subs if there is custom plugin
 		if (JsApi.hasSubtitleSupport(ext)) return;

@@ -2707,6 +2707,9 @@ client_players_Raw.prototype = {
 var client_players_RawSubs = function() { };
 client_players_RawSubs.__name__ = true;
 client_players_RawSubs.loadSubs = function(item,video) {
+	if(item.subs == null || item.subs.length == 0) {
+		return;
+	}
 	var ext = PathTools.urlExtension(item.subs);
 	if(client_JsApi.hasSubtitleSupport(ext)) {
 		return;
