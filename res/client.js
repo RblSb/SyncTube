@@ -744,6 +744,19 @@ client_Buttons.initTextButtons = function(main) {
 			return removeBtn.innerText = Lang.get("addVideo");
 		}
 	};
+	window.document.querySelector("#setVideoUrlBtn").onclick = function(e) {
+		var src = window.prompt(Lang.get("setVideoUrlPrompt"));
+		if(StringTools.trim(src) == "") {
+			main.refreshPlayer();
+			return;
+		}
+		client_JsApi.setVideoSrc(src);
+	};
+	window.document.querySelector("#selectLocalVideoBtn").onclick = function(e) {
+		client_Utils.browseFileUrl(function(url,name) {
+			client_JsApi.setVideoSrc(url);
+		});
+	};
 };
 client_Buttons.initHotkeys = function(main,player) {
 	window.document.querySelector("#mediarefresh").title += " (Alt-R)";
@@ -2453,6 +2466,33 @@ client_Utils.copyToClipboard = function(text) {
 		window.document.execCommand("copy");
 		window.document.body.removeChild(textarea);
 	}
+};
+client_Utils.browseFileUrl = function(onFileLoad,isBinary,revoke) {
+	if(revoke == null) {
+		revoke = false;
+	}
+	if(isBinary == null) {
+		isBinary = true;
+	}
+	var input = window.document.createElement("input");
+	input.style.visibility = "hidden";
+	input.setAttribute("type","file");
+	input.id = "browse";
+	input.onclick = function(e) {
+		e.cancelBubble = true;
+		e.stopPropagation();
+	};
+	input.onchange = function() {
+		var file = input.files[0];
+		var url = URL.createObjectURL(file);
+		onFileLoad(url,file.name);
+		window.document.body.removeChild(input);
+		if(revoke) {
+			URL.revokeObjectURL(url);
+		}
+	};
+	window.document.body.appendChild(input);
+	input.click();
 };
 var client_players_Iframe = function(main,player) {
 	this.playerEl = window.document.querySelector("#ytapiplayer");

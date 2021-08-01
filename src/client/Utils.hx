@@ -3,6 +3,7 @@ package client;
 import js.Browser.document;
 import js.Browser.window;
 import js.html.Element;
+import js.html.URL;
 
 class Utils {
 	public static function isTouch():Bool {
@@ -86,5 +87,29 @@ class Utils {
 			}
 			document.body.removeChild(textarea);
 		}
+	}
+
+	public static function browseFileUrl(
+		onFileLoad:(url:String, name:String) -> Void,
+		isBinary = true,
+		revoke = false
+	):Void {
+		final input = document.createElement("input");
+		input.style.visibility = "hidden";
+		input.setAttribute("type", "file");
+		input.id = "browse";
+		input.onclick = function(e) {
+			e.cancelBubble = true;
+			e.stopPropagation();
+		}
+		input.onchange = function() {
+			final file:Dynamic = (input : Dynamic).files[0];
+			final url = URL.createObjectURL(file);
+			onFileLoad(url, file.name);
+			document.body.removeChild(input);
+			if (revoke) URL.revokeObjectURL(url);
+		}
+		document.body.appendChild(input);
+		input.click();
 	}
 }

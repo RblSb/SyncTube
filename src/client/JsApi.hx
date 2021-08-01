@@ -104,7 +104,7 @@ class JsApi {
 	}
 
 	@:expose
-	static function setVideoSrc(src:String):Void {
+	public static function setVideoSrc(src:String):Void {
 		player.changeVideoSrc(src);
 	}
 

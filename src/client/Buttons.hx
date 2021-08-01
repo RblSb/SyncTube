@@ -255,9 +255,27 @@ class Buttons {
 
 		final removeBtn = ge("#removeVideoBtn");
 		removeBtn.onclick = e -> {
-			final has = main.toggleVideoElement();
-			if (has || main.isListEmpty()) removeBtn.innerText = Lang.get("removeVideo");
-			else removeBtn.innerText = Lang.get("addVideo");
+			final hasVideo = main.toggleVideoElement();
+			if (hasVideo || main.isListEmpty()) {
+				removeBtn.innerText = Lang.get("removeVideo");
+			} else {
+				removeBtn.innerText = Lang.get("addVideo");
+			}
+		}
+		final setVideoUrlBtn = ge("#setVideoUrlBtn");
+		setVideoUrlBtn.onclick = e -> {
+			final src = window.prompt(Lang.get("setVideoUrlPrompt"));
+			if (src.trim() == "") { // reset to default url
+				main.refreshPlayer();
+				return;
+			}
+			JsApi.setVideoSrc(src);
+		}
+		final selectLocalVideoBtn = ge("#selectLocalVideoBtn");
+		selectLocalVideoBtn.onclick = e -> {
+			Utils.browseFileUrl((url:String, name:String) -> {
+				JsApi.setVideoSrc(url);
+			});
 		}
 	}
 
