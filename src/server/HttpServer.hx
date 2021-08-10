@@ -58,8 +58,7 @@ class HttpServer {
 		res.setHeader("Accept-Ranges", "bytes");
 		res.setHeader("Content-Type", getMimeType(ext));
 
-		if (allowLocalRequests
-			&& req.connection.remoteAddress == req.connection.localAddress
+		if (allowLocalRequests && req.socket.remoteAddress == req.socket.localAddress
 			|| allowedLocalFiles[url]) {
 			if (isMediaExtension(ext)) {
 				allowedLocalFiles[url] = true;

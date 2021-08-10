@@ -382,8 +382,8 @@ class Main {
 			case Connected:
 				onConnected(data);
 				onTimeGet.run();
-			case Disconnected: // server-only
 
+			case Disconnected: // server-only
 			case Login:
 				onLogin(data.login.clients, data.login.clientName);
 
@@ -411,6 +411,7 @@ class Main {
 				personal = clients.getByName(personal.name, personal);
 				if (personal.group.toInt() != oldGroup) onUserGroupChanged();
 
+			case BanClient: // server-only
 			case Message:
 				addMessage(data.message.clientName, data.message.text);
 
@@ -728,7 +729,8 @@ class Main {
 		for (client in clients) {
 			list.add('<div class="userlist_item">');
 			if (client.isLeader) list.add('<ion-icon name="play"></ion-icon>');
-			final klass = client.isAdmin ? "userlist_owner" : "";
+			var klass = client.isBanned ? "userlist_banned" : "";
+			if (client.isAdmin) klass += " userlist_owner";
 			list.add('<span class="$klass">${client.name}</span></div>');
 		}
 		final userlist = ge("#userlist");
@@ -764,12 +766,8 @@ class Main {
 		textDiv.className = "text";
 		text = text.htmlEscape();
 
-		if (text.startsWith("/")) {
-			if (name == personal.name) handleCommands(text.substr(1));
-		} else {
-			for (filter in filters) {
-				text = filter.regex.replace(text, filter.replace);
-			}
+		for (filter in filters) {
+			text = filter.regex.replace(text, filter.replace);
 		}
 		textDiv.innerHTML = text;
 		final isInChatEnd = msgBuf.scrollTop + msgBuf.clientHeight >= msgBuf.scrollHeight - 1;
@@ -828,21 +826,80 @@ class Main {
 		msgBuf.scrollTop = msgBuf.scrollHeight;
 	}
 
-	final matchNumbers = ~/^-?[0-9]+$/;
+	/* Returns `true` if text should not be sent to chat */
+	public function handleCommands(command:String):Bool {
+		if (!command.startsWith("/")) return false;
+		final args = command.trim().split(" ");
+		command = args.shift().substr(1);
 
-	function handleCommands(text:String):Void {
-		switch (text) {
+		switch (command) {
+			case "ban":
+				final name = args[0];
+				final time = parseSimpleDate(args[1]);
+				if (time < 0) return true;
+				send({
+					type: BanClient,
+					banClient: {
+						name: name,
+						time: time
+					}
+				});
+				return true;
+			case "unban", "removeBan":
+				final name = args[0];
+				send({
+					type: BanClient,
+					banClient: {
+						name: name,
+						time: 0
+					}
+				});
+				return true;
 			case "clear":
-				if (isAdmin()) send({type: ClearChat});
+				send({type: ClearChat});
+				return true;
 		}
-		if (matchNumbers.match(text)) {
+		if (matchSimpleDate.match(command)) {
 			send({
 				type: Rewind,
 				rewind: {
-					time: Std.parseInt(text)
+					time: parseSimpleDate(command)
 				}
 			});
+			return false;
 		}
+		return false;
+	}
+
+	final matchSimpleDate = ~/^-?([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s?)?$/;
+
+	function parseSimpleDate(text:Null<String>):Int {
+		if (text == null) return 0;
+		if (!matchSimpleDate.match(text)) return 0;
+		final matches:Array<String> = [];
+		final length = Utils.matchedNum(matchSimpleDate);
+		for (i in 1...length) {
+			final group = matchSimpleDate.matched(i);
+			if (group == null) continue;
+			matches.push(group);
+		}
+		var seconds = 0;
+		for (block in matches) {
+			seconds += parseSimpleDateBlock(block);
+		}
+		if (text.startsWith("-")) seconds = -seconds;
+		return seconds;
+	}
+
+	function parseSimpleDateBlock(block:String):Int {
+		inline function time():Int {
+			return Std.parseInt(block.substr(0, block.length - 1));
+		}
+		if (block.endsWith("s")) return time();
+		else if (block.endsWith("m")) return time() * 60;
+		else if (block.endsWith("h")) return time() * 60 * 60;
+		else if (block.endsWith("d")) return time() * 60 * 60 * 24;
+		return Std.parseInt(block);
 	}
 
 	public function blinkTabWithTitle(title:String):Void {

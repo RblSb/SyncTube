@@ -18,6 +18,7 @@ private typedef CommandData = {
 
 private enum abstract Command(String) from String {
 	var AddAdmin = "addAdmin";
+	var RemoveAdmin = "removeAdmin";
 	var Replay = "replay";
 	var LogList = "logList";
 	var Exit = "exit";
@@ -29,6 +30,10 @@ class ConsoleInput {
 		AddAdmin => {
 			args: ["name", "password"],
 			desc: "Adds channel admin"
+		},
+		RemoveAdmin => {
+			args: ["name"],
+			desc: "Removes channel admin"
 		},
 		Replay => {
 			args: ["name"],
@@ -54,10 +59,10 @@ class ConsoleInput {
 			output: process.stdout,
 			completer: onCompletion
 		});
-		haxe.Log.trace = (msg, ?pos) -> {
+		haxe.Log.trace = (msg:Dynamic, ?infos:haxe.PosInfos) -> {
 			Readline.clearLine(process.stdout, 0);
 			Readline.cursorTo(process.stdout, 0, null);
-			Console.log(msg);
+			Console.log(formatOutput(msg, infos));
 			rl.prompt(true);
 		};
 		rl.prompt();
@@ -66,6 +71,16 @@ class ConsoleInput {
 			rl.prompt();
 		});
 		// rl.on("close", exit);
+	}
+
+	function formatOutput(v:Dynamic, infos:haxe.PosInfos):String {
+		var str = Std.string(v);
+		if (infos == null) return str;
+		if (infos.customParams != null) {
+			for (v in infos.customParams)
+				str += ", " + Std.string(v);
+		}
+		return str;
 	}
 
 	function onCompletion(line:String):Array<Or<Array<String>, String>> {
@@ -101,6 +116,10 @@ class ConsoleInput {
 					return;
 				}
 				main.addAdmin(name, password);
+
+			case RemoveAdmin:
+				final name = args[0];
+				main.removeAdmin(name);
 
 			case Replay:
 				Utils.ensureDir(main.logsDir);

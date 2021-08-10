@@ -12,6 +12,7 @@
 	"userVideoLimitError": "Был достингут лимит видео на пользователя.",
 	"videoAlreadyExistsError": "Видео уже имеется в плейлисте.",
 	"addVideoError": "Не удалось добавить видео.",
+	"adminsCannotBeBannedError": "Админы не могут быть заблокированы. Сначала удалите их.",
 	"rawVideo": "Исходное видео",
 	"videos": "видео",
 	"addedBy": "Добавлено",

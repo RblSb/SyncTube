@@ -89,6 +89,14 @@ class Utils {
 		}
 	}
 
+	public static function matchedNum(ereg:EReg):Int {
+		#if js
+		return (ereg : Dynamic).r.m.length;
+		#else
+		#error "not implemented"
+		#end
+	}
+
 	public static function browseFileUrl(
 		onFileLoad:(url:String, name:String) -> Void,
 		isBinary = true,

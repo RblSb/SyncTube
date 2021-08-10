@@ -10,11 +10,12 @@ function $extend(from, fields) {
 	return proto;
 }
 var ClientGroup = $hxEnums["ClientGroup"] = { __ename__:true,__constructs__:null
-	,User: {_hx_name:"User",_hx_index:0,__enum__:"ClientGroup",toString:$estr}
-	,Leader: {_hx_name:"Leader",_hx_index:1,__enum__:"ClientGroup",toString:$estr}
-	,Admin: {_hx_name:"Admin",_hx_index:2,__enum__:"ClientGroup",toString:$estr}
+	,Banned: {_hx_name:"Banned",_hx_index:0,__enum__:"ClientGroup",toString:$estr}
+	,User: {_hx_name:"User",_hx_index:1,__enum__:"ClientGroup",toString:$estr}
+	,Leader: {_hx_name:"Leader",_hx_index:2,__enum__:"ClientGroup",toString:$estr}
+	,Admin: {_hx_name:"Admin",_hx_index:3,__enum__:"ClientGroup",toString:$estr}
 };
-ClientGroup.__constructs__ = [ClientGroup.User,ClientGroup.Leader,ClientGroup.Admin];
+ClientGroup.__constructs__ = [ClientGroup.Banned,ClientGroup.User,ClientGroup.Leader,ClientGroup.Admin];
 var Client = function(name,group) {
 	this.name = name;
 	var i = group;
@@ -46,14 +47,14 @@ ClientTools.setLeader = function(clients,name) {
 		++_g;
 		if(client.name == name) {
 			client.setGroupFlag(ClientGroup.Leader,true);
-		} else if((client.group & 2) != 0) {
+		} else if((client.group & 4) != 0) {
 			client.setGroupFlag(ClientGroup.Leader,false);
 		}
 	}
 };
 ClientTools.hasLeader = function(clients) {
 	var _g = 0;
-	while(_g < clients.length) if((clients[_g++].group & 2) != 0) {
+	while(_g < clients.length) if((clients[_g++].group & 4) != 0) {
 		return true;
 	}
 	return false;
@@ -70,13 +71,16 @@ ClientTools.getByName = function(clients,name,def) {
 	return def;
 };
 ClientTools.hasPermission = function(client,permission,permissions) {
-	if((client.group & 4) != 0) {
+	if((client.group & 1) != 0) {
+		return permissions.banned.indexOf(permission) != -1;
+	}
+	if((client.group & 8) != 0) {
 		return permissions.admin.indexOf(permission) != -1;
 	}
-	if((client.group & 2) != 0) {
+	if((client.group & 4) != 0) {
 		return permissions.leader.indexOf(permission) != -1;
 	}
-	if((client.group & 1) != 0) {
+	if((client.group & 2) != 0) {
 		return permissions.user.indexOf(permission) != -1;
 	}
 	return permissions.guest.indexOf(permission) != -1;
@@ -537,13 +541,13 @@ client_Buttons.init = function(main) {
 		}
 	};
 	window.document.querySelector("#clearchatbtn").onclick = function(e) {
-		if((main.personal.group & 4) != 0) {
+		if((main.personal.group & 8) != 0) {
 			main.send({ type : "ClearChat"});
 		}
 	};
 	var userList = window.document.querySelector("#userlist");
 	userList.onclick = function(e) {
-		if((main.personal.group & 4) == 0) {
+		if((main.personal.group & 8) == 0) {
 			return;
 		}
 		var el = e.target;
@@ -628,7 +632,7 @@ client_Buttons.init = function(main) {
 		main.send({ type : "ShufflePlaylist"});
 	};
 	window.document.querySelector("#lockplaylist").onclick = function(e) {
-		if((main.personal.group & 4) != 0) {
+		if((main.personal.group & 8) != 0) {
 			main.send({ type : "TogglePlaylistLock"});
 		}
 	};
@@ -657,7 +661,7 @@ client_Buttons.init = function(main) {
 		return client_Buttons.toggleGroup(showOptions);
 	};
 	window.document.querySelector("#exitBtn").onclick = function(e) {
-		if((main.personal.group & 1) != 0) {
+		if((main.personal.group & 2) != 0) {
 			main.send({ type : "Logout"});
 		} else {
 			window.document.querySelector("#guestname").focus();
@@ -794,7 +798,7 @@ client_Buttons.initHotkeys = function(main,player) {
 			main.toggleLeader();
 			break;
 		case 80:
-			if((main.personal.group & 2) == 0) {
+			if((main.personal.group & 4) == 0) {
 				client_JsApi.once("SetLeader",function(event) {
 					if(event.setLeader.clientName == main.personal.name) {
 						player.pause();
@@ -845,6 +849,9 @@ client_Buttons.initChatInput = function(main) {
 		}
 	};
 	new client_InputWithHistory(chatline,null,50,function(value) {
+		if(main.handleCommands(value)) {
+			return true;
+		}
 		main.send({ type : "Message", message : { clientName : "", text : value}});
 		return true;
 	});
@@ -994,7 +1001,7 @@ client_JsApi.setTime = $hx_exports["client"]["JsApi"]["setTime"] = function(time
 	client_JsApi.player.setTime(time);
 };
 client_JsApi.isLeader = $hx_exports["client"]["JsApi"]["isLeader"] = function() {
-	return (client_JsApi.main.personal.group & 2) != 0;
+	return (client_JsApi.main.personal.group & 4) != 0;
 };
 client_JsApi.forceSyncNextTick = $hx_exports["client"]["JsApi"]["forceSyncNextTick"] = function(flag) {
 	client_JsApi.main.forceSyncNextTick = flag;
@@ -1059,7 +1066,7 @@ client_JsApi.fireVideoRemoveEvents = function(item) {
 	while(_g < _g1.length) _g1[_g++](item);
 };
 var client_Main = function() {
-	this.matchNumbers = new EReg("^-?[0-9]+$","");
+	this.matchSimpleDate = new EReg("^-?([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s?)?$","");
 	this.mask = new EReg("\\${([0-9]+)-([0-9]+)}","g");
 	this.isConnected = false;
 	this.personal = new Client("Unknown",0);
@@ -1374,6 +1381,8 @@ client_Main.prototype = {
 				this.player.setVideo(0);
 			}
 			break;
+		case "BanClient":
+			break;
 		case "ClearChat":
 			this.clearChat();
 			break;
@@ -1402,7 +1411,7 @@ client_Main.prototype = {
 			var synchThreshold = this.settings.synchThreshold;
 			var newTime = data.getTime.time;
 			var time = this.player.getTime();
-			if((this.personal.group & 2) != 0 && !this.forceSyncNextTick) {
+			if((this.personal.group & 4) != 0 && !this.forceSyncNextTick) {
 				if(Math.abs(time - newTime) < synchThreshold) {
 					return;
 				}
@@ -1452,7 +1461,7 @@ client_Main.prototype = {
 			break;
 		case "Pause":
 			this.player.setPauseIndicator(false);
-			if((this.personal.group & 2) != 0) {
+			if((this.personal.group & 4) != 0) {
 				return;
 			}
 			this.player.pause();
@@ -1460,7 +1469,7 @@ client_Main.prototype = {
 			break;
 		case "Play":
 			this.player.setPauseIndicator(true);
-			if((this.personal.group & 2) != 0) {
+			if((this.personal.group & 4) != 0) {
 				return;
 			}
 			var synchThreshold = this.settings.synchThreshold;
@@ -1489,8 +1498,8 @@ client_Main.prototype = {
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
 			this.updateUserList();
-			this.setLeaderButton((this.personal.group & 2) != 0);
-			if((this.personal.group & 2) != 0) {
+			this.setLeaderButton((this.personal.group & 4) != 0);
+			if((this.personal.group & 4) != 0) {
 				this.player.onSetTime();
 			}
 			break;
@@ -1498,7 +1507,7 @@ client_Main.prototype = {
 			this.player.setNextItem(data.setNextItem.pos);
 			break;
 		case "SetRate":
-			if((this.personal.group & 2) != 0) {
+			if((this.personal.group & 4) != 0) {
 				return;
 			}
 			this.player.setPlaybackRate(data.setRate.rate);
@@ -1539,7 +1548,7 @@ client_Main.prototype = {
 		case "VideoLoaded":
 			this.player.setTime(0);
 			this.player.play();
-			if((this.personal.group & 2) != 0 && !this.player.isVideoLoaded()) {
+			if((this.personal.group & 4) != 0 && !this.player.isVideoLoaded()) {
 				this.forceSyncNextTick = true;
 			}
 			break;
@@ -1567,7 +1576,7 @@ client_Main.prototype = {
 		} else {
 			this.guestLogin(name);
 		}
-		this.setLeaderButton((this.personal.group & 2) != 0);
+		this.setLeaderButton((this.personal.group & 4) != 0);
 		this.setPlaylistLock(connected.isPlaylistOpen);
 		this.clearChat();
 		this.serverMessage(1);
@@ -1589,7 +1598,7 @@ client_Main.prototype = {
 			button.disabled = true;
 		}
 		var adminMenu = window.document.querySelector("#adminMenu");
-		if((this.personal.group & 4) != 0) {
+		if((this.personal.group & 8) != 0) {
 			adminMenu.style.display = "block";
 		} else {
 			adminMenu.style.display = "none";
@@ -1754,10 +1763,14 @@ client_Main.prototype = {
 			var client = _g1[_g];
 			++_g;
 			list_b += "<div class=\"userlist_item\">";
-			if((client.group & 2) != 0) {
+			if((client.group & 4) != 0) {
 				list_b += "<ion-icon name=\"play\"></ion-icon>";
 			}
-			list_b += Std.string("<span class=\"" + ((client.group & 4) != 0 ? "userlist_owner" : "") + "\">" + client.name + "</span></div>");
+			var klass = (client.group & 1) != 0 ? "userlist_banned" : "";
+			if((client.group & 8) != 0) {
+				klass += " userlist_owner";
+			}
+			list_b += Std.string("<span class=\"" + klass + "\">" + client.name + "</span></div>");
 		}
 		window.document.querySelector("#userlist").innerHTML = list_b;
 	}
@@ -1785,18 +1798,12 @@ client_Main.prototype = {
 		var textDiv = window.document.createElement("div");
 		textDiv.className = "text";
 		text = StringTools.htmlEscape(text);
-		if(StringTools.startsWith(text,"/")) {
-			if(name == this.personal.name) {
-				this.handleCommands(HxOverrides.substr(text,1,null));
-			}
-		} else {
-			var _g = 0;
-			var _g1 = this.filters;
-			while(_g < _g1.length) {
-				var filter = _g1[_g];
-				++_g;
-				text = text.replace(filter.regex.r,filter.replace);
-			}
+		var _g = 0;
+		var _g1 = this.filters;
+		while(_g < _g1.length) {
+			var filter = _g1[_g];
+			++_g;
+			text = text.replace(filter.regex.r,filter.replace);
 		}
 		textDiv.innerHTML = text;
 		var isInChatEnd = msgBuf.scrollTop + msgBuf.clientHeight >= msgBuf.scrollHeight - 1;
@@ -1844,15 +1851,70 @@ client_Main.prototype = {
 		var msgBuf = window.document.querySelector("#messagebuffer");
 		msgBuf.scrollTop = msgBuf.scrollHeight;
 	}
-	,handleCommands: function(text) {
-		if(text == "clear") {
-			if((this.personal.group & 4) != 0) {
-				this.send({ type : "ClearChat"});
+	,handleCommands: function(command) {
+		if(!StringTools.startsWith(command,"/")) {
+			return false;
+		}
+		var args = StringTools.trim(command).split(" ");
+		command = HxOverrides.substr(args.shift(),1,null);
+		switch(command) {
+		case "ban":
+			var name = args[0];
+			var time = this.parseSimpleDate(args[1]);
+			if(time < 0) {
+				return true;
 			}
+			this.send({ type : "BanClient", banClient : { name : name, time : time}});
+			return true;
+		case "clear":
+			this.send({ type : "ClearChat"});
+			return true;
+		case "removeBan":case "unban":
+			this.send({ type : "BanClient", banClient : { name : args[0], time : 0}});
+			return true;
 		}
-		if(this.matchNumbers.match(text)) {
-			this.send({ type : "Rewind", rewind : { time : Std.parseInt(text)}});
+		if(this.matchSimpleDate.match(command)) {
+			this.send({ type : "Rewind", rewind : { time : this.parseSimpleDate(command)}});
+			return false;
 		}
+		return false;
+	}
+	,parseSimpleDate: function(text) {
+		if(text == null) {
+			return 0;
+		}
+		if(!this.matchSimpleDate.match(text)) {
+			return 0;
+		}
+		var matches = [];
+		var length = client_Utils.matchedNum(this.matchSimpleDate);
+		var _g = 1;
+		while(_g < length) {
+			var group = this.matchSimpleDate.matched(_g++);
+			if(group == null) {
+				continue;
+			}
+			matches.push(group);
+		}
+		var seconds = 0;
+		var _g = 0;
+		while(_g < matches.length) seconds += this.parseSimpleDateBlock(matches[_g++]);
+		if(StringTools.startsWith(text,"-")) {
+			seconds = -seconds;
+		}
+		return seconds;
+	}
+	,parseSimpleDateBlock: function(block) {
+		if(StringTools.endsWith(block,"s")) {
+			return Std.parseInt(HxOverrides.substr(block,0,block.length - 1));
+		} else if(StringTools.endsWith(block,"m")) {
+			return Std.parseInt(HxOverrides.substr(block,0,block.length - 1)) * 60;
+		} else if(StringTools.endsWith(block,"h")) {
+			return Std.parseInt(HxOverrides.substr(block,0,block.length - 1)) * 60 * 60;
+		} else if(StringTools.endsWith(block,"d")) {
+			return Std.parseInt(HxOverrides.substr(block,0,block.length - 1)) * 60 * 60 * 24;
+		}
+		return Std.parseInt(block);
 	}
 	,blinkTabWithTitle: function(title) {
 		var _gthis = this;
@@ -1908,8 +1970,8 @@ client_Main.prototype = {
 		return Reflect.field(this.config.permissions,$hxEnums[group.__enum__].__constructs__[group._hx_index]._hx_name.toLowerCase()).indexOf(permission) != -1;
 	}
 	,toggleLeader: function() {
-		this.setLeaderButton((this.personal.group & 2) == 0);
-		this.send({ type : "SetLeader", setLeader : { clientName : (this.personal.group & 2) != 0 ? "" : this.personal.name}});
+		this.setLeaderButton((this.personal.group & 4) == 0);
+		this.send({ type : "SetLeader", setLeader : { clientName : (this.personal.group & 4) != 0 ? "" : this.personal.name}});
 	}
 	,hasLeader: function() {
 		return ClientTools.hasLeader(this.clients);
@@ -2067,12 +2129,12 @@ client_Player.prototype = {
 		this.isLoaded = true;
 	}
 	,onPlay: function() {
-		if((this.main.personal.group & 2) == 0) {
+		if((this.main.personal.group & 4) == 0) {
 			return;
 		}
 		this.main.send({ type : "Play", play : { time : this.getTime()}});
 		if(this.main.hasLeaderOnPauseRequest()) {
-			if(this.main.hasPermission((this.main.personal.group & 4) != 0 ? ClientGroup.Admin : ClientGroup.User,"requestLeader")) {
+			if(this.main.hasPermission((this.main.personal.group & 8) != 0 ? ClientGroup.Admin : ClientGroup.User,"requestLeader")) {
 				this.main.toggleLeader();
 			}
 		}
@@ -2090,7 +2152,7 @@ client_Player.prototype = {
 			this.main.toggleLeader();
 			return;
 		}
-		if((this.main.personal.group & 2) == 0) {
+		if((this.main.personal.group & 4) == 0) {
 			return;
 		}
 		this.main.send({ type : "Pause", pause : { time : this.getTime()}});
@@ -2100,7 +2162,7 @@ client_Player.prototype = {
 			this.skipSetTime = false;
 			return;
 		}
-		if((this.main.personal.group & 2) == 0) {
+		if((this.main.personal.group & 4) == 0) {
 			return;
 		}
 		this.main.send({ type : "SetTime", setTime : { time : this.getTime()}});
@@ -2110,7 +2172,7 @@ client_Player.prototype = {
 			this.skipSetRate = false;
 			return;
 		}
-		if((this.main.personal.group & 2) == 0) {
+		if((this.main.personal.group & 4) == 0) {
 			return;
 		}
 		this.main.send({ type : "SetRate", setRate : { rate : this.getPlaybackRate()}});
@@ -2220,7 +2282,7 @@ client_Player.prototype = {
 		var time = this.getTime();
 		this.removeVideo();
 		this.setVideo(this.itemPos);
-		if((this.main.personal.group & 2) != 0) {
+		if((this.main.personal.group & 4) != 0) {
 			this.setTime(time);
 			this.main.forceSyncNextTick = true;
 		}
@@ -2466,6 +2528,9 @@ client_Utils.copyToClipboard = function(text) {
 		window.document.execCommand("copy");
 		window.document.body.removeChild(textarea);
 	}
+};
+client_Utils.matchedNum = function(ereg) {
+	return ereg.r.m.length;
 };
 client_Utils.browseFileUrl = function(onFileLoad,isBinary,revoke) {
 	if(revoke == null) {

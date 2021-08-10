@@ -29,6 +29,7 @@ class ClientTools {
 
 	public static function hasPermission(client:Client, permission:Permission, permissions:Permissions):Bool {
 		final p = permissions;
+		if (client.isBanned) return p.banned.contains(permission);
 		if (client.isAdmin) return p.admin.contains(permission);
 		if (client.isLeader) return p.leader.contains(permission);
 		if (client.isUser) return p.user.contains(permission);

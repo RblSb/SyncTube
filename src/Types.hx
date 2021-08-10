@@ -36,6 +36,7 @@ typedef Config = {
 }
 
 typedef Permissions = {
+	banned:Array<Permission>,
 	guest:Array<Permission>,
 	user:Array<Permission>,
 	leader:Array<Permission>,
@@ -56,16 +57,23 @@ enum abstract Permission(String) {
 	var SetLeaderPerm = "setLeader";
 	var ChangeOrderPerm = "changeOrder";
 	var LockPlaylistPerm = "lockPlaylist";
+	var BanClientPerm = "banClient";
 }
 
 typedef UserList = {
 	admins:Array<UserField>,
+	bans:Array<BanField>,
 	?salt:String
 }
 
 typedef UserField = {
 	name:String,
 	hash:String
+}
+
+typedef BanField = {
+	ip:String,
+	toDate:Date
 }
 
 typedef Emote = {
@@ -130,6 +138,10 @@ typedef WsEvent = {
 	?updateClients:{
 		clients:Array<ClientData>,
 	},
+	?banClient:{
+		name:String,
+		time:Float
+	},
 	?addVideo:{
 		item:VideoItem,
 		atEnd:Bool
@@ -192,6 +204,7 @@ enum abstract WsEventType(String) {
 	var UpdateClients;
 	// var AddClient;
 	// var RemoveClient;
+	var BanClient;
 	var AddVideo;
 	var RemoveVideo;
 	var SkipVideo;

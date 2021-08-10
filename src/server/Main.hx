@@ -196,16 +196,32 @@ class Main {
 	function loadUsers():UserList {
 		final customPath = '$rootDir/user/users.json';
 		if (!FileSystem.exists(customPath)) return {
-			admins: []
+			admins: [],
+			bans: []
 		};
-		return Json.parse(File.getContent(customPath));
+		final users:UserList = Json.parse(File.getContent(customPath));
+		if (users.admins == null) users.admins = [];
+		if (users.bans == null) users.bans = [];
+		for (field in users.bans) {
+			field.toDate = Date.fromString(cast field.toDate);
+		}
+		return users;
 	}
 
 	function writeUsers(users:UserList):Void {
 		final folder = '$rootDir/user';
 		Utils.ensureDir(folder);
-		final data = Json.stringify(users, "\t");
-		File.saveContent('$folder/users.json', data);
+		final data:UserList = {
+			admins: users.admins,
+			bans: [
+				for (field in users.bans) {
+					ip: field.ip,
+					toDate: cast field.toDate.toString()
+				}
+			],
+			salt: users.salt
+		}
+		File.saveContent('$folder/users.json', Json.stringify(data, "\t"));
 	}
 
 	function saveState():Void {
@@ -222,6 +238,7 @@ class Main {
 		}
 		final json = Json.stringify(data, "\t");
 		File.saveContent(statePath, json);
+		writeUsers(userList);
 	}
 
 	function loadState():Void {
@@ -251,10 +268,12 @@ class Main {
 		File.saveContent('$crashesFolder/$name.json', Json.stringify(data, "\t"));
 	}
 
+	var isHeroku = false;
+
 	function initIntergationHandlers():Void {
+		isHeroku = process.env["_"] != null && process.env["_"].contains("heroku");
 		// Prevent heroku idle when clients online (needs APP_URL env var)
-		if (process.env["_"] != null && process.env["_"].contains("heroku")
-			&& process.env["APP_URL"] != null) {
+		if (isHeroku && process.env["APP_URL"] != null) {
 			var url = process.env["APP_URL"];
 			if (!url.startsWith("http")) url = 'http://$url';
 			new Timer(10 * 60 * 1000).run = function() {
@@ -265,16 +284,32 @@ class Main {
 		}
 	}
 
+	function clientIp(req:IncomingMessage):String {
+		// Heroku uses internal proxy, so header cannot be spoofed
+		if (isHeroku) {
+			var forwarded:String = req.headers["x-forwarded-for"];
+			forwarded = forwarded.split(",")[0].trim();
+			if (forwarded == null || forwarded.length == 0) return req.socket.remoteAddress;
+			return forwarded;
+		}
+		return req.socket.remoteAddress;
+	}
+
 	public function addAdmin(name:String, password:String):Void {
 		password += config.salt;
 		final hash = Sha256.encode(password);
-		if (userList.admins == null) userList.admins = [];
 		userList.admins.push({
 			name: name,
 			hash: hash
 		});
-		writeUsers(userList);
 		trace('Admin $name added.');
+	}
+
+	public function removeAdmin(name:String):Void {
+		userList.admins.remove(
+			userList.admins.find(item -> item.name == name)
+		);
+		trace('Admin $name removed.');
 	}
 
 	public function replayLog(events:Array<ServerEvent>):Void {
@@ -309,11 +344,11 @@ class Main {
 	}
 
 	function onConnect(ws:WebSocket, req:IncomingMessage):Void {
-		final ip = req.connection.remoteAddress;
+		final ip = clientIp(req);
 		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
 		final name = 'Guest ${id + 1}';
 		trace('$name connected ($ip)');
-		final isAdmin = config.localAdmins && req.connection.localAddress == ip;
+		final isAdmin = config.localAdmins && req.socket.localAddress == ip;
 		final client = new Client(ws, req, id, name, 0);
 		client.isAdmin = isAdmin;
 		clients.push(client);
@@ -366,6 +401,7 @@ class Main {
 					if (videoTimer.isPaused()) videoTimer.play();
 				}
 
+				checkBan(client);
 				send(client, {
 					type: Connected,
 					connected: {
@@ -407,6 +443,34 @@ class Main {
 
 			case UpdateClients:
 				sendClientList();
+
+			case BanClient:
+				if (!checkPermission(client, BanClientPerm)) return;
+				final name = data.banClient.name;
+				final bannedClient = clients.getByName(name);
+				if (bannedClient == null) return;
+				if (client.name == name || bannedClient.isAdmin) {
+					serverMessage(client, "adminsCannotBeBannedError");
+					return;
+				}
+				final ip = clientIp(bannedClient.req);
+				userList.bans.remove(userList.bans.find(item -> item.ip == ip));
+				if (data.banClient.time == 0) {
+					bannedClient.isBanned = false;
+					sendClientList();
+					return;
+				}
+				final currentTime = Date.now().getTime();
+				final time = currentTime + data.banClient.time * 1000;
+				if (time < currentTime) return;
+				userList.bans.push({
+					ip: ip,
+					toDate: Date.fromTime(time)
+				});
+				checkBan(bannedClient);
+				serverMessage(client, '${bannedClient.name} ($ip) has been banned.');
+				sendClientList();
+
 			case Login:
 				final name = data.login.clientName.trim();
 				final lcName = name.toLowerCase();
@@ -434,6 +498,7 @@ class Main {
 				}
 				client.name = name;
 				client.isUser = true;
+				checkBan(client);
 				send(client, {
 					type: data.type,
 					login: {
@@ -750,14 +815,37 @@ class Main {
 	}
 
 	function checkPermission(client:Client, perm:Permission):Bool {
+		if (client.isBanned) checkBan(client);
 		final state = client.hasPermission(perm, config.permissions);
-		if (!state) send(client, {
-			type: ServerMessage,
-			serverMessage: {
-				textId: "accessError"
-			}
-		});
+		if (!state) {
+			send(client, {
+				type: ServerMessage,
+				serverMessage: {
+					textId: "accessError"
+				}
+			});
+		}
 		return state;
+	}
+
+	function checkBan(client:Client):Void {
+		if (client.isAdmin) {
+			client.isBanned = false;
+			return;
+		}
+		final ip = clientIp(client.req);
+		final currentTime = Date.now().getTime();
+		for (ban in userList.bans) {
+			if (ban.ip != ip) continue;
+			final isOutdated = ban.toDate.getTime() < currentTime;
+			client.isBanned = !isOutdated;
+			if (isOutdated) {
+				userList.bans.remove(ban);
+				trace('${client.name} ban removed');
+				sendClientList();
+			}
+			break;
+		}
 	}
 
 	final matchHtmlChars = ~/[&^<>'"]/;

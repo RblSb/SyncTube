@@ -12,6 +12,7 @@
 	"userVideoLimitError": "Playlist video limit per user has been reached.",
 	"videoAlreadyExistsError": "The video already exists in playlist.",
 	"addVideoError": "Failed to add video.",
+	"adminsCannotBeBannedError": "Admins cannot be banned. Remove them first.",
 	"rawVideo": "Raw video",
 	"videos": "videos",
 	"addedBy": "Added by",

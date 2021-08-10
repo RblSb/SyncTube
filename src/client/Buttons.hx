@@ -351,6 +351,7 @@ class Buttons {
 			if (Utils.isTouch()) main.scrollChatToEnd();
 		}
 		new InputWithHistory(chatline, 50, value -> {
+			if (main.handleCommands(value)) return true;
 			main.send({
 				type: Message,
 				message: {

@@ -7,6 +7,7 @@ import js.npm.ws.WebSocket;
 import haxe.EnumFlags;
 
 enum ClientGroup {
+	Banned;
 	User;
 	Leader;
 	Admin;
@@ -20,12 +21,13 @@ typedef ClientData = {
 class Client {
 	#if nodejs
 	public final ws:WebSocket;
-	public final id:Int;
 	public final req:IncomingMessage;
+	public final id:Int;
 	public var isAlive = true;
 	#end
 	public var name:String;
 	public var group:EnumFlags<ClientGroup>;
+	public var isBanned(get, set):Bool;
 	public var isUser(get, set):Bool;
 	public var isLeader(get, set):Bool;
 	public var isAdmin(get, set):Bool;
@@ -44,6 +46,14 @@ class Client {
 		this.group = new EnumFlags(group);
 	}
 	#end
+
+	inline function get_isBanned():Bool {
+		return group.has(Banned);
+	}
+
+	inline function set_isBanned(flag:Bool):Bool {
+		return setGroupFlag(Banned, flag);
+	}
 
 	inline function get_isUser():Bool {
 		return group.has(User);
