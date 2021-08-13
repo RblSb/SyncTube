@@ -50,7 +50,7 @@ class HttpServer {
 	}
 
 	public static function serveFiles(req:IncomingMessage, res:ServerResponse):Void {
-		var url = req.url;
+		var url = decodeURI(req.url);
 		if (url == "/") url = "/index.html";
 		var filePath = dir + url;
 		final ext = Path.extension(filePath).toLowerCase();
@@ -183,7 +183,7 @@ class HttpServer {
 		fn:(req:IncomingMessage) -> Bool
 	):Null<ClientRequest> {
 		final url = try {
-			new URL(js.Node.global.decodeURI(url));
+			new URL(decodeURI(url));
 		} catch (e) return null;
 		if (url.host == req.headers["host"]) return null;
 		final options = {
@@ -214,5 +214,9 @@ class HttpServer {
 		final contentType = mimeTypes[ext];
 		if (contentType == null) return "application/octet-stream";
 		return contentType;
+	}
+
+	static inline function decodeURI(data:String):String {
+		return js.Syntax.code("decodeURI({0})", data);
 	}
 }

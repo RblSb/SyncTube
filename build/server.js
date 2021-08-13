@@ -3573,7 +3573,7 @@ server_HttpServer.init = function(dir,customDir,allowLocalRequests) {
 	server_HttpServer.allowLocalRequests = allowLocalRequests;
 };
 server_HttpServer.serveFiles = function(req,res) {
-	var url = req.url;
+	var url = decodeURI(req.url);
 	if(url == "/") {
 		url = "/index.html";
 	}
@@ -3705,7 +3705,7 @@ server_HttpServer.proxyUrl = function(req,res) {
 server_HttpServer.proxyRequest = function(url,req,res,fn) {
 	var url1;
 	try {
-		url1 = new js_node_url_URL(global.decodeURI(url));
+		url1 = new js_node_url_URL(decodeURI(url));
 	} catch( _g ) {
 		return null;
 	}

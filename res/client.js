@@ -2819,7 +2819,10 @@ client_players_RawSubs.loadSubs = function(item,video) {
 	if(client_JsApi.hasSubtitleSupport(ext)) {
 		return;
 	}
-	var url = "/proxy?url=" + encodeURI(item.subs);
+	var url = encodeURI(item.subs);
+	if(!StringTools.startsWith(url,"/")) {
+		url = "/proxy?url=" + url;
+	}
 	switch(ext) {
 	case "ass":
 		client_players_RawSubs.parseAss(video,url);

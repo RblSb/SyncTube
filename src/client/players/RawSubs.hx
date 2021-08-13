@@ -22,7 +22,10 @@ class RawSubs {
 		final ext = PathTools.urlExtension(item.subs);
 		// do not load subs if there is custom plugin
 		if (JsApi.hasSubtitleSupport(ext)) return;
-		final url = '/proxy?url=${encodeURI(item.subs)}';
+		var url = encodeURI(item.subs);
+		if (!url.startsWith("/")) {
+			url = '/proxy?url=$url';
+		}
 
 		switch ext {
 			case "ass":
