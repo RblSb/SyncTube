@@ -215,6 +215,7 @@ enum abstract WsEventType(String) {
 	var SetTime;
 	var SetRate;
 	var Rewind;
+	var Flashback;
 	var SetLeader;
 	var PlayItem;
 	var SetNextItem;

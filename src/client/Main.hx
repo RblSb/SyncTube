@@ -500,6 +500,7 @@ class Main {
 			case Rewind:
 				player.setTime(data.rewind.time);
 
+			case Flashback: // server-only
 			case SetLeader:
 				clients.setLeader(data.setLeader.clientName);
 				updateUserList();
@@ -858,6 +859,9 @@ class Main {
 			case "clear":
 				send({type: ClearChat});
 				return true;
+			case "flashback", "fb":
+				send({type: Flashback});
+				return false;
 		}
 		if (matchSimpleDate.match(command)) {
 			send({

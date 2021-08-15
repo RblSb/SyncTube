@@ -1398,6 +1398,8 @@ client_Main.prototype = {
 			break;
 		case "Disconnected":
 			break;
+		case "Flashback":
+			break;
 		case "GetTime":
 			if(data.getTime.paused == null) {
 				data.getTime.paused = false;
@@ -1869,6 +1871,9 @@ client_Main.prototype = {
 		case "clear":
 			this.send({ type : "ClearChat"});
 			return true;
+		case "fb":case "flashback":
+			this.send({ type : "Flashback"});
+			return false;
 		case "removeBan":case "unban":
 			this.send({ type : "BanClient", banClient : { name : args[0], time : 0}});
 			return true;

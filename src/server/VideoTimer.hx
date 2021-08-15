@@ -34,8 +34,8 @@ class VideoTimer {
 	public function play():Void {
 		if (!isStarted) start();
 		startTime += pauseTime();
-		rateStartTime = stamp();
 		pauseStartTime = 0;
+		rateStartTime = stamp();
 	}
 
 	public function getTime():Float {

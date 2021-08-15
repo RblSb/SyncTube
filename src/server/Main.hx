@@ -27,6 +27,7 @@ using StringTools;
 class Main {
 	static inline var VIDEO_START_MAX_DELAY = 3000;
 	static inline var VIDEO_SKIP_DELAY = 1000;
+	static inline var FLASHBACK_DIST = 30;
 
 	final rootDir = '$__dirname/..';
 
@@ -379,9 +380,11 @@ class Main {
 
 	function noTypeObj(data:WsEvent):Bool {
 		if (data.type == GetTime) return false;
+		if (data.type == Flashback) return false;
 		if (data.type == TogglePlaylistLock) return false;
 		if (data.type == UpdatePlaylist) return false;
 		if (data.type == Logout) return false;
+		// check if request has same field as type value
 		final t:String = cast data.type;
 		final t = t.charAt(0).toLowerCase() + t.substr(1);
 		return js.Syntax.strictEq(Reflect.field(data, t), null);
@@ -600,6 +603,9 @@ class Main {
 			case Pause:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
+				if (Math.abs(data.pause.time - videoTimer.getTime()) > FLASHBACK_DIST) {
+					saveFlashbackTime();
+				}
 				videoTimer.setTime(data.pause.time);
 				videoTimer.pause();
 				broadcast(data);
@@ -607,6 +613,9 @@ class Main {
 			case Play:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
+				if (Math.abs(data.play.time - videoTimer.getTime()) > FLASHBACK_DIST) {
+					saveFlashbackTime();
+				}
 				videoTimer.setTime(data.play.time);
 				videoTimer.play();
 				broadcast(data);
@@ -647,6 +656,9 @@ class Main {
 			case SetTime:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
+				if (Math.abs(data.setTime.time - videoTimer.getTime()) > FLASHBACK_DIST) {
+					saveFlashbackTime();
+				}
 				videoTimer.setTime(data.setTime.time);
 				broadcastExcept(client, data);
 
@@ -661,8 +673,20 @@ class Main {
 				if (videoList.length == 0) return;
 				data.rewind.time += videoTimer.getTime();
 				if (data.rewind.time < 0) data.rewind.time = 0;
+				saveFlashbackTime();
 				videoTimer.setTime(data.rewind.time);
 				broadcast(data);
+
+			case Flashback:
+				if (!checkPermission(client, RewindPerm)) return;
+				if (videoList.length == 0) return;
+				loadFlashbackTime();
+				broadcast({
+					type: Rewind,
+					rewind: {
+						time: videoTimer.getTime()
+					}
+				});
 
 			case SetLeader:
 				final clientName = data.setLeader.clientName;
@@ -864,6 +888,7 @@ class Main {
 	var loadedClientsCount = 0;
 
 	function restartWaitTimer():Void {
+		if (videoTimer.getTime() > FLASHBACK_DIST) saveFlashbackTime();
 		videoTimer.stop();
 		if (waitVideoStart != null) waitVideoStart.stop();
 		waitVideoStart = Timer.delay(startVideoPlayback, VIDEO_START_MAX_DELAY);
@@ -881,5 +906,19 @@ class Main {
 		loadedClientsCount = 0;
 		broadcast({type: VideoLoaded});
 		videoTimer.start();
+	}
+
+	var flashbackTime = 0.0;
+
+	function saveFlashbackTime() {
+		final time = videoTimer.getTime();
+		if (Math.abs(flashbackTime - time) < FLASHBACK_DIST) return;
+		flashbackTime = time;
+	}
+
+	function loadFlashbackTime() {
+		final time = videoTimer.getTime();
+		videoTimer.setTime(flashbackTime);
+		flashbackTime = time;
 	}
 }

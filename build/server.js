@@ -1059,7 +1059,7 @@ JsonParser_$30.prototype = $extend(json2object_reader_BaseParser.prototype,{
 		this.value = null;
 	}
 	,loadJsonString: function(s,pos,variable) {
-		this.value = this.loadString(s,pos,variable,["Connected","Disconnected","Login","PasswordRequest","LoginError","Logout","Message","ServerMessage","UpdateClients","BanClient","AddVideo","RemoveVideo","SkipVideo","VideoLoaded","Pause","Play","GetTime","SetTime","SetRate","Rewind","SetLeader","PlayItem","SetNextItem","ToggleItemType","ClearChat","ClearPlaylist","ShufflePlaylist","UpdatePlaylist","TogglePlaylistLock"],"Connected");
+		this.value = this.loadString(s,pos,variable,["Connected","Disconnected","Login","PasswordRequest","LoginError","Logout","Message","ServerMessage","UpdateClients","BanClient","AddVideo","RemoveVideo","SkipVideo","VideoLoaded","Pause","Play","GetTime","SetTime","SetRate","Rewind","Flashback","SetLeader","PlayItem","SetNextItem","ToggleItemType","ClearChat","ClearPlaylist","ShufflePlaylist","UpdatePlaylist","TogglePlaylistLock"],"Connected");
 	}
 	,__class__: JsonParser_$30
 });
@@ -3807,6 +3807,7 @@ server_Logger.prototype = {
 	,__class__: server_Logger
 };
 var server_Main = function() {
+	this.flashbackTime = 0.0;
 	this.loadedClientsCount = 0;
 	this.matchGuestName = new EReg("guest [0-9]+","");
 	this.matchHtmlChars = new EReg("[&^<>'\"]","");
@@ -3857,7 +3858,7 @@ var server_Main = function() {
 	preparePort = function() {
 		server_Utils.isPortFree(_gthis.port,function(isFree) {
 			if(!isFree && attempts > 0) {
-				haxe_Log.trace("Warning: port " + _gthis.port + " is already in use. Changed to " + (_gthis.port + 1),{ fileName : "src/server/Main.hx", lineNumber : 97, className : "server.Main", methodName : "new"});
+				haxe_Log.trace("Warning: port " + _gthis.port + " is already in use. Changed to " + (_gthis.port + 1),{ fileName : "src/server/Main.hx", lineNumber : 98, className : "server.Main", methodName : "new"});
 				attempts -= 1;
 				_gthis.port++;
 				preparePort();
@@ -3875,10 +3876,10 @@ server_Main.main = function() {
 server_Main.prototype = {
 	runServer: function() {
 		var _gthis = this;
-		haxe_Log.trace("Local: http://" + this.localIp + ":" + this.port,{ fileName : "src/server/Main.hx", lineNumber : 110, className : "server.Main", methodName : "runServer"});
+		haxe_Log.trace("Local: http://" + this.localIp + ":" + this.port,{ fileName : "src/server/Main.hx", lineNumber : 111, className : "server.Main", methodName : "runServer"});
 		server_Utils.getGlobalIp(function(ip) {
 			_gthis.globalIp = ip;
-			haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 113, className : "server.Main", methodName : "runServer"});
+			haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 114, className : "server.Main", methodName : "runServer"});
 		});
 		var dir = "" + this.rootDir + "/res";
 		server_HttpServer.init(dir,"" + this.rootDir + "/user/res",this.config.localAdmins);
@@ -3955,7 +3956,7 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 179, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 180, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
@@ -3966,14 +3967,14 @@ server_Main.prototype = {
 			var emote = _g1[_g];
 			++_g;
 			if(emoteCopies_h[emote.name]) {
-				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 185, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 186, className : "server.Main", methodName : "getUserConfig"});
 			}
 			emoteCopies_h[emote.name] = true;
 			if(!this.verbose) {
 				continue;
 			}
 			if(emoteCopies_h[emote.image]) {
-				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 189, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 190, className : "server.Main", methodName : "getUserConfig"});
 			}
 			emoteCopies_h[emote.image] = true;
 		}
@@ -4015,7 +4016,7 @@ server_Main.prototype = {
 		js_node_Fs.writeFileSync("" + folder + "/users.json",JSON.stringify({ admins : users1, bans : _g, salt : users.salt},null,"\t"));
 	}
 	,saveState: function() {
-		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 228, className : "server.Main", methodName : "saveState"});
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 229, className : "server.Main", methodName : "saveState"});
 		var json = JSON.stringify({ videoList : this.videoList, isPlaylistOpen : this.isPlaylistOpen, itemPos : this.itemPos, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}},null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 		this.writeUsers(this.userList);
@@ -4024,7 +4025,7 @@ server_Main.prototype = {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
-		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 246, className : "server.Main", methodName : "loadState"});
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 247, className : "server.Main", methodName : "loadState"});
 		var data = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		this.videoList.length = 0;
 		this.messages.length = 0;
@@ -4041,7 +4042,7 @@ server_Main.prototype = {
 		this.videoTimer.pause();
 	}
 	,logError: function(type,data) {
-		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 264, className : "server.Main", methodName : "logError", customParams : [data]});
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 265, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.rootDir + "/user/crashes";
 		server_Utils.ensureDir(crashesFolder);
 		js_node_Fs.writeFileSync("" + crashesFolder + "/" + (DateTools.format(new Date(),"%Y-%m-%d_%H_%M_%S") + "-" + type) + ".json",JSON.stringify(data,null,"\t"));
@@ -4058,7 +4059,7 @@ server_Main.prototype = {
 				if(_gthis.clients.length == 0) {
 					return;
 				}
-				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 281, className : "server.Main", methodName : "initIntergationHandlers"});
+				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 282, className : "server.Main", methodName : "initIntergationHandlers"});
 				js_node_Http.get(url,null,function(r) {
 				});
 			};
@@ -4079,13 +4080,13 @@ server_Main.prototype = {
 		password += this.config.salt;
 		var hash = haxe_crypto_Sha256.encode(password);
 		this.userList.admins.push({ name : name, hash : hash});
-		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 305, className : "server.Main", methodName : "addAdmin"});
+		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 306, className : "server.Main", methodName : "addAdmin"});
 	}
 	,removeAdmin: function(name) {
 		HxOverrides.remove(this.userList.admins,Lambda.find(this.userList.admins,function(item) {
 			return item.name == name;
 		}));
-		haxe_Log.trace("Admin " + name + " removed.",{ fileName : "src/server/Main.hx", lineNumber : 312, className : "server.Main", methodName : "removeAdmin"});
+		haxe_Log.trace("Admin " + name + " removed.",{ fileName : "src/server/Main.hx", lineNumber : 313, className : "server.Main", methodName : "removeAdmin"});
 	}
 	,replayLog: function(events) {
 		var _gthis = this;
@@ -4129,7 +4130,7 @@ server_Main.prototype = {
 		var ip = this.clientIp(req);
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 350, className : "server.Main", methodName : "onConnect"});
+		haxe_Log.trace("" + name + " connected (" + ip + ")",{ fileName : "src/server/Main.hx", lineNumber : 351, className : "server.Main", methodName : "onConnect"});
 		var client = new Client(ws,req,id,name,0);
 		client.setGroupFlag(ClientGroup.Admin,this.config.localAdmins && req.socket.localAddress == ip);
 		this.clients.push(client);
@@ -4141,7 +4142,7 @@ server_Main.prototype = {
 			var obj = _gthis.wsEventParser.fromJson(data);
 			if(_gthis.wsEventParser.errors.length > 0 || _gthis.noTypeObj(obj)) {
 				var errors = "" + ("Wrong request for type \"" + obj.type + "\":") + "\n" + json2object_ErrorUtils.convertErrorArray(_gthis.wsEventParser.errors);
-				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 366, className : "server.Main", methodName : "onConnect"});
+				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 367, className : "server.Main", methodName : "onConnect"});
 				_gthis.serverMessage(client,errors);
 				return;
 			}
@@ -4153,6 +4154,9 @@ server_Main.prototype = {
 	}
 	,noTypeObj: function(data) {
 		if(data.type == "GetTime") {
+			return false;
+		}
+		if(data.type == "Flashback") {
 			return false;
 		}
 		if(data.type == "TogglePlaylistLock") {
@@ -4274,7 +4278,7 @@ server_Main.prototype = {
 			if(!internal) {
 				return;
 			}
-			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 423, className : "server.Main", methodName : "onMessage"});
+			haxe_Log.trace("Client " + client.name + " disconnected",{ fileName : "src/server/Main.hx", lineNumber : 426, className : "server.Main", methodName : "onMessage"});
 			server_Utils.sortedPush(this.freeIds,client.id);
 			HxOverrides.remove(this.clients,client);
 			this.sendClientList();
@@ -4297,6 +4301,16 @@ server_Main.prototype = {
 				}
 				_gthis.broadcast({ type : "ServerMessage", serverMessage : { textId : "" + client.name + " has left"}});
 			},5000);
+			break;
+		case "Flashback":
+			if(!this.checkPermission(client,"rewind")) {
+				return;
+			}
+			if(this.videoList.length == 0) {
+				return;
+			}
+			this.loadFlashbackTime();
+			this.broadcast({ type : "Rewind", rewind : { time : this.videoTimer.getTime()}});
 			break;
 		case "GetTime":
 			if(this.videoList.length == 0) {
@@ -4405,6 +4419,9 @@ server_Main.prototype = {
 			if((client.group & 4) == 0) {
 				return;
 			}
+			if(Math.abs(data.pause.time - this.videoTimer.getTime()) > 30) {
+				this.saveFlashbackTime();
+			}
 			this.videoTimer.setTime(data.pause.time);
 			this.videoTimer.pause();
 			this.broadcast(data);
@@ -4415,6 +4432,9 @@ server_Main.prototype = {
 			}
 			if((client.group & 4) == 0) {
 				return;
+			}
+			if(Math.abs(data.play.time - this.videoTimer.getTime()) > 30) {
+				this.saveFlashbackTime();
 			}
 			this.videoTimer.setTime(data.play.time);
 			this.videoTimer.play();
@@ -4462,6 +4482,7 @@ server_Main.prototype = {
 			if(data.rewind.time < 0) {
 				data.rewind.time = 0;
 			}
+			this.saveFlashbackTime();
 			this.videoTimer.setTime(data.rewind.time);
 			this.broadcast(data);
 			break;
@@ -4518,6 +4539,9 @@ server_Main.prototype = {
 			}
 			if((client.group & 4) == 0) {
 				return;
+			}
+			if(Math.abs(data.setTime.time - this.videoTimer.getTime()) > 30) {
+				this.saveFlashbackTime();
 			}
 			this.videoTimer.setTime(data.setTime.time);
 			this.broadcastExcept(client,data);
@@ -4643,7 +4667,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 844, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 868, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;
@@ -4670,6 +4694,9 @@ server_Main.prototype = {
 		return false;
 	}
 	,restartWaitTimer: function() {
+		if(this.videoTimer.getTime() > 30) {
+			this.saveFlashbackTime();
+		}
 		this.videoTimer.stop();
 		if(this.waitVideoStart != null) {
 			this.waitVideoStart.stop();
@@ -4695,6 +4722,18 @@ server_Main.prototype = {
 		this.loadedClientsCount = 0;
 		this.broadcast({ type : "VideoLoaded"});
 		this.videoTimer.start();
+	}
+	,saveFlashbackTime: function() {
+		var time = this.videoTimer.getTime();
+		if(Math.abs(this.flashbackTime - time) < 30) {
+			return;
+		}
+		this.flashbackTime = time;
+	}
+	,loadFlashbackTime: function() {
+		var time = this.videoTimer.getTime();
+		this.videoTimer.setTime(this.flashbackTime);
+		this.flashbackTime = time;
 	}
 	,__class__: server_Main
 };
@@ -4813,9 +4852,9 @@ server_VideoTimer.prototype = {
 			this.start();
 		}
 		this.startTime += this.pauseTime();
+		this.pauseStartTime = 0;
 		var hrtime = process.hrtime();
 		this.rateStartTime = hrtime[0] + hrtime[1] / 1e9;
-		this.pauseStartTime = 0;
 	}
 	,getTime: function() {
 		if(this.startTime == 0) {
