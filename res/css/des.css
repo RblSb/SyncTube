@@ -747,7 +747,9 @@ html {
     grid-area: video;
     width: 100%;
     height: 100%;
-    overflow: auto;
+    /* Breaks subs after viewport overflow on FF+Linux (SyncTube#28) */
+    /* overflow: auto; */
+    overflow: scroll;
     background: var(--background-video);
   }
 
