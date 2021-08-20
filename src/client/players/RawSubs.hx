@@ -5,6 +5,7 @@ import haxe.crypto.Base64;
 import haxe.io.Bytes;
 import js.Browser.document;
 import js.Browser.window;
+import js.Browser;
 import js.html.VideoElement;
 
 using StringTools;
@@ -24,6 +25,8 @@ class RawSubs {
 		if (JsApi.hasSubtitleSupport(ext)) return;
 		var url = encodeURI(item.subs);
 		if (!url.startsWith("/")) {
+			final protocol = Browser.location.protocol;
+			if (!url.startsWith("http")) url = '$protocol//$url';
 			url = '/proxy?url=$url';
 		}
 
@@ -42,6 +45,7 @@ class RawSubs {
 		window.fetch(url).then(response -> {
 			return response.text();
 		}).then(text -> {
+			if (isProxyError(text)) return;
 			final subs:Array<{
 				counter:String,
 				time:String,
@@ -76,6 +80,7 @@ class RawSubs {
 		window.fetch(url).then(response -> {
 			return response.text();
 		}).then(text -> {
+			if (isProxyError(text)) return;
 			final subs:Array<{
 				counter:Int,
 				start:String,
@@ -142,7 +147,6 @@ class RawSubs {
 				data += '${sub.start} --> ${sub.end}\n';
 				data += '${sub.text}\n\n';
 			}
-			// trace(data);
 			final textBase64 = "data:text/plain;base64,";
 			final url = textBase64 + Base64.encode(Bytes.ofString(data));
 			onParsed(video, "ASS subtitles", url);
@@ -173,19 +177,30 @@ class RawSubs {
 	}
 
 	static function parseVtt(video:VideoElement, url:String):Void {
-		window.fetch(url).then(response -> response.text()).then(data -> {
+		window.fetch(url).then(response -> response.text()).then(text -> {
+			if (isProxyError(text)) return;
 			final textBase64 = "data:text/plain;base64,";
-			final url = textBase64 + Base64.encode(Bytes.ofString(data));
+			final url = textBase64 + Base64.encode(Bytes.ofString(text));
 			onParsed(video, "VTT subtitles", url);
 		});
 	}
 
+	static function isProxyError(text:String):Bool {
+		if (text.startsWith("Proxy error:")) {
+			Main.serverMessage(4, 'Failed to add subs: proxy error');
+			trace('Failed to add subs: $text');
+			return true;
+		}
+		return false;
+	}
+
 	static function onParsed(video:VideoElement, name:String, dataUrl:String) {
 		final trackEl = document.createTrackElement();
+		trackEl.kind = "captions";
 		trackEl.label = name;
-		trackEl.kind = "subtitles";
+		trackEl.srclang = "en";
 		trackEl.src = dataUrl;
-		trackEl.default_ = true;
+		// trackEl.default_ = true;
 		video.appendChild(trackEl);
 		final track = trackEl.track;
 		track.mode = SHOWING;

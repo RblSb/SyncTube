@@ -692,7 +692,7 @@ class Main {
 		ws.send(Json.stringify(data));
 	}
 
-	public function serverMessage(type:Int, ?text:String, isText = true):Void {
+	public static function serverMessage(type:Int, ?text:String, isText = true):Void {
 		final msgBuf = ge("#messagebuffer");
 		final div = document.createDivElement();
 		final time = Date.now().toString().split(" ")[1];

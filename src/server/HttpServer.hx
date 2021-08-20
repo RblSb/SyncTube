@@ -74,7 +74,7 @@ class HttpServer {
 		}
 
 		if (url.startsWith("/proxy")) {
-			if (!proxyUrl(req, res)) res.end('Cannot proxy ${req.url}');
+			if (!proxyUrl(req, res)) res.end('Proxy error: ${req.url}');
 			return;
 		}
 
@@ -167,7 +167,7 @@ class HttpServer {
 			if (url == null) return false;
 			final proxy2 = proxyRequest(url, req, res, proxyReq -> false);
 			if (proxy2 == null) {
-				res.end('Proxy error for redirected $url');
+				res.end('Proxy error: multiple redirects for url $url');
 				return true;
 			}
 			req.pipe(proxy2, {end: true});
@@ -200,7 +200,7 @@ class HttpServer {
 			proxyReq.pipe(res, {end: true});
 		});
 		proxy.on("error", err -> {
-			res.end('Proxy error for ${url.href}');
+			res.end('Proxy error: ${url.href}');
 		});
 		return proxy;
 	}

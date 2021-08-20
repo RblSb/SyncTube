@@ -3597,7 +3597,7 @@ server_HttpServer.serveFiles = function(req,res) {
 	}
 	if(StringTools.startsWith(url,"/proxy")) {
 		if(!server_HttpServer.proxyUrl(req,res)) {
-			res.end("Cannot proxy " + req.url);
+			res.end("Proxy error: " + req.url);
 		}
 		return;
 	}
@@ -3690,7 +3690,7 @@ server_HttpServer.proxyUrl = function(req,res) {
 			return false;
 		});
 		if(proxy2 == null) {
-			res.end("Proxy error for redirected " + url);
+			res.end("Proxy error: multiple redirects for url " + url);
 			return true;
 		}
 		req.pipe(proxy2,{ end : true});
@@ -3721,7 +3721,7 @@ server_HttpServer.proxyRequest = function(url,req,res,fn) {
 		proxyReq.pipe(res,{ end : true});
 	});
 	proxy.on("error",function(err) {
-		res.end("Proxy error for " + url1.href);
+		res.end("Proxy error: " + url1.href);
 	});
 	return proxy;
 };

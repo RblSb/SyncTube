@@ -1105,6 +1105,41 @@ client_Main.__name__ = true;
 client_Main.main = function() {
 	new client_Main();
 };
+client_Main.serverMessage = function(type,text,isText) {
+	if(isText == null) {
+		isText = true;
+	}
+	var msgBuf = window.document.querySelector("#messagebuffer");
+	var div = window.document.createElement("div");
+	var time = HxOverrides.dateStr(new Date()).split(" ")[1];
+	switch(type) {
+	case 1:
+		div.className = "server-msg-reconnect";
+		div.textContent = Lang.get("msgConnected");
+		break;
+	case 2:
+		div.className = "server-msg-disconnect";
+		div.textContent = Lang.get("msgDisconnected");
+		break;
+	case 3:
+		div.className = "server-whisper";
+		div.textContent = time + text + " " + Lang.get("entered");
+		break;
+	case 4:
+		div.className = "server-whisper";
+		div.innerHTML = "<div class=\"head\">\n\t\t\t\t\t<div class=\"server-whisper\"></div>\n\t\t\t\t\t<span class=\"timestamp\">" + time + "</span>\n\t\t\t\t</div>";
+		var textDiv = div.querySelector(".server-whisper");
+		if(isText) {
+			textDiv.textContent = text;
+		} else {
+			textDiv.innerHTML = text;
+		}
+		break;
+	default:
+	}
+	msgBuf.appendChild(div);
+	msgBuf.scrollTop = msgBuf.scrollHeight;
+};
 client_Main.prototype = {
 	settingsPatcher: function(data,version) {
 		switch(version) {
@@ -1142,12 +1177,12 @@ client_Main.prototype = {
 		this.ws = new WebSocket("" + protocol + "//" + this.host + colonPort + path);
 		this.ws.onmessage = $bind(this,this.onMessage);
 		this.ws.onopen = function() {
-			_gthis.serverMessage(1);
+			client_Main.serverMessage(1);
 			return _gthis.isConnected = true;
 		};
 		this.ws.onclose = function() {
 			if(_gthis.isConnected) {
-				_gthis.serverMessage(2);
+				client_Main.serverMessage(2);
 			}
 			_gthis.isConnected = false;
 			_gthis.player.pause();
@@ -1293,7 +1328,7 @@ client_Main.prototype = {
 		}
 		this.player.getVideoData({ url : url, atEnd : atEnd},function(data) {
 			if(data.duration == 0) {
-				_gthis.serverMessage(4,Lang.get("addVideoError"));
+				client_Main.serverMessage(4,Lang.get("addVideoError"));
 				return;
 			}
 			if(data.title == null) {
@@ -1322,7 +1357,7 @@ client_Main.prototype = {
 		var isTemp = window.document.querySelector("#customembed").querySelector(".add-temp").checked;
 		this.player.getIframeData({ url : iframe, atEnd : atEnd},function(data) {
 			if(data.duration == 0) {
-				_gthis.serverMessage(4,Lang.get("addVideoError"));
+				client_Main.serverMessage(4,Lang.get("addVideoError"));
 				return;
 			}
 			if(title.length > 0) {
@@ -1495,7 +1530,7 @@ client_Main.prototype = {
 			break;
 		case "ServerMessage":
 			var id = data.serverMessage.textId;
-			this.serverMessage(4,id == "usernameError" ? StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength) : Lang.get(id));
+			client_Main.serverMessage(4,id == "usernameError" ? StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength) : Lang.get(id));
 			break;
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
@@ -1581,7 +1616,7 @@ client_Main.prototype = {
 		this.setLeaderButton((this.personal.group & 4) != 0);
 		this.setPlaylistLock(connected.isPlaylistOpen);
 		this.clearChat();
-		this.serverMessage(1);
+		client_Main.serverMessage(1);
 		var _g = 0;
 		var _g1 = connected.history;
 		while(_g < _g1.length) {
@@ -1719,41 +1754,6 @@ client_Main.prototype = {
 			return;
 		}
 		this.ws.send(JSON.stringify(data));
-	}
-	,serverMessage: function(type,text,isText) {
-		if(isText == null) {
-			isText = true;
-		}
-		var msgBuf = window.document.querySelector("#messagebuffer");
-		var div = window.document.createElement("div");
-		var time = HxOverrides.dateStr(new Date()).split(" ")[1];
-		switch(type) {
-		case 1:
-			div.className = "server-msg-reconnect";
-			div.textContent = Lang.get("msgConnected");
-			break;
-		case 2:
-			div.className = "server-msg-disconnect";
-			div.textContent = Lang.get("msgDisconnected");
-			break;
-		case 3:
-			div.className = "server-whisper";
-			div.textContent = time + text + " " + Lang.get("entered");
-			break;
-		case 4:
-			div.className = "server-whisper";
-			div.innerHTML = "<div class=\"head\">\n\t\t\t\t\t<div class=\"server-whisper\"></div>\n\t\t\t\t\t<span class=\"timestamp\">" + time + "</span>\n\t\t\t\t</div>";
-			var textDiv = div.querySelector(".server-whisper");
-			if(isText) {
-				textDiv.textContent = text;
-			} else {
-				textDiv.innerHTML = text;
-			}
-			break;
-		default:
-		}
-		msgBuf.appendChild(div);
-		msgBuf.scrollTop = msgBuf.scrollHeight;
 	}
 	,updateUserList: function() {
 		window.document.querySelector("#usercount").textContent = this.clients.length + " " + Lang.get("online");
@@ -2826,6 +2826,10 @@ client_players_RawSubs.loadSubs = function(item,video) {
 	}
 	var url = encodeURI(item.subs);
 	if(!StringTools.startsWith(url,"/")) {
+		var protocol = $global.location.protocol;
+		if(!StringTools.startsWith(url,"http")) {
+			url = "" + protocol + "//" + url;
+		}
 		url = "/proxy?url=" + url;
 	}
 	switch(ext) {
@@ -2844,6 +2848,9 @@ client_players_RawSubs.parseSrt = function(video,url) {
 	window.fetch(url).then(function(response) {
 		return response.text();
 	}).then(function(text) {
+		if(client_players_RawSubs.isProxyError(text)) {
+			return;
+		}
 		var subs = [];
 		var blocks = StringTools.replace(text,"\r\n","\n").split("\n\n");
 		var _g = 0;
@@ -2875,6 +2882,9 @@ client_players_RawSubs.parseAss = function(video,url) {
 	window.fetch(url).then(function(response) {
 		return response.text();
 	}).then(function(text) {
+		if(client_players_RawSubs.isProxyError(text)) {
+			return;
+		}
 		var subs = [];
 		var lines = StringTools.replace(text,"\r\n","\n").split("\n");
 		var matchFormat = new EReg("^Format:","");
@@ -2965,12 +2975,20 @@ client_players_RawSubs.convertAssTime = function(time) {
 	var ms = Std.parseInt(client_players_RawSubs.assTimeStamp.matched(4)) * 10;
 	return "" + StringTools.lpad("" + h,"0",2) + ":" + StringTools.lpad("" + m,"0",2) + ":" + StringTools.lpad("" + s,"0",2) + "." + HxOverrides.substr(StringTools.lpad("" + ms,"0",3),0,3);
 };
+client_players_RawSubs.isProxyError = function(text) {
+	if(StringTools.startsWith(text,"Proxy error:")) {
+		client_Main.serverMessage(4,"Failed to add subs: proxy error");
+		haxe_Log.trace("Failed to add subs: " + text,{ fileName : "src/client/players/RawSubs.hx", lineNumber : 191, className : "client.players.RawSubs", methodName : "isProxyError"});
+		return true;
+	}
+	return false;
+};
 client_players_RawSubs.onParsed = function(video,name,dataUrl) {
 	var trackEl = window.document.createElement("track");
+	trackEl.kind = "captions";
 	trackEl.label = name;
-	trackEl.kind = "subtitles";
+	trackEl.srclang = "en";
 	trackEl.src = dataUrl;
-	trackEl.default = true;
 	video.appendChild(trackEl);
 	trackEl.track.mode = "showing";
 };
@@ -3125,7 +3143,7 @@ client_players_Youtube.prototype = {
 		loadJson(dataUrl);
 	}
 	,youtubeApiError: function(error) {
-		this.main.serverMessage(4,"Error " + error.code + ": " + error.message,false);
+		client_Main.serverMessage(4,"Error " + error.code + ": " + error.message,false);
 	}
 	,getRemoteDataFallback: function(url,callback) {
 		var _gthis = this;
