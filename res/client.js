@@ -833,6 +833,9 @@ client_Buttons.initChatInput = function(main) {
 	guestName.onkeydown = function(e) {
 		if(e.keyCode == 13) {
 			main.guestLogin(guestName.value);
+			if(client_Utils.isTouch()) {
+				guestName.blur();
+			}
 		}
 	};
 	var guestPass = window.document.querySelector("#guestpass");
@@ -840,12 +843,35 @@ client_Buttons.initChatInput = function(main) {
 		if(e.keyCode == 13) {
 			main.userLogin(guestName.value,guestPass.value);
 			guestPass.value = "";
+			if(client_Utils.isTouch()) {
+				guestPass.blur();
+			}
 		}
 	};
+	if(client_Utils.isIOS()) {
+		window.document.ontouchmove = function(e) {
+			return e.preventDefault();
+		};
+		window.document.querySelector("#chat").style.height = "-webkit-fill-available";
+	}
 	var chatline = window.document.querySelector("#chatline");
 	chatline.onfocus = function(e) {
-		if(client_Utils.isTouch()) {
+		if(client_Utils.isIOS()) {
+			var startY = window.scrollY;
+			haxe_Timer.delay(function() {
+				window.scrollBy(0,-(window.scrollY - startY));
+				var tmp = "" + Std.string(window.innerHeight);
+				window.document.querySelector("#chat").style.height = tmp + "px";
+				window.document.querySelector("#video").scrollTop = 0;
+				main.scrollChatToEnd();
+			},100);
+		} else if(client_Utils.isTouch()) {
 			main.scrollChatToEnd();
+		}
+	};
+	chatline.onblur = function(e) {
+		if(client_Utils.isIOS()) {
+			window.document.querySelector("#chat").style.height = "-webkit-fill-available";
 		}
 	};
 	new client_InputWithHistory(chatline,null,50,function(value) {
@@ -853,6 +879,9 @@ client_Buttons.initChatInput = function(main) {
 			return true;
 		}
 		main.send({ type : "Message", message : { clientName : "", text : value}});
+		if(client_Utils.isTouch()) {
+			chatline.blur();
+		}
 		return true;
 	});
 };
@@ -2467,6 +2496,17 @@ client_Utils.__name__ = true;
 client_Utils.isTouch = function() {
 	return 'ontouchstart' in window;
 };
+client_Utils.isIOS = function() {
+	if(!new EReg("^(iPhone|iPad|iPod)","").match($global.navigator.platform)) {
+		if(new EReg("^Mac","").match($global.navigator.platform)) {
+			return $global.navigator.maxTouchPoints > 4;
+		} else {
+			return false;
+		}
+	} else {
+		return true;
+	}
+};
 client_Utils.nodeFromString = function(div) {
 	var wrapper = window.document.createElement("div");
 	wrapper.innerHTML = div;
@@ -2735,6 +2775,7 @@ client_players_Raw.prototype = {
 		} else {
 			this.video = window.document.createElement("video");
 			this.video.id = "videoplayer";
+			this.video.setAttribute("playsinline","");
 			this.video.src = url;
 			this.video.oncanplaythrough = ($_=this.player,$bind($_,$_.onCanBePlayed));
 			this.video.onseeking = ($_=this.player,$bind($_,$_.onSetTime));
@@ -3185,7 +3226,7 @@ client_players_Youtube.prototype = {
 		this.video = window.document.createElement("div");
 		this.video.id = "videoplayer";
 		this.playerEl.appendChild(this.video);
-		this.youtube = new YT.Player(this.video.id,{ videoId : this.extractVideoId(item.url), playerVars : { autoplay : 1, modestbranding : 1, rel : 0, showinfo : 0}, events : { onReady : function(e) {
+		this.youtube = new YT.Player(this.video.id,{ videoId : this.extractVideoId(item.url), playerVars : { autoplay : 1, playsinline : 1, modestbranding : 1, rel : 0, showinfo : 0}, events : { onReady : function(e) {
 			_gthis.isLoaded = true;
 			_gthis.youtube.pauseVideo();
 		}, onStateChange : function(e) {

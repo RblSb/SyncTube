@@ -335,7 +335,10 @@ class Buttons {
 	static function initChatInput(main:Main):Void {
 		final guestName:InputElement = cast ge("#guestname");
 		guestName.onkeydown = e -> {
-			if (e.keyCode == KeyCode.Return) main.guestLogin(guestName.value);
+			if (e.keyCode == KeyCode.Return) {
+				main.guestLogin(guestName.value);
+				if (Utils.isTouch()) guestName.blur();
+			}
 		}
 
 		final guestPass:InputElement = cast ge("#guestpass");
@@ -343,12 +346,32 @@ class Buttons {
 			if (e.keyCode == KeyCode.Return) {
 				main.userLogin(guestName.value, guestPass.value);
 				guestPass.value = "";
+				if (Utils.isTouch()) guestPass.blur();
 			}
 		}
 
+		if (Utils.isIOS()) {
+			document.ontouchmove = e -> {
+				e.preventDefault();
+			}
+			ge("#chat").style.height = "-webkit-fill-available";
+		}
 		final chatline:InputElement = cast ge("#chatline");
 		chatline.onfocus = e -> {
-			if (Utils.isTouch()) main.scrollChatToEnd();
+			if (Utils.isIOS()) {
+				var startY = window.scrollY;
+				Timer.delay(() -> {
+					window.scrollBy(0, -(window.scrollY - startY));
+					ge("#chat").style.height = '${window.innerHeight}px';
+					ge("#video").scrollTop = 0;
+					main.scrollChatToEnd();
+				}, 100);
+			} else if (Utils.isTouch()) main.scrollChatToEnd();
+		}
+		chatline.onblur = e -> {
+			if (Utils.isIOS()) {
+				ge("#chat").style.height = "-webkit-fill-available";
+			}
 		}
 		new InputWithHistory(chatline, 50, value -> {
 			if (main.handleCommands(value)) return true;
@@ -359,6 +382,7 @@ class Buttons {
 					text: value
 				}
 			});
+			if (Utils.isTouch()) chatline.blur();
 			return true;
 		});
 	}

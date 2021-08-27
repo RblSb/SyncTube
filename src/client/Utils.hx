@@ -1,6 +1,7 @@
 package client;
 
 import js.Browser.document;
+import js.Browser.navigator;
 import js.Browser.window;
 import js.html.Element;
 import js.html.URL;
@@ -8,6 +9,11 @@ import js.html.URL;
 class Utils {
 	public static function isTouch():Bool {
 		return js.Syntax.code("'ontouchstart' in window");
+	}
+
+	public static function isIOS():Bool {
+		return ~/^(iPhone|iPad|iPod)/.match(navigator.platform)
+			|| (~/^Mac/.match(navigator.platform) && navigator.maxTouchPoints > 4);
 	}
 
 	public static function nodeFromString(div:String):Element {

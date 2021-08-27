@@ -226,6 +226,7 @@ class Youtube implements IPlayer {
 			videoId: extractVideoId(item.url),
 			playerVars: {
 				autoplay: 1,
+				playsinline: 1,
 				modestbranding: 1,
 				rel: 0,
 				showinfo: 0
