@@ -3646,15 +3646,17 @@ server_HttpServer.serveMedia = function(req,res,filePath) {
 		range = "bytes=0-";
 	}
 	var ranges = new EReg("[-=]","g").split(range);
-	var start = Std.parseInt(ranges[1]);
-	if(start == null) {
+	var start = parseFloat(ranges[1]);
+	if(server_Utils.isOutOfRange(start,0,videoSize - 1)) {
 		start = 0;
 	}
-	var end = Std.parseInt(ranges[2]);
-	if(end == null) {
+	var end = parseFloat(ranges[2]);
+	if(isNaN(end)) {
 		end = start + 5242880;
 	}
-	end = Math.min(end,videoSize - 1) | 0;
+	if(server_Utils.isOutOfRange(end,start,videoSize - 1)) {
+		end = videoSize - 1;
+	}
 	res.setHeader("Content-Range","bytes " + start + "-" + end + "/" + videoSize);
 	res.setHeader("Content-Length","" + (end - start + 1));
 	res.statusCode = 206;
@@ -4801,6 +4803,13 @@ server_Utils.getLocalIp = function() {
 		}
 	}
 	return "127.0.0.1";
+};
+server_Utils.isOutOfRange = function(value,min,max) {
+	if(!(value == null || isNaN(value) || value < min)) {
+		return value > max;
+	} else {
+		return true;
+	}
 };
 server_Utils.sortedPush = function(ids,id) {
 	var _g_current = 0;

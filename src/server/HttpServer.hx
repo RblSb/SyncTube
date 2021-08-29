@@ -123,12 +123,12 @@ class HttpServer {
 		var range:String = req.headers["range"];
 		if (range == null) range = "bytes=0-";
 		final ranges = ~/[-=]/g.split(range);
-		var start = Std.parseInt(ranges[1]);
-		if (start == null) start = 0;
+		var start = Std.parseFloat(ranges[1]);
+		if (Utils.isOutOfRange(start, 0, videoSize - 1)) start = 0;
 		final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
-		var end = Std.parseInt(ranges[2]);
-		if (end == null) end = start + CHUNK_SIZE;
-		end = Std.int(Math.min(end, videoSize - 1));
+		var end = Std.parseFloat(ranges[2]);
+		if (Math.isNaN(end)) end = start + CHUNK_SIZE;
+		if (Utils.isOutOfRange(end, start, videoSize - 1)) end = videoSize - 1;
 		final contentLength = end - start + 1;
 
 		res.setHeader("Content-Range", 'bytes ${start}-${end}/${videoSize}');
@@ -136,7 +136,7 @@ class HttpServer {
 		// HTTP Status 206 for Partial Content
 		res.statusCode = 206;
 		// create video read stream for this particular chunk
-		final videoStream = Fs.createReadStream(filePath, {start: start, end: end});
+		final videoStream = Fs.createReadStream(filePath, {start: cast start, end: cast end});
 		// stream the video chunk to the client
 		videoStream.pipe(res);
 		return true;

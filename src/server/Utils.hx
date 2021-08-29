@@ -69,6 +69,10 @@ class Utils {
 		return "127.0.0.1";
 	}
 
+	public static function isOutOfRange(value:Float, min:Float, max:Float):Bool {
+		return value == null || Math.isNaN(value) || value < min || value > max;
+	}
+
 	public static function sortedPush(ids:Array<Int>, id:Int):Void {
 		for (i => n in ids) {
 			if (id < n) {
