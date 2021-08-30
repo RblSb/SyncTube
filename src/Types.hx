@@ -142,6 +142,9 @@ typedef WsEvent = {
 		name:String,
 		time:Float
 	},
+	?kickClient:{
+		name:String,
+	},
 	?addVideo:{
 		item:VideoItem,
 		atEnd:Bool
@@ -205,6 +208,7 @@ enum abstract WsEventType(String) {
 	// var AddClient;
 	// var RemoveClient;
 	var BanClient;
+	var KickClient;
 	var AddVideo;
 	var RemoveVideo;
 	var SkipVideo;

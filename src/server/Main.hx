@@ -474,6 +474,17 @@ class Main {
 				serverMessage(client, '${bannedClient.name} ($ip) has been banned.');
 				sendClientList();
 
+			case KickClient:
+				if (!checkPermission(client, BanClientPerm)) return;
+				final name = data.kickClient.name;
+				final kickedClient = clients.getByName(name);
+				if (kickedClient == null) return;
+				if (client.name != name && kickedClient.isAdmin) {
+					serverMessage(client, "adminsCannotBeBannedError");
+					return;
+				}
+				send(kickedClient, {type: KickClient});
+
 			case Login:
 				final name = data.login.clientName.trim();
 				final lcName = name.toLowerCase();

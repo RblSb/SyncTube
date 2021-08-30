@@ -40,6 +40,7 @@ class Main {
 	final filters:Array<{regex:EReg, replace:String}> = [];
 	var personal = new Client("Unknown", 0);
 	var isConnected = false;
+	var disabledReconnection = false;
 	var ws:WebSocket;
 	final player:Player;
 	var onTimeGet:Timer;
@@ -127,6 +128,7 @@ class Main {
 			if (isConnected) serverMessage(2);
 			isConnected = false;
 			player.pause();
+			if (disabledReconnection) return;
 			Timer.delay(openWebSocket, 2000);
 		}
 	}
@@ -412,6 +414,9 @@ class Main {
 				if (personal.group.toInt() != oldGroup) onUserGroupChanged();
 
 			case BanClient: // server-only
+			case KickClient:
+				disabledReconnection = true;
+				ws.close();
 			case Message:
 				addMessage(data.message.clientName, data.message.text);
 
@@ -835,6 +840,7 @@ class Main {
 
 		switch (command) {
 			case "ban":
+				mergeRedundantArgs(args, 0, 2);
 				final name = args[0];
 				final time = parseSimpleDate(args[1]);
 				if (time < 0) return true;
@@ -847,12 +853,23 @@ class Main {
 				});
 				return true;
 			case "unban", "removeBan":
+				mergeRedundantArgs(args, 0, 1);
 				final name = args[0];
 				send({
 					type: BanClient,
 					banClient: {
 						name: name,
 						time: 0
+					}
+				});
+				return true;
+			case "kick":
+				mergeRedundantArgs(args, 0, 1);
+				final name = args[0];
+				send({
+					type: KickClient,
+					kickClient: {
+						name: name
 					}
 				});
 				return true;
@@ -904,6 +921,12 @@ class Main {
 		else if (block.endsWith("h")) return time() * 60 * 60;
 		else if (block.endsWith("d")) return time() * 60 * 60 * 24;
 		return Std.parseInt(block);
+	}
+
+	function mergeRedundantArgs(args:Array<String>, pos:Int, newLength:Int):Void {
+		final count = args.length - (newLength - 1);
+		if (count < 2) return;
+		args.insert(pos, args.splice(pos, count).join(" "));
 	}
 
 	public function blinkTabWithTitle(title:String):Void {

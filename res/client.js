@@ -1097,6 +1097,7 @@ client_JsApi.fireVideoRemoveEvents = function(item) {
 var client_Main = function() {
 	this.matchSimpleDate = new EReg("^-?([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s?)?$","");
 	this.mask = new EReg("\\${([0-9]+)-([0-9]+)}","g");
+	this.disabledReconnection = false;
 	this.isConnected = false;
 	this.personal = new Client("Unknown",0);
 	this.filters = [];
@@ -1215,7 +1216,10 @@ client_Main.prototype = {
 			}
 			_gthis.isConnected = false;
 			_gthis.player.pause();
-			return haxe_Timer.delay($bind(_gthis,_gthis.openWebSocket),2000);
+			if(_gthis.disabledReconnection) {
+				return;
+			}
+			haxe_Timer.delay($bind(_gthis,_gthis.openWebSocket),2000);
 		};
 	}
 	,initListeners: function() {
@@ -1435,7 +1439,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 378, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 380, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1500,6 +1504,10 @@ client_Main.prototype = {
 				return;
 			}
 			this.player.setTime(newTime);
+			break;
+		case "KickClient":
+			this.disabledReconnection = true;
+			this.ws.close();
 			break;
 		case "Login":
 			this.onLogin(data.login.clients,data.login.clientName);
@@ -1890,6 +1898,7 @@ client_Main.prototype = {
 		command = HxOverrides.substr(args.shift(),1,null);
 		switch(command) {
 		case "ban":
+			this.mergeRedundantArgs(args,0,2);
 			var name = args[0];
 			var time = this.parseSimpleDate(args[1]);
 			if(time < 0) {
@@ -1903,7 +1912,12 @@ client_Main.prototype = {
 		case "fb":case "flashback":
 			this.send({ type : "Flashback"});
 			return false;
+		case "kick":
+			this.mergeRedundantArgs(args,0,1);
+			this.send({ type : "KickClient", kickClient : { name : args[0]}});
+			return true;
 		case "removeBan":case "unban":
+			this.mergeRedundantArgs(args,0,1);
 			this.send({ type : "BanClient", banClient : { name : args[0], time : 0}});
 			return true;
 		}
@@ -1949,6 +1963,14 @@ client_Main.prototype = {
 			return Std.parseInt(HxOverrides.substr(block,0,block.length - 1)) * 60 * 60 * 24;
 		}
 		return Std.parseInt(block);
+	}
+	,mergeRedundantArgs: function(args,pos,newLength) {
+		var count = args.length - (newLength - 1);
+		if(count < 2) {
+			return;
+		}
+		var x = args.splice(pos,count).join(" ");
+		args.splice(pos,0,x);
 	}
 	,blinkTabWithTitle: function(title) {
 		var _gthis = this;
