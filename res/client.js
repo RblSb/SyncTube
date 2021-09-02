@@ -772,12 +772,7 @@ client_Buttons.initHotkeys = function(main,player) {
 		if(!client_Buttons.settings.hotkeysEnabled) {
 			return;
 		}
-		var target = e.target;
-		if(target.isContentEditable) {
-			return;
-		}
-		var tagName = target.tagName;
-		if(tagName == "INPUT" || tagName == "TEXTAREA") {
+		if(client_Buttons.isElementEditable(e.target)) {
 			return;
 		}
 		var key = e.keyCode;
@@ -819,6 +814,19 @@ client_Buttons.initHotkeys = function(main,player) {
 		e.preventDefault();
 	};
 };
+client_Buttons.isElementEditable = function(target) {
+	if(target == null) {
+		return false;
+	}
+	if(target.isContentEditable) {
+		return true;
+	}
+	var tagName = target.tagName;
+	if(tagName == "INPUT" || tagName == "TEXTAREA") {
+		return true;
+	}
+	return false;
+};
 client_Buttons.updateSynchThresholdBtn = function() {
 	var tmp = "" + Lang.get("synchThreshold") + ": " + client_Buttons.settings.synchThreshold;
 	window.document.querySelector("#synchThresholdBtn").innerText = tmp + "s";
@@ -852,6 +860,7 @@ client_Buttons.initChatInput = function(main) {
 		window.document.ontouchmove = function(e) {
 			return e.preventDefault();
 		};
+		window.document.body.style.height = "-webkit-fill-available";
 		window.document.querySelector("#chat").style.height = "-webkit-fill-available";
 	}
 	var chatline = window.document.querySelector("#chatline");
@@ -860,17 +869,25 @@ client_Buttons.initChatInput = function(main) {
 			var startY = window.scrollY;
 			haxe_Timer.delay(function() {
 				window.scrollBy(0,-(window.scrollY - startY));
-				var tmp = "" + Std.string(window.innerHeight);
-				window.document.querySelector("#chat").style.height = tmp + "px";
 				window.document.querySelector("#video").scrollTop = 0;
 				main.scrollChatToEnd();
+				if(window.visualViewport == null) {
+					var tmp = "" + Std.string(window.innerHeight);
+					window.document.querySelector("#chat").style.height = tmp + "px";
+				}
 			},100);
 		} else if(client_Utils.isTouch()) {
 			main.scrollChatToEnd();
 		}
 	};
+	if(client_Utils.isIOS() && window.visualViewport != null) {
+		window.visualViewport.addEventListener("resize",function(e) {
+			var tmp = "" + Std.string(window.innerHeight);
+			return window.document.querySelector("#chat").style.height = tmp + "px";
+		});
+	}
 	chatline.onblur = function(e) {
-		if(client_Utils.isIOS()) {
+		if(client_Utils.isIOS() && window.visualViewport == null) {
 			window.document.querySelector("#chat").style.height = "-webkit-fill-available";
 		}
 	};
@@ -2189,7 +2206,7 @@ client_Player.prototype = {
 			return;
 		}
 		this.main.send({ type : "Play", play : { time : this.getTime()}});
-		if(this.main.hasLeaderOnPauseRequest()) {
+		if(this.main.hasLeaderOnPauseRequest() && this.items.length > 0) {
 			if(this.main.hasPermission((this.main.personal.group & 8) != 0 ? ClientGroup.Admin : ClientGroup.User,"requestLeader")) {
 				this.main.toggleLeader();
 			}
@@ -2197,7 +2214,7 @@ client_Player.prototype = {
 	}
 	,onPause: function() {
 		var _gthis = this;
-		if(this.main.hasLeaderOnPauseRequest() && this.getTime() != 0 && !this.main.hasLeader()) {
+		if(this.main.hasLeaderOnPauseRequest() && this.items.length > 0 && this.getTime() != 0 && !this.main.hasLeader()) {
 			client_JsApi.once("SetLeader",function(event) {
 				if(event.setLeader.clientName != _gthis.main.personal.name) {
 					return;

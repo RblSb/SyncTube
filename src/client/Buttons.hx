@@ -8,6 +8,7 @@ import js.html.Element;
 import js.html.ImageElement;
 import js.html.InputElement;
 import js.html.KeyboardEvent;
+import js.html.VisualViewport;
 
 using StringTools;
 
@@ -288,9 +289,7 @@ class Buttons {
 		window.onkeydown = function(e:KeyboardEvent) {
 			if (!settings.hotkeysEnabled) return;
 			final target:Element = cast e.target;
-			if (target.isContentEditable) return;
-			final tagName = target.tagName;
-			if (tagName == "INPUT" || tagName == "TEXTAREA") return;
+			if (isElementEditable(target)) return;
 			final key:KeyCode = cast e.keyCode;
 			if (key == Backspace) e.preventDefault();
 			if (!e.altKey) return;
@@ -318,6 +317,14 @@ class Buttons {
 			}
 			e.preventDefault();
 		}
+	}
+
+	static function isElementEditable(target:Element):Bool {
+		if (target == null) return false;
+		if (target.isContentEditable) return true;
+		final tagName = target.tagName;
+		if (tagName == "INPUT" || tagName == "TEXTAREA") return true;
+		return false;
 	}
 
 	static function updateSynchThresholdBtn():Void {
@@ -354,22 +361,31 @@ class Buttons {
 			document.ontouchmove = e -> {
 				e.preventDefault();
 			}
+			document.body.style.height = "-webkit-fill-available";
 			ge("#chat").style.height = "-webkit-fill-available";
 		}
 		final chatline:InputElement = cast ge("#chatline");
 		chatline.onfocus = e -> {
 			if (Utils.isIOS()) {
-				var startY = window.scrollY;
+				final startY = window.scrollY;
 				Timer.delay(() -> {
 					window.scrollBy(0, -(window.scrollY - startY));
-					ge("#chat").style.height = '${window.innerHeight}px';
 					ge("#video").scrollTop = 0;
 					main.scrollChatToEnd();
+					if (getVisualViewport() == null) { // ios < 13
+						ge("#chat").style.height = '${window.innerHeight}px';
+					}
 				}, 100);
 			} else if (Utils.isTouch()) main.scrollChatToEnd();
 		}
+		if (Utils.isIOS() && getVisualViewport() != null) {
+			final viewport = getVisualViewport();
+			viewport.addEventListener("resize", e -> {
+				ge("#chat").style.height = '${window.innerHeight}px';
+			});
+		}
 		chatline.onblur = e -> {
-			if (Utils.isIOS()) {
+			if (Utils.isIOS() && getVisualViewport() == null) { // ios < 13
 				ge("#chat").style.height = "-webkit-fill-available";
 			}
 		}
@@ -385,6 +401,10 @@ class Buttons {
 			if (Utils.isTouch()) chatline.blur();
 			return true;
 		});
+	}
+
+	static inline function getVisualViewport():Null<VisualViewport> {
+		return (window : Dynamic).visualViewport;
 	}
 
 	static function initPageFullscreen():Void {

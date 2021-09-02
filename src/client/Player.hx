@@ -175,7 +175,8 @@ class Player {
 				time: getTime()
 			}
 		});
-		if (main.hasLeaderOnPauseRequest()) {
+		final hasAutoPause = main.hasLeaderOnPauseRequest() && items.length > 0;
+		if (hasAutoPause) {
 			// do not remove leader if user cannot request it back
 			final group:Client.ClientGroup = main.isAdmin() ? Admin : User;
 			if (main.hasPermission(group, RequestLeaderPerm)) main.toggleLeader();
@@ -183,7 +184,8 @@ class Player {
 	}
 
 	public function onPause():Void {
-		final hasAutoPause = main.hasLeaderOnPauseRequest() && getTime() != 0;
+		final hasAutoPause = main.hasLeaderOnPauseRequest() && items.length > 0
+			&& getTime() != 0;
 		if (hasAutoPause && !main.hasLeader()) {
 			JsApi.once(SetLeader, event -> {
 				final name = event.setLeader.clientName;
