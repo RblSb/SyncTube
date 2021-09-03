@@ -123,7 +123,7 @@ class Main {
 		});
 		wss = new WSServer({server: server});
 		wss.on("connection", onConnect);
-		server.listen(port);
+		server.listen(port, onServerInited);
 
 		new Timer(25000).run = () -> {
 			for (client in clients) {
@@ -136,6 +136,8 @@ class Main {
 			}
 		};
 	}
+
+	dynamic function onServerInited():Void {};
 
 	public function exit():Void {
 		saveState();

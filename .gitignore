@@ -1,8 +1,9 @@
 /node_modules
+/build/tests.js
 /res/temp
-/user/config.json
+/user/crashes/
+/user/logs/
 /user/state.json
+/user/config.json
 /user/users.json
 /user/res/
-/user/logs/
-/user/crashes/
