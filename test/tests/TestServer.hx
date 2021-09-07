@@ -12,6 +12,8 @@ import utest.Assert;
 import utest.Async;
 import utest.Test;
 
+using StringTools;
+
 @:access(server)
 class TestServer extends Test {
 	@:timeout(500)
@@ -29,7 +31,9 @@ class TestServer extends Test {
 				Assert.equals("File %D0%AB%%D1%8B%00%D1%8B! not found.", data);
 			});
 			request('$url/video/skins/default.php?dir_inc=/etc/passwd%00', data -> {
-				Assert.equals("File video/skins/default.php?dir_inc=/etc/passwd not found.", data);
+				var line = "File video/skins/default.php?dir_inc=/etc/passwd not found.";
+				if (Sys.systemName() == "Windows") line = line.replace("/", "\\");
+				Assert.equals(line, data);
 			});
 			request('$url/%20', data -> {
 				Assert.equals("File   not found.", data);
