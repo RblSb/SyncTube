@@ -19,6 +19,9 @@
 		},
 		"callParameter": {
 			"defaultWrap": "keep"
+		},
+		"methodChain": {
+			"rules": []
 		}
 	}
 }

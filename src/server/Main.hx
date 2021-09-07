@@ -24,6 +24,10 @@ using ClientTools;
 using Lambda;
 using StringTools;
 
+private typedef MainOptions = {
+	loadState:Bool
+}
+
 class Main {
 	static inline var VIDEO_START_MAX_DELAY = 3000;
 	static inline var VIDEO_SKIP_DELAY = 1000;
@@ -34,6 +38,7 @@ class Main {
 	public final logsDir:String;
 	public final config:Config;
 
+	final isNoState:Bool;
 	final verbose:Bool;
 	final statePath:String;
 	var wss:WSServer;
@@ -53,10 +58,13 @@ class Main {
 	var itemPos = 0;
 
 	static function main():Void {
-		new Main();
+		new Main({
+			loadState: true
+		});
 	}
 
-	function new() {
+	function new(opts:MainOptions) {
+		isNoState = !opts.loadState;
 		verbose = Sys.args().has("--verbose");
 		statePath = '$rootDir/user/state.json';
 		logsDir = '$rootDir/user/logs';
@@ -91,7 +99,7 @@ class Main {
 		final envPort = (process.env : Dynamic).PORT;
 		if (envPort != null) port = envPort;
 
-		var attempts = 5;
+		var attempts = isNoState ? 500 : 5;
 		function preparePort():Void {
 			Utils.isPortFree(port, isFree -> {
 				if (!isFree && attempts > 0) {
@@ -109,7 +117,7 @@ class Main {
 
 	function runServer():Void {
 		trace('Local: http://$localIp:$port');
-		Utils.getGlobalIp(ip -> {
+		if (!isNoState) Utils.getGlobalIp(ip -> {
 			globalIp = ip;
 			trace('Global: http://$globalIp:$port');
 		});
@@ -174,6 +182,7 @@ class Main {
 
 	function getUserConfig():Config {
 		final config:Config = Json.parse(File.getContent('$rootDir/default-config.json'));
+		if (isNoState) return config;
 		final customPath = '$rootDir/user/config.json';
 		if (!FileSystem.exists(customPath)) return config;
 		final customConfig:Config = Json.parse(File.getContent(customPath));
@@ -198,7 +207,7 @@ class Main {
 
 	function loadUsers():UserList {
 		final customPath = '$rootDir/user/users.json';
-		if (!FileSystem.exists(customPath)) return {
+		if (isNoState || !FileSystem.exists(customPath)) return {
 			admins: [],
 			bans: []
 		};
@@ -245,6 +254,7 @@ class Main {
 	}
 
 	function loadState():Void {
+		if (isNoState) return;
 		if (!FileSystem.exists(statePath)) return;
 		trace("Loading state...");
 		final data:ServerState = Json.parse(File.getContent(statePath));
@@ -621,7 +631,10 @@ class Main {
 				}
 				videoTimer.setTime(data.pause.time);
 				videoTimer.pause();
-				broadcast(data);
+				broadcast({
+					type: data.type,
+					pause: data.pause
+				});
 
 			case Play:
 				if (videoList.length == 0) return;
@@ -631,7 +644,10 @@ class Main {
 				}
 				videoTimer.setTime(data.play.time);
 				videoTimer.play();
-				broadcast(data);
+				broadcast({
+					type: data.type,
+					play: data.play
+				});
 
 			case GetTime:
 				if (videoList.length == 0) return;
@@ -639,15 +655,12 @@ class Main {
 				if (videoTimer.getTime() > maxTime) {
 					videoTimer.pause();
 					videoTimer.setTime(maxTime);
-					final currentLength = videoList.length;
-					final currentPos = itemPos;
+					final skipUrl = videoList[itemPos].url;
 					Timer.delay(() -> {
-						if (videoList.length != currentLength) return;
-						if (itemPos != currentPos) return;
 						skipVideo({
 							type: SkipVideo,
 							skipVideo: {
-								url: videoList[itemPos].url
+								url: skipUrl
 							}
 						});
 					}, VIDEO_SKIP_DELAY);
@@ -673,13 +686,19 @@ class Main {
 					saveFlashbackTime();
 				}
 				videoTimer.setTime(data.setTime.time);
-				broadcastExcept(client, data);
+				broadcastExcept(client, {
+					type: data.type,
+					setTime: data.setTime
+				});
 
 			case SetRate:
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
 				videoTimer.setRate(data.setRate.rate);
-				broadcastExcept(client, data);
+				broadcastExcept(client, {
+					type: data.type,
+					setRate: data.setRate
+				});
 
 			case Rewind:
 				if (!checkPermission(client, RewindPerm)) return;
@@ -688,7 +707,10 @@ class Main {
 				if (data.rewind.time < 0) data.rewind.time = 0;
 				saveFlashbackTime();
 				videoTimer.setTime(data.rewind.time);
-				broadcast(data);
+				broadcast({
+					type: data.type,
+					rewind: data.rewind
+				});
 
 			case Flashback:
 				if (!checkPermission(client, RewindPerm)) return;
