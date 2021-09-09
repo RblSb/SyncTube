@@ -2214,7 +2214,7 @@ client_Player.prototype = {
 	}
 	,onPause: function() {
 		var _gthis = this;
-		if(this.main.hasLeaderOnPauseRequest() && this.items.length > 0 && this.getTime() != 0 && !this.main.hasLeader()) {
+		if(this.main.hasLeaderOnPauseRequest() && this.items.length > 0 && this.getTime() > 1 && !this.main.hasLeader()) {
 			client_JsApi.once("SetLeader",function(event) {
 				if(event.setLeader.clientName != _gthis.main.personal.name) {
 					return;

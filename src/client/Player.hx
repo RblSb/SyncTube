@@ -185,7 +185,7 @@ class Player {
 
 	public function onPause():Void {
 		final hasAutoPause = main.hasLeaderOnPauseRequest() && items.length > 0
-			&& getTime() != 0;
+			&& getTime() > 1;
 		if (hasAutoPause && !main.hasLeader()) {
 			JsApi.once(SetLeader, event -> {
 				final name = event.setLeader.clientName;
