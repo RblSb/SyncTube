@@ -489,7 +489,9 @@ class Main {
 				else player.pause();
 				player.setPauseIndicator(!data.getTime.paused);
 				if (Math.abs(time - newTime) < synchThreshold) return;
-				player.setTime(newTime);
+				// +0.5s for buffering
+				if (!data.getTime.paused) player.setTime(newTime + 0.5);
+				else player.setTime(newTime);
 
 			case SetTime:
 				final synchThreshold = settings.synchThreshold;
@@ -503,7 +505,7 @@ class Main {
 				player.setPlaybackRate(data.setRate.rate);
 
 			case Rewind:
-				player.setTime(data.rewind.time);
+				player.setTime(data.rewind.time + 0.5);
 
 			case Flashback: // server-only
 			case SetLeader:
