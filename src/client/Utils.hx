@@ -1,5 +1,6 @@
 package client;
 
+import haxe.io.Mime;
 import js.Browser.document;
 import js.Browser.navigator;
 import js.Browser.window;
@@ -125,5 +126,23 @@ class Utils {
 		}
 		document.body.appendChild(input);
 		input.click();
+	}
+
+	public static function saveFile(name:String, mime:Mime, data:String):Void {
+		final blob = new js.html.Blob([data], {
+			type: mime
+		});
+		final url = URL.createObjectURL(blob);
+		final a = document.createElement("a");
+		untyped a.download = name;
+		untyped a.href = url;
+		a.onclick = function(e) {
+			e.cancelBubble = true;
+			e.stopPropagation();
+		}
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
 	}
 }

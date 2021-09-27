@@ -193,6 +193,9 @@ typedef WsEvent = {
 	},
 	?togglePlaylistLock:{
 		isOpen:Bool
+	},
+	?dump:{
+		data:String
 	}
 }
 
@@ -230,4 +233,5 @@ enum abstract WsEventType(String) {
 	var ShufflePlaylist;
 	var UpdatePlaylist;
 	var TogglePlaylistLock;
+	var Dump;
 }

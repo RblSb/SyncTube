@@ -238,7 +238,13 @@ class Main {
 
 	function saveState():Void {
 		trace("Saving state...");
-		final data:ServerState = {
+		final json = Json.stringify(getCurrentState(), "\t");
+		File.saveContent(statePath, json);
+		writeUsers(userList);
+	}
+
+	function getCurrentState():ServerState {
+		return {
 			videoList: videoList,
 			isPlaylistOpen: isPlaylistOpen,
 			itemPos: itemPos,
@@ -248,9 +254,6 @@ class Main {
 				paused: videoTimer.isPaused()
 			}
 		}
-		final json = Json.stringify(data, "\t");
-		File.saveContent(statePath, json);
-		writeUsers(userList);
 	}
 
 	function loadState():Void {
@@ -395,6 +398,7 @@ class Main {
 		if (data.type == TogglePlaylistLock) return false;
 		if (data.type == UpdatePlaylist) return false;
 		if (data.type == Logout) return false;
+		if (data.type == Dump) return false;
 		// check if request has same field as type value
 		final t:String = cast data.type;
 		final t = t.charAt(0).toLowerCase() + t.substr(1);
@@ -809,6 +813,29 @@ class Main {
 					type: TogglePlaylistLock,
 					togglePlaylistLock: {
 						isOpen: isPlaylistOpen
+					}
+				});
+
+			case Dump:
+				if (!client.isAdmin) return;
+				final data = {
+					state: getCurrentState(),
+					clients: clients.map(client -> {
+						name: client.name,
+						id: client.id,
+						ip: clientIp(client.req),
+						isBanned: client.isBanned,
+						isAdmin: client.isAdmin,
+						isLeader: client.isLeader,
+						isUser: client.isUser,
+					}),
+					logs: logger.getLogs()
+				}
+				final json = Json.stringify(data, logger.filterNulls, "\t");
+				send(client, {
+					type: Dump,
+					dump: {
+						data: json
 					}
 				});
 		}

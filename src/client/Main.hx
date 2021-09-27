@@ -534,6 +534,9 @@ class Main {
 
 			case TogglePlaylistLock:
 				setPlaylistLock(data.togglePlaylistLock.isOpen);
+
+			case Dump:
+				Utils.saveFile("dump.json", ApplicationJson, data.dump.data);
 		}
 	}
 
@@ -879,6 +882,9 @@ class Main {
 			case "flashback", "fb":
 				send({type: Flashback});
 				return false;
+			case "dump":
+				send({type: Dump});
+				return true;
 		}
 		if (matchSimpleDate.match(command)) {
 			send({

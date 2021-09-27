@@ -23,7 +23,7 @@ class Logger {
 
 	public function log(event:ServerEvent):Void {
 		logs.push(event);
-		if (logs.length > 5000) logs.shift();
+		if (logs.length > 1000) logs.shift();
 	}
 
 	public function saveLog():Void {
@@ -34,7 +34,11 @@ class Logger {
 		File.saveContent('$folder/$name.json', Json.stringify(logs, filterNulls, "\t"));
 	}
 
-	function filterNulls(key:Any, value:Any):Any {
+	public function getLogs():Array<ServerEvent> {
+		return logs;
+	}
+
+	public function filterNulls(key:Any, value:Any):Any {
 		#if js
 		if (value == null) return js.Lib.undefined;
 		#end

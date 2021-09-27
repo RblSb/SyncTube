@@ -1483,6 +1483,9 @@ client_Main.prototype = {
 			break;
 		case "Disconnected":
 			break;
+		case "Dump":
+			client_Utils.saveFile("dump.json","application/json",data.dump.data);
+			break;
 		case "Flashback":
 			break;
 		case "GetTime":
@@ -1925,6 +1928,9 @@ client_Main.prototype = {
 			return true;
 		case "clear":
 			this.send({ type : "ClearChat"});
+			return true;
+		case "dump":
+			this.send({ type : "Dump"});
 			return true;
 		case "fb":case "flashback":
 			this.send({ type : "Flashback"});
@@ -2642,6 +2648,21 @@ client_Utils.browseFileUrl = function(onFileLoad,isBinary,revoke) {
 	};
 	window.document.body.appendChild(input);
 	input.click();
+};
+client_Utils.saveFile = function(name,mime,data) {
+	var blob = new Blob([data],{ type : mime});
+	var url = URL.createObjectURL(blob);
+	var a = window.document.createElement("a");
+	a.download = name;
+	a.href = url;
+	a.onclick = function(e) {
+		e.cancelBubble = true;
+		e.stopPropagation();
+	};
+	window.document.body.appendChild(a);
+	a.click();
+	window.document.body.removeChild(a);
+	URL.revokeObjectURL(url);
 };
 var client_players_Iframe = function(main,player) {
 	this.playerEl = window.document.querySelector("#ytapiplayer");
