@@ -299,11 +299,10 @@ class Main {
 
 	function clientIp(req:IncomingMessage):String {
 		// Heroku uses internal proxy, so header cannot be spoofed
-		if (isHeroku) {
-			var forwarded:String = req.headers["x-forwarded-for"];
-			forwarded = forwarded.split(",")[0].trim();
+		if (config.allowProxyIps || isHeroku) {
+			final forwarded:String = req.headers["x-forwarded-for"];
 			if (forwarded == null || forwarded.length == 0) return req.socket.remoteAddress;
-			return forwarded;
+			return forwarded.split(",")[0].trim();
 		}
 		return req.socket.remoteAddress;
 	}
@@ -360,7 +359,7 @@ class Main {
 		final ip = clientIp(req);
 		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
 		final name = 'Guest ${id + 1}';
-		trace('$name connected ($ip)');
+		trace(Date.now().toString(), '$name connected ($ip)');
 		final isAdmin = config.localAdmins && req.socket.localAddress == ip;
 		final client = new Client(ws, req, id, name, 0);
 		client.isAdmin = isAdmin;
@@ -435,7 +434,7 @@ class Main {
 
 			case Disconnected:
 				if (!internal) return;
-				trace('Client ${client.name} disconnected');
+				trace(Date.now().toString(), 'Client ${client.name} disconnected');
 				Utils.sortedPush(freeIds, client.id);
 				clients.remove(client);
 				sendClientList();
@@ -522,6 +521,7 @@ class Main {
 						return;
 					}
 				}
+				trace(Date.now().toString(), 'Client ${client.name} logged as $name');
 				client.name = name;
 				client.isUser = true;
 				checkBan(client);
@@ -542,6 +542,7 @@ class Main {
 				final id = clients.indexOf(client) + 1;
 				client.name = 'Guest $id';
 				client.isUser = false;
+				trace(Date.now().toString(), 'Client $oldName logout to ${client.name}');
 				send(client, {
 					type: data.type,
 					logout: {
