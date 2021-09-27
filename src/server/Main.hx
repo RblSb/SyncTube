@@ -54,8 +54,6 @@ class Main {
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
 	final logger:Logger;
-	var isPlaylistOpen = true;
-	var itemPos = 0;
 
 	static function main():Void {
 		new Main({
@@ -245,9 +243,9 @@ class Main {
 
 	function getCurrentState():ServerState {
 		return {
-			videoList: videoList,
-			isPlaylistOpen: isPlaylistOpen,
-			itemPos: itemPos,
+			videoList: videoList.getItems(),
+			isPlaylistOpen: videoList.isOpen,
+			itemPos: videoList.pos,
 			messages: messages,
 			timer: {
 				time: videoTimer.getTime(),
@@ -261,13 +259,10 @@ class Main {
 		if (!FileSystem.exists(statePath)) return;
 		trace("Loading state...");
 		final data:ServerState = Json.parse(File.getContent(statePath));
-		videoList.resize(0);
+		videoList.setItems(data.videoList);
 		messages.resize(0);
-		for (item in data.videoList) {
-			videoList.push(item);
-		}
-		isPlaylistOpen = data.isPlaylistOpen;
-		itemPos = data.itemPos;
+		videoList.isOpen = data.isPlaylistOpen;
+		videoList.setPos(data.itemPos);
 		for (message in data.messages) {
 			messages.push(message);
 		}
@@ -428,9 +423,9 @@ class Main {
 						isUnknownClient: true,
 						clientName: client.name,
 						clients: clientList(),
-						videoList: videoList,
-						isPlaylistOpen: isPlaylistOpen,
-						itemPos: itemPos,
+						videoList: videoList.getItems(),
+						isPlaylistOpen: videoList.isOpen,
+						itemPos: videoList.pos,
 						globalIp: globalIp
 					}
 				});
@@ -574,7 +569,7 @@ class Main {
 			case ServerMessage:
 			case AddVideo:
 				if (!checkPermission(client, AddVideoPerm)) return;
-				if (!isPlaylistOpen) {
+				if (!videoList.isOpen) {
 					if (!checkPermission(client, LockPlaylistPerm)) return;
 				}
 				if (config.totalVideoLimit != 0 && videoList.length >= config.totalVideoLimit) {
@@ -599,7 +594,7 @@ class Main {
 					serverMessage(client, "videoAlreadyExistsError");
 					return;
 				}
-				videoList.addItem(item, data.addVideo.atEnd, itemPos);
+				videoList.addItem(item, data.addVideo.atEnd);
 				broadcast(data);
 				// Initial timer start if VideoLoaded is not happen
 				if (videoList.length == 1) restartWaitTimer();
@@ -615,8 +610,8 @@ class Main {
 				var index = videoList.findIndex(item -> item.url == url);
 				if (index == -1) return;
 
-				final isCurrent = videoList[itemPos].url == url;
-				itemPos = videoList.removeItem(index, itemPos);
+				final isCurrent = videoList.getCurrentItem().url == url;
+				videoList.removeItem(index);
 				if (isCurrent && videoList.length > 0) {
 					broadcast(data);
 					restartWaitTimer();
@@ -656,11 +651,11 @@ class Main {
 
 			case GetTime:
 				if (videoList.length == 0) return;
-				final maxTime = videoList[itemPos].duration - 0.01;
+				final maxTime = videoList.getCurrentItem().duration - 0.01;
 				if (videoTimer.getTime() > maxTime) {
 					videoTimer.pause();
 					videoTimer.setTime(maxTime);
-					final skipUrl = videoList[itemPos].url;
+					final skipUrl = videoList.getCurrentItem().url;
 					Timer.delay(() -> {
 						skipVideo({
 							type: SkipVideo,
@@ -756,15 +751,16 @@ class Main {
 
 			case PlayItem:
 				if (!checkPermission(client, ChangeOrderPerm)) return;
-				itemPos = data.playItem.pos;
+				videoList.setPos(data.playItem.pos);
+				data.playItem.pos = videoList.pos;
 				restartWaitTimer();
 				broadcast(data);
 
 			case SetNextItem:
 				if (!checkPermission(client, ChangeOrderPerm)) return;
 				final pos = data.setNextItem.pos;
-				if (pos == itemPos || pos == itemPos + 1) return;
-				itemPos = videoList.setNextItem(pos, itemPos);
+				if (pos == videoList.pos || pos == videoList.pos + 1) return;
+				videoList.setNextItem(pos);
 				broadcast(data);
 
 			case ToggleItemType:
@@ -780,21 +776,17 @@ class Main {
 			case ClearPlaylist:
 				if (!checkPermission(client, RemoveVideoPerm)) return;
 				videoTimer.stop();
-				videoList.resize(0);
-				itemPos = 0;
+				videoList.clear();
 				broadcast(data);
 
 			case ShufflePlaylist:
 				if (!checkPermission(client, ChangeOrderPerm)) return;
 				if (videoList.length == 0) return;
-				final current = videoList[itemPos];
-				videoList.remove(current);
-				Utils.shuffle(videoList);
-				videoList.insert(itemPos, current);
+				videoList.shuffle();
 				broadcast({
 					type: UpdatePlaylist,
 					updatePlaylist: {
-						videoList: videoList
+						videoList: videoList.getItems()
 					}
 				});
 
@@ -802,17 +794,17 @@ class Main {
 				broadcast({
 					type: UpdatePlaylist,
 					updatePlaylist: {
-						videoList: videoList
+						videoList: videoList.getItems()
 					}
 				});
 
 			case TogglePlaylistLock:
 				if (!checkPermission(client, LockPlaylistPerm)) return;
-				isPlaylistOpen = !isPlaylistOpen;
+				videoList.isOpen = !videoList.isOpen;
 				broadcast({
 					type: TogglePlaylistLock,
 					togglePlaylistLock: {
-						isOpen: isPlaylistOpen
+						isOpen: videoList.isOpen
 					}
 				});
 
@@ -894,9 +886,9 @@ class Main {
 
 	function skipVideo(data:WsEvent):Void {
 		if (videoList.length == 0) return;
-		final item = videoList[itemPos];
+		final item = videoList.getCurrentItem();
 		if (item.url != data.skipVideo.url) return;
-		itemPos = videoList.skipItem(itemPos);
+		videoList.skipItem();
 		if (videoList.length > 0) restartWaitTimer();
 		broadcast(data);
 	}

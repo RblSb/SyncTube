@@ -127,6 +127,7 @@ class Raw implements IPlayer {
 		if (Utils.isTouch()) return;
 		if (controlsHider != null) controlsHider.stop();
 		controlsHider = Timer.delay(() -> {
+			if (video == null) return;
 			video.controls = false;
 		}, 3000);
 		video.onmousemove = e -> {

@@ -17,11 +17,10 @@ class Player {
 	final players:Array<IPlayer>;
 	final iframePlayer:IPlayer;
 	final rawPlayer:IPlayer;
-	final items = new VideoList();
+	final videoList = new VideoList();
 	final videoItemsEl = ge("#queue");
 	final playerEl:Element = ge("#ytapiplayer");
 	var player:Null<IPlayer>;
-	var itemPos = 0;
 	var isLoaded = false;
 	var skipSetTime = false;
 	var skipSetRate = false;
@@ -73,23 +72,23 @@ class Player {
 	}
 
 	public function setNextItem(pos:Int):Void {
-		itemPos = items.setNextItem(pos, itemPos);
+		videoList.setNextItem(pos);
 
 		final next = videoItemsEl.children[pos];
 		videoItemsEl.removeChild(next);
-		Utils.insertAtIndex(videoItemsEl, next, itemPos + 1);
+		Utils.insertAtIndex(videoItemsEl, next, videoList.pos + 1);
 	}
 
 	public function toggleItemType(pos:Int):Void {
-		items.toggleItemType(pos);
+		videoList.toggleItemType(pos);
 		final el = videoItemsEl.children[pos];
-		setItemElementType(el, items[pos].isTemp);
+		setItemElementType(el, videoList.getItem(videoList.pos).isTemp);
 	}
 
 	function setPlayer(newPlayer:IPlayer):Void {
 		if (player != newPlayer) {
 			if (player != null) {
-				JsApi.fireVideoRemoveEvents(items[itemPos]);
+				JsApi.fireVideoRemoveEvents(videoList.getCurrentItem());
 				player.removeVideo();
 			}
 			main.blinkTabWithTitle("*Video*");
@@ -113,18 +112,15 @@ class Player {
 
 	public function setVideo(i:Int):Void {
 		if (!main.isSyncActive) return;
-		final item = items[i];
+		final item = videoList.getItem(i);
 		var currentPlayer = players.find(p -> p.isSupportedLink(item.url));
 		if (currentPlayer != null) setPlayer(currentPlayer);
 		else if (item.isIframe) setPlayer(iframePlayer);
 		else setPlayer(rawPlayer);
 
-		final childs = videoItemsEl.children;
-		if (childs[itemPos] != null) {
-			childs[itemPos].classList.remove("queue_active");
-		}
-		itemPos = i;
-		childs[itemPos].classList.add("queue_active");
+		removeActiveLabel(videoList.pos);
+		videoList.setPos(i);
+		addActiveLabel(videoList.pos);
 
 		isLoaded = false;
 		player.loadVideo(item);
@@ -134,7 +130,7 @@ class Player {
 
 	public function changeVideoSrc(src:String):Void {
 		if (player == null) return;
-		final item = items[itemPos];
+		final item = videoList.getCurrentItem();
 		if (item == null) return;
 		player.loadVideo({
 			url: src,
@@ -148,7 +144,7 @@ class Player {
 	}
 
 	public function removeVideo():Void {
-		JsApi.fireVideoRemoveEvents(items[itemPos]);
+		JsApi.fireVideoRemoveEvents(videoList.getCurrentItem());
 		player.removeVideo();
 		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
 		setPauseIndicator(true);
@@ -175,7 +171,7 @@ class Player {
 				time: getTime()
 			}
 		});
-		final hasAutoPause = main.hasLeaderOnPauseRequest() && items.length > 0;
+		final hasAutoPause = main.hasLeaderOnPauseRequest() && videoList.length > 0;
 		if (hasAutoPause) {
 			// do not remove leader if user cannot request it back
 			final group:Client.ClientGroup = main.isAdmin() ? Admin : User;
@@ -184,7 +180,7 @@ class Player {
 	}
 
 	public function onPause():Void {
-		final hasAutoPause = main.hasLeaderOnPauseRequest() && items.length > 0
+		final hasAutoPause = main.hasLeaderOnPauseRequest() && videoList.length > 0
 			&& getTime() > 1;
 		if (hasAutoPause && !main.hasLeader()) {
 			JsApi.once(SetLeader, event -> {
@@ -255,10 +251,10 @@ class Player {
 				</span>
 			</li>'
 		);
-		items.addItem(item, atEnd, itemPos);
+		videoList.addItem(item, atEnd);
 		setItemElementType(itemEl, item.isTemp);
 		if (atEnd) videoItemsEl.appendChild(itemEl);
-		else Utils.insertAtIndex(videoItemsEl, itemEl, itemPos + 1);
+		else Utils.insertAtIndex(videoItemsEl, itemEl, videoList.pos + 1);
 		updateCounters();
 	}
 
@@ -273,15 +269,15 @@ class Player {
 
 	public function removeItem(url:String):Void {
 		removeElementItem(url);
-		var index = items.findIndex(item -> item.url == url);
+		var index = videoList.findIndex(item -> item.url == url);
 		if (index == -1) return;
 
-		final isCurrent = items[itemPos].url == url;
-		itemPos = items.removeItem(index, itemPos);
+		final isCurrent = videoList.getCurrentItem().url == url;
+		videoList.removeItem(index);
 		updateCounters();
 
-		if (isCurrent && items.length > 0) {
-			setVideo(itemPos);
+		if (isCurrent && videoList.length > 0) {
+			setVideo(videoList.pos);
 		}
 	}
 
@@ -295,47 +291,64 @@ class Player {
 	}
 
 	public function skipItem(url:String):Void {
-		var index = items.findIndex(item -> item.url == url);
-		if (index == -1) return;
-		if (items[index].isTemp) removeElementItem(url);
-		index = items.skipItem(index);
+		final pos = videoList.findIndex(item -> item.url == url);
+		if (pos == -1) return;
+		removeActiveLabel(videoList.pos);
+		videoList.setPos(pos);
+		if (videoList.getCurrentItem().isTemp) removeElementItem(url);
+		videoList.skipItem();
 		updateCounters();
-		if (items.length == 0) return;
-		setVideo(index);
+		if (videoList.length == 0) return;
+		setVideo(videoList.pos);
+	}
+
+	function addActiveLabel(pos:Int):Void {
+		final childs = videoItemsEl.children;
+		if (childs[videoList.pos] != null) {
+			childs[videoList.pos].classList.add("queue_active");
+		}
+	}
+
+	function removeActiveLabel(pos:Int):Void {
+		final childs = videoItemsEl.children;
+		if (childs[videoList.pos] != null) {
+			childs[videoList.pos].classList.remove("queue_active");
+		}
 	}
 
 	function updateCounters():Void {
-		ge("#plcount").textContent = '${items.length} ${Lang.get("videos")}';
+		ge("#plcount").textContent = '${videoList.length} ${Lang.get("videos")}';
 		ge("#pllength").textContent = totalDuration();
 	}
 
-	public function getItems():VideoList {
-		return items;
+	public function getItems():Array<VideoItem> {
+		return videoList.getItems();
 	}
 
 	public function setItems(list:Array<VideoItem>, ?pos:Int):Void {
-		final currentUrl = itemPos >= items.length ? "" : items[itemPos].url;
+		final currentUrl = videoList.pos >= videoList.length ? "" : videoList.getCurrentItem()
+			.url;
 		clearItems();
-		if (pos != null) itemPos = pos;
+		if (pos != null) videoList.setPos(pos);
 		if (list.length == 0) return;
 		for (video in list) {
 			addVideoItem(video, true);
 		}
-		if (currentUrl != items[itemPos].url) setVideo(itemPos);
-		else videoItemsEl.children[itemPos].classList.add("queue_active");
+		if (currentUrl != videoList.getCurrentItem().url) setVideo(videoList.pos);
+		else addActiveLabel(videoList.pos);
 	}
 
 	public function clearItems():Void {
-		items.resize(0);
+		videoList.clear();
 		videoItemsEl.textContent = "";
 		updateCounters();
 	}
 
 	public function refresh():Void {
-		if (items.length == 0) return;
+		if (videoList.length == 0) return;
 		final time = getTime();
 		removeVideo();
-		setVideo(itemPos);
+		setVideo(videoList.pos);
 		// restore server time for leader with next GetTime
 		if (main.isLeader()) {
 			setTime(time);
@@ -357,7 +370,7 @@ class Player {
 
 	function totalDuration():String {
 		var time = 0.0;
-		for (item in items) {
+		for (item in videoList.getItems()) {
 			if (item.isIframe) continue;
 			time += item.duration;
 		}
@@ -365,15 +378,15 @@ class Player {
 	}
 
 	public function isListEmpty():Bool {
-		return items.length == 0;
+		return videoList.length == 0;
 	}
 
 	public function itemsLength():Int {
-		return items.length;
+		return videoList.length;
 	}
 
 	public function getItemPos():Int {
-		return itemPos;
+		return videoList.pos;
 	}
 
 	public function hasVideo():Bool {
@@ -381,8 +394,8 @@ class Player {
 	}
 
 	public function getDuration():Float {
-		if (itemPos >= items.length) return 0;
-		return items[itemPos].duration;
+		if (videoList.pos >= videoList.length) return 0;
+		return videoList.getCurrentItem().duration;
 	}
 
 	public function isVideoLoaded():Bool {

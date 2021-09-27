@@ -66,7 +66,7 @@ class JsApi {
 	}
 
 	@:expose
-	static function getVideoItems():VideoList {
+	static function getVideoItems():Array<VideoItem> {
 		final items = player.getItems();
 		return [
 			for (item in items) Reflect.copy(item)
