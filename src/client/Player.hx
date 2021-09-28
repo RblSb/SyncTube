@@ -329,11 +329,11 @@ class Player {
 		final currentUrl = videoList.pos >= videoList.length ? "" : videoList.getCurrentItem()
 			.url;
 		clearItems();
-		if (pos != null) videoList.setPos(pos);
 		if (list.length == 0) return;
 		for (video in list) {
 			addVideoItem(video, true);
 		}
+		if (pos != null) videoList.setPos(pos);
 		if (currentUrl != videoList.getCurrentItem().url) setVideo(videoList.pos);
 		else addActiveLabel(videoList.pos);
 	}

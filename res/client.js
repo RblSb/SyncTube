@@ -2363,14 +2363,14 @@ client_Player.prototype = {
 			currentUrl = _this.items[_this.pos].url;
 		}
 		this.clearItems();
-		if(pos != null) {
-			this.videoList.setPos(pos);
-		}
 		if(list.length == 0) {
 			return;
 		}
 		var _g = 0;
 		while(_g < list.length) this.addVideoItem(list[_g++],true);
+		if(pos != null) {
+			this.videoList.setPos(pos);
+		}
 		var _this = this.videoList;
 		if(currentUrl != _this.items[_this.pos].url) {
 			this.setVideo(this.videoList.pos);
