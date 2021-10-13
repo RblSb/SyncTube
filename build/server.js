@@ -3623,7 +3623,7 @@ server_ConsoleInput.prototype = {
 				}
 			}
 			var _g1 = 0;
-			while(_g1 < _g.length) haxe_Log.trace(haxe_io_Path.withoutExtension(_g[_g1++]),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 141, className : "server.ConsoleInput", methodName : "parseLine"});
+			while(_g1 < _g.length) haxe_Log.trace(haxe_io_Path.withoutExtension(_g[_g1++]),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 142, className : "server.ConsoleInput", methodName : "parseLine"});
 			break;
 		case "removeAdmin":
 			this.main.removeAdmin(args[0]);
@@ -3644,7 +3644,7 @@ server_ConsoleInput.prototype = {
 		var len = args.length;
 		var actual = this.commands.h[command].args.length;
 		if(len != actual) {
-			haxe_Log.trace("Wrong count of arguments for command \"" + command + "\" (" + len + " instead of " + actual + ")",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 153, className : "server.ConsoleInput", methodName : "isValidArgs"});
+			haxe_Log.trace("Wrong count of arguments for command \"" + command + "\" (" + len + " instead of " + actual + ")",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 154, className : "server.ConsoleInput", methodName : "isValidArgs"});
 			return false;
 		}
 		return true;
@@ -3674,7 +3674,7 @@ server_ConsoleInput.prototype = {
 			var data = _g.value;
 			list.push("" + StringTools.rpad("/" + _g.key + " " + data.args.join(" ")," ",maxLength) + " | " + data.desc);
 		}
-		haxe_Log.trace("Unknown command \"" + line + "\". List:\n" + list.join("\n"),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 172, className : "server.ConsoleInput", methodName : "printHelp"});
+		haxe_Log.trace("Unknown command \"" + line + "\". List:\n" + list.join("\n"),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 173, className : "server.ConsoleInput", methodName : "printHelp"});
 	}
 	,__class__: server_ConsoleInput
 };
@@ -3881,6 +3881,20 @@ server_Logger.prototype = {
 		if(this.logs.length > 1000) {
 			this.logs.shift();
 		}
+		if(this.hasSameLatestEvents("GetTime",5)) {
+			this.logs.splice(this.logs.length - 3,1);
+		}
+	}
+	,hasSameLatestEvents: function(type,count) {
+		if(this.logs.length < count) {
+			return false;
+		}
+		var _g = 1;
+		var _g1 = count + 1;
+		while(_g < _g1) if(this.logs[this.logs.length - _g++].event.type != type) {
+			return false;
+		}
+		return true;
 	}
 	,saveLog: function() {
 		if(this.logs.length == 0) {
@@ -3889,7 +3903,7 @@ server_Logger.prototype = {
 		server_Utils.ensureDir(this.folder);
 		this.removeOldestLog(this.folder);
 		var name = DateTools.format(new Date(),"%Y-%m-%d_%H_%M_%S");
-		js_node_Fs.writeFileSync("" + this.folder + "/" + name + ".json",JSON.stringify(this.logs,$bind(this,this.filterNulls),"\t"));
+		js_node_Fs.writeFileSync("" + this.folder + "/" + name + ".json",JSON.stringify(this.getLogs(),$bind(this,this.filterNulls),"\t"));
 	}
 	,getLogs: function() {
 		return this.logs;
@@ -4314,7 +4328,7 @@ server_Main.prototype = {
 	}
 	,onMessage: function(client,data,internal) {
 		var _gthis = this;
-		this.logger.log({ clientName : client.name, clientGroup : client.group, event : data, time : new Date().getTime()});
+		this.logger.log({ clientName : client.name, clientGroup : client.group, event : data, time : HxOverrides.dateStr(new Date())});
 		switch(data.type) {
 		case "AddVideo":
 			if(!this.checkPermission(client,"addVideo")) {

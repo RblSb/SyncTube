@@ -1,5 +1,6 @@
 package server;
 
+import Types.WsEventType;
 import haxe.Json;
 import haxe.io.Path;
 import sys.FileSystem;
@@ -24,6 +25,17 @@ class Logger {
 	public function log(event:ServerEvent):Void {
 		logs.push(event);
 		if (logs.length > 1000) logs.shift();
+		if (hasSameLatestEvents(GetTime, 5)) {
+			logs.splice(logs.length - 3, 1);
+		}
+	}
+
+	function hasSameLatestEvents(type:WsEventType, count:Int):Bool {
+		if (logs.length < count) return false;
+		for (i in 1...count + 1) {
+			if (logs[logs.length - i].event.type != type) return false;
+		}
+		return true;
 	}
 
 	public function saveLog():Void {
@@ -31,7 +43,7 @@ class Logger {
 		Utils.ensureDir(folder);
 		removeOldestLog(folder);
 		final name = DateTools.format(Date.now(), "%Y-%m-%d_%H_%M_%S");
-		File.saveContent('$folder/$name.json', Json.stringify(logs, filterNulls, "\t"));
+		File.saveContent('$folder/$name.json', Json.stringify(getLogs(), filterNulls, "\t"));
 	}
 
 	public function getLogs():Array<ServerEvent> {

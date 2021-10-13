@@ -135,8 +135,9 @@ class ConsoleInput {
 
 			case LogList:
 				Utils.ensureDir(main.logsDir);
-				final names = FileSystem.readDirectory(main.logsDir)
-					.filter(s -> s.endsWith(".json"));
+				final names = FileSystem.readDirectory(main.logsDir).filter(s -> {
+					return s.endsWith(".json");
+				});
 				for (name in names) {
 					trace(Path.withoutExtension(name));
 				}

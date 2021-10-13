@@ -405,7 +405,7 @@ class Main {
 			clientName: client.name,
 			clientGroup: client.group.toInt(),
 			event: data,
-			time: Date.now().getTime()
+			time: Date.now().toString()
 		});
 		switch (data.type) {
 			case Connected:
