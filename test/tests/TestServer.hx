@@ -152,7 +152,7 @@ class TestServer extends Test {
 			}).then(data -> {
 				Assert.equals(SkipVideo, data.type);
 				Assert.equals(1, server.videoList.length);
-				Assert.equals("url2", server.videoList[0].url);
+				Assert.equals("url2", server.videoList.getItem(0).url);
 				Timer.delay(() -> {
 					client.send({
 						type: Message,
