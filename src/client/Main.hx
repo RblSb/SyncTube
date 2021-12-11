@@ -615,6 +615,7 @@ class Main {
 
 	function setConfig(config:Config):Void {
 		this.config = config;
+		if (Utils.isTouch()) config.requestLeaderOnPause = false;
 		pageTitle = config.channelName;
 		final login:InputElement = cast ge("#guestname");
 		login.maxLength = config.maxLoginLength;

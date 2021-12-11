@@ -1733,6 +1733,9 @@ client_Main.prototype = {
 	}
 	,setConfig: function(config) {
 		this.config = config;
+		if(client_Utils.isTouch()) {
+			config.requestLeaderOnPause = false;
+		}
 		this.pageTitle = config.channelName;
 		window.document.querySelector("#guestname").maxLength = config.maxLoginLength;
 		window.document.querySelector("#chatline").maxLength = config.maxMessageLength;
