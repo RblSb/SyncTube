@@ -4291,7 +4291,7 @@ server_Main.prototype = {
 		});
 		this.onMessage(client,{ type : "Connected"},true);
 		ws.on("message",function(data) {
-			var obj = _gthis.wsEventParser.fromJson(data);
+			var obj = _gthis.wsEventParser.fromJson(data.toString());
 			if(_gthis.wsEventParser.errors.length > 0 || _gthis.noTypeObj(obj)) {
 				var errors = "" + ("Wrong request for type \"" + obj.type + "\":") + "\n" + json2object_ErrorUtils.convertErrorArray(_gthis.wsEventParser.errors);
 				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 376, className : "server.Main", methodName : "onConnect"});

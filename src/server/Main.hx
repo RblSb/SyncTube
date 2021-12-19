@@ -367,8 +367,8 @@ class Main {
 			type: Connected
 		}, true);
 
-		ws.on("message", data -> {
-			final obj = wsEventParser.fromJson(data);
+		ws.on("message", (data:js.node.Buffer) -> {
+			final obj = wsEventParser.fromJson(data.toString());
 			if (wsEventParser.errors.length > 0 || noTypeObj(obj)) {
 				final line = 'Wrong request for type "${obj.type}":';
 				final errorLines = ErrorUtils.convertErrorArray(wsEventParser.errors);
