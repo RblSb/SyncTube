@@ -50,19 +50,20 @@ class HttpServer {
 	}
 
 	public static function serveFiles(req:IncomingMessage, res:ServerResponse):Void {
-		var url = safeDecodeURI(req.url);
-		if (url == "/") url = "/index.html";
-		var filePath = dir + url;
+		final url = try {
+			new URL(safeDecodeURI(req.url), "http://localhost");
+		} catch (e) new URL("/", "http://localhost");
+		var filePath = getPath(dir, url);
 		final ext = Path.extension(filePath).toLowerCase();
 
 		res.setHeader("Accept-Ranges", "bytes");
 		res.setHeader("Content-Type", getMimeType(ext));
 
 		if (allowLocalRequests && req.socket.remoteAddress == req.socket.localAddress
-			|| allowedLocalFiles[url]) {
+			|| allowedLocalFiles[url.pathname]) {
 			if (isMediaExtension(ext)) {
-				allowedLocalFiles[url] = true;
-				if (serveMedia(req, res, url)) return;
+				allowedLocalFiles[url.pathname] = true;
+				if (serveMedia(req, res, url.pathname.urlDecode())) return;
 			}
 		}
 
@@ -73,19 +74,14 @@ class HttpServer {
 			return;
 		}
 
-		if (url.startsWith("/proxy")) {
+		if (url.pathname == "/proxy") {
 			if (!proxyUrl(req, res)) res.end('Proxy error: ${req.url}');
 			return;
 		}
 
 		if (hasCustomRes) {
-			final path = customDir + url;
-			if (Fs.existsSync(path)) {
-				filePath = path;
-				if (FileSystem.isDirectory(filePath)) {
-					filePath = Path.addTrailingSlash(filePath) + "index.html";
-				}
-			}
+			final path = getPath(customDir, url);
+			if (Fs.existsSync(path)) filePath = path;
 		}
 
 		if (isMediaExtension(ext)) {
@@ -105,6 +101,13 @@ class HttpServer {
 		});
 	}
 
+	static function getPath(dir:String, url:URL):String {
+		var filePath = dir + url.pathname;
+		filePath = filePath.urlDecode();
+		if (!FileSystem.isDirectory(filePath)) return filePath;
+		return Path.addTrailingSlash(filePath) + "index.html";
+	}
+
 	static function readFileError(err:Dynamic, res:ServerResponse, filePath:String):Void {
 		if (err.code == "ENOENT") {
 			res.statusCode = 404;
@@ -117,7 +120,6 @@ class HttpServer {
 	}
 
 	static function serveMedia(req:IncomingMessage, res:ServerResponse, filePath:String):Bool {
-		filePath = filePath.urlDecode();
 		if (!Fs.existsSync(filePath)) return false;
 		final videoSize = Fs.statSync(filePath).size;
 		var range:String = req.headers["range"];
@@ -221,7 +223,9 @@ class HttpServer {
 	static function safeDecodeURI(data:String):String {
 		try {
 			data = decodeURI(data);
-		} catch (err) {}
+		} catch (err) {
+			data = "";
+		}
 		data = ctrlCharacters.replace(data, "");
 		return data;
 	}

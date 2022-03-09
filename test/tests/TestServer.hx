@@ -22,24 +22,27 @@ class TestServer extends Test {
 		server.onServerInited = () -> {
 			final url = 'http://${server.localIp}:${server.port}';
 			request('$url/你好，世界!@$^&*)_+-=', data -> {
-				Assert.equals("File 你好，世界!@$^&*)_+-= not found.", data);
+				Assert.equals("File 你好，世界!@$^&*)_ -= not found.", data);
 			});
 			request('$url/Привет%00мир!', data -> {
 				Assert.equals("File Приветмир! not found.", data);
 			});
 			request('$url/Ы%ы%00ы!', data -> {
-				Assert.equals("File %D0%AB%%D1%8B%00%D1%8B! not found.", data);
+				Assert.equals("<!DOCTYPE html>", data.split("\n")[0]);
 			});
 			request('$url/video/skins/default.php?dir_inc=/etc/passwd%00', data -> {
-				var line = "File video/skins/default.php?dir_inc=/etc/passwd not found.";
+				var line = "File video/skins/default.php not found.";
 				if (Sys.systemName() == "Windows") line = line.replace("/", "\\");
 				Assert.equals(line, data);
 			});
 			request('$url/%20', data -> {
-				Assert.equals("File   not found.", data);
+				Assert.equals("<!DOCTYPE html>", data.split("\n")[0]);
 			});
 			request('$url/build/../../server.js', data -> {
 				Assert.equals("File server.js not found.", data);
+			});
+			request('$url/?meh', data -> {
+				Assert.equals("<!DOCTYPE html>", data.split("\n")[0]);
 				async.done();
 			});
 		}
