@@ -81,6 +81,7 @@
 	"skipItemConfirm": "Are you sure you want to skip current video?",
 	"clearPlaylistConfirm": "Are you sure you want to clear the playlist?",
 	"shufflePlaylistConfirm": "Are you sure you want to shuffle the playlist?",
+	"lockPlaylistConfirm": "Are you sure you want to lock the playlist?",
 
 	"yes": "Yes",
 	"no": "No",

@@ -1,7 +1,6 @@
 package client;
 
 import Client.ClientData;
-import Client.ClientGroup;
 import Types.Config;
 import Types.Permission;
 import Types.VideoData;
@@ -33,6 +32,7 @@ class Main {
 	public var forceSyncNextTick = false;
 	public final host:String;
 	public var globalIp(default, null) = "";
+	public var isPlaylistOpen = true;
 
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
@@ -190,6 +190,10 @@ class Main {
 
 	public inline function getName():String {
 		return personal.name;
+	}
+
+	public function hasPermission(permission:Permission):Bool {
+		return personal.hasPermission(permission, config.permissions);
 	}
 
 	final mask = ~/\${([0-9]+)-([0-9]+)}/g;
@@ -959,6 +963,7 @@ class Main {
 	}
 
 	function setPlaylistLock(isOpen:Bool):Void {
+		isPlaylistOpen = isOpen;
 		final lockPlaylist = ge("#lockplaylist");
 		final icon = lockPlaylist.firstElementChild;
 		if (isOpen) {
@@ -982,12 +987,6 @@ class Main {
 		onTimeGet.run = requestTime;
 		settings.synchThreshold = s;
 		Settings.write(settings);
-	}
-
-	public function hasPermission(group:ClientGroup, permission:Permission):Bool {
-		final id = group.getName().toLowerCase();
-		final arr:Array<Permission> = Reflect.field(config.permissions, id);
-		return arr.contains(permission);
 	}
 
 	public function toggleLeader():Void {

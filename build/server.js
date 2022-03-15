@@ -27,7 +27,22 @@ var Client = function(ws,req,id,name,group) {
 };
 Client.__name__ = true;
 Client.prototype = {
-	setGroupFlag: function(type,flag) {
+	hasPermission: function(permission,permissions) {
+		if((this.group & 1) != 0) {
+			return permissions.banned.indexOf(permission) != -1;
+		}
+		if((this.group & 8) != 0) {
+			return permissions.admin.indexOf(permission) != -1;
+		}
+		if((this.group & 4) != 0) {
+			return permissions.leader.indexOf(permission) != -1;
+		}
+		if((this.group & 2) != 0) {
+			return permissions.user.indexOf(permission) != -1;
+		}
+		return permissions.guest.indexOf(permission) != -1;
+	}
+	,setGroupFlag: function(type,flag) {
 		if(flag) {
 			this.group |= 1 << type._hx_index;
 		} else {
@@ -71,21 +86,6 @@ ClientTools.getByName = function(clients,name,def) {
 		}
 	}
 	return def;
-};
-ClientTools.hasPermission = function(client,permission,permissions) {
-	if((client.group & 1) != 0) {
-		return permissions.banned.indexOf(permission) != -1;
-	}
-	if((client.group & 8) != 0) {
-		return permissions.admin.indexOf(permission) != -1;
-	}
-	if((client.group & 4) != 0) {
-		return permissions.leader.indexOf(permission) != -1;
-	}
-	if((client.group & 2) != 0) {
-		return permissions.user.indexOf(permission) != -1;
-	}
-	return permissions.guest.indexOf(permission) != -1;
 };
 var DateTools = function() { };
 DateTools.__name__ = true;
@@ -1857,7 +1857,7 @@ JsonParser_$67.prototype = $extend(json2object_reader_BaseParser.prototype,{
 		this.value = null;
 	}
 	,loadJsonString: function(s,pos,variable) {
-		this.value = this.loadString(s,pos,variable,["guest","user","leader","admin","writeChat","addVideo","removeVideo","requestLeader","rewind","clearChat","setLeader","changeOrder","lockPlaylist","banClient"],"guest");
+		this.value = this.loadString(s,pos,variable,["guest","user","leader","admin","writeChat","addVideo","removeVideo","requestLeader","rewind","clearChat","setLeader","changeOrder","toggleItemType","lockPlaylist","banClient"],"guest");
 	}
 	,__class__: JsonParser_$67
 });
@@ -4338,13 +4338,11 @@ server_Main.prototype = {
 		this.logger.log({ clientName : client.name, clientGroup : client.group, event : data, time : HxOverrides.dateStr(new Date())});
 		switch(data.type) {
 		case "AddVideo":
-			if(!this.checkPermission(client,"addVideo")) {
+			if(this.isPlaylistLockedFor(client)) {
 				return;
 			}
-			if(!this.videoList.isOpen) {
-				if(!this.checkPermission(client,"lockPlaylist")) {
-					return;
-				}
+			if(!this.checkPermission(client,"addVideo")) {
+				return;
 			}
 			if(this.config.totalVideoLimit != 0 && this.videoList.items.length >= this.config.totalVideoLimit) {
 				this.serverMessage(client,"totalVideoLimitError");
@@ -4415,6 +4413,9 @@ server_Main.prototype = {
 			this.broadcast(data);
 			break;
 		case "ClearPlaylist":
+			if(this.isPlaylistLockedFor(client)) {
+				return;
+			}
 			if(!this.checkPermission(client,"removeVideo")) {
 				return;
 			}
@@ -4642,6 +4643,9 @@ server_Main.prototype = {
 			this.broadcast(data);
 			break;
 		case "RemoveVideo":
+			if(this.isPlaylistLockedFor(client)) {
+				return;
+			}
 			if(!this.checkPermission(client,"removeVideo")) {
 				return;
 			}
@@ -4707,6 +4711,9 @@ server_Main.prototype = {
 			}
 			break;
 		case "SetNextItem":
+			if(this.isPlaylistLockedFor(client)) {
+				return;
+			}
 			if(!this.checkPermission(client,"changeOrder")) {
 				return;
 			}
@@ -4741,6 +4748,9 @@ server_Main.prototype = {
 			this.broadcastExcept(client,{ type : data.type, setTime : data.setTime});
 			break;
 		case "ShufflePlaylist":
+			if(this.isPlaylistLockedFor(client)) {
+				return;
+			}
 			if(!this.checkPermission(client,"changeOrder")) {
 				return;
 			}
@@ -4757,6 +4767,12 @@ server_Main.prototype = {
 			this.skipVideo(data);
 			break;
 		case "ToggleItemType":
+			if(this.isPlaylistLockedFor(client)) {
+				return;
+			}
+			if(!this.checkPermission(client,"toggleItemType")) {
+				return;
+			}
 			this.videoList.toggleItemType(data.toggleItemType.pos);
 			this.broadcast(data);
 			break;
@@ -4834,7 +4850,7 @@ server_Main.prototype = {
 		if((client.group & 1) != 0) {
 			this.checkBan(client);
 		}
-		var state = ClientTools.hasPermission(client,perm,this.config.permissions);
+		var state = client.hasPermission(perm,this.config.permissions);
 		if(!state) {
 			this.send(client,{ type : "ServerMessage", serverMessage : { textId : "accessError"}});
 		}
@@ -4859,7 +4875,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 923, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 927, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;
@@ -4926,6 +4942,14 @@ server_Main.prototype = {
 		var time = this.videoTimer.getTime();
 		this.videoTimer.setTime(this.flashbackTime);
 		this.flashbackTime = time;
+	}
+	,isPlaylistLockedFor: function(client) {
+		if(!this.videoList.isOpen) {
+			if(!this.checkPermission(client,"lockPlaylist")) {
+				return true;
+			}
+		}
+		return false;
 	}
 	,__class__: server_Main
 };

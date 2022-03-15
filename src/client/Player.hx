@@ -82,7 +82,7 @@ class Player {
 	public function toggleItemType(pos:Int):Void {
 		videoList.toggleItemType(pos);
 		final el = videoItemsEl.children[pos];
-		setItemElementType(el, videoList.getItem(videoList.pos).isTemp);
+		setItemElementType(el, videoList.getItem(pos).isTemp);
 	}
 
 	function setPlayer(newPlayer:IPlayer):Void {
@@ -174,8 +174,7 @@ class Player {
 		final hasAutoPause = main.hasLeaderOnPauseRequest() && videoList.length > 0;
 		if (hasAutoPause) {
 			// do not remove leader if user cannot request it back
-			final group:Client.ClientGroup = main.isAdmin() ? Admin : User;
-			if (main.hasPermission(group, RequestLeaderPerm)) main.toggleLeader();
+			if (main.hasPermission(RequestLeaderPerm)) main.toggleLeader();
 		}
 	}
 

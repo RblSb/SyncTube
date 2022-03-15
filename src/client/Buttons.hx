@@ -144,7 +144,13 @@ class Buttons {
 
 		final lockPlaylist = ge("#lockplaylist");
 		lockPlaylist.onclick = e -> {
-			if (main.isAdmin()) main.send({type: TogglePlaylistLock});
+			if (!main.hasPermission(LockPlaylistPerm)) return;
+			if (main.isPlaylistOpen) {
+				if (!window.confirm(Lang.get("lockPlaylistConfirm"))) return;
+			}
+			main.send({
+				type: TogglePlaylistLock
+			});
 		}
 
 		final showMediaUrl = ge("#showmediaurl");

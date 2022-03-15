@@ -14,7 +14,7 @@
 	"youtubePlaylistLimit": 50,
 	"permissions": {
 		"banned": [],
-		"guest": ["writeChat", "addVideo", "removeVideo", "changeOrder", "requestLeader", "rewind"],
+		"guest": ["writeChat", "addVideo", "removeVideo", "changeOrder", "toggleItemType", "requestLeader", "rewind"],
 		"user": ["guest"],
 		"leader": ["user"],
 		"admin": ["user", "clearChat", "setLeader", "lockPlaylist", "banClient"]

@@ -57,6 +57,7 @@ enum abstract Permission(String) {
 	var ClearChatPerm = "clearChat";
 	var SetLeaderPerm = "setLeader";
 	var ChangeOrderPerm = "changeOrder";
+	var ToggleItemTypePerm = "toggleItemType";
 	var LockPlaylistPerm = "lockPlaylist";
 	var BanClientPerm = "banClient";
 }

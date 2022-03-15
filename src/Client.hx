@@ -1,10 +1,12 @@
 package;
 
+import Types.Permission;
+import Types.Permissions;
+import haxe.EnumFlags;
 #if nodejs
 import js.node.http.IncomingMessage;
 import js.npm.ws.WebSocket;
 #end
-import haxe.EnumFlags;
 
 enum ClientGroup {
 	Banned;
@@ -46,6 +48,15 @@ class Client {
 		this.group = new EnumFlags(group);
 	}
 	#end
+
+	public function hasPermission(permission:Permission, permissions:Permissions):Bool {
+		final p = permissions;
+		if (isBanned) return p.banned.contains(permission);
+		if (isAdmin) return p.admin.contains(permission);
+		if (isLeader) return p.leader.contains(permission);
+		if (isUser) return p.user.contains(permission);
+		return p.guest.contains(permission);
+	}
 
 	inline function get_isBanned():Bool {
 		return group.has(Banned);

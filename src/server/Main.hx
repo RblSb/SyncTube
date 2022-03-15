@@ -568,10 +568,8 @@ class Main {
 
 			case ServerMessage:
 			case AddVideo:
+				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, AddVideoPerm)) return;
-				if (!videoList.isOpen) {
-					if (!checkPermission(client, LockPlaylistPerm)) return;
-				}
 				if (config.totalVideoLimit != 0 && videoList.length >= config.totalVideoLimit) {
 					serverMessage(client, "totalVideoLimitError");
 					return;
@@ -604,6 +602,7 @@ class Main {
 				prepareVideoPlayback();
 
 			case RemoveVideo:
+				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, RemoveVideoPerm)) return;
 				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
@@ -757,6 +756,7 @@ class Main {
 				broadcast(data);
 
 			case SetNextItem:
+				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, ChangeOrderPerm)) return;
 				final pos = data.setNextItem.pos;
 				if (pos == videoList.pos || pos == videoList.pos + 1) return;
@@ -764,6 +764,8 @@ class Main {
 				broadcast(data);
 
 			case ToggleItemType:
+				if (isPlaylistLockedFor(client)) return;
+				if (!checkPermission(client, ToggleItemTypePerm)) return;
 				final pos = data.toggleItemType.pos;
 				videoList.toggleItemType(pos);
 				broadcast(data);
@@ -774,12 +776,14 @@ class Main {
 				broadcast(data);
 
 			case ClearPlaylist:
+				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, RemoveVideoPerm)) return;
 				videoTimer.stop();
 				videoList.clear();
 				broadcast(data);
 
 			case ShufflePlaylist:
+				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, ChangeOrderPerm)) return;
 				if (videoList.length == 0) return;
 				videoList.shuffle();
@@ -975,5 +979,12 @@ class Main {
 		final time = videoTimer.getTime();
 		videoTimer.setTime(flashbackTime);
 		flashbackTime = time;
+	}
+
+	function isPlaylistLockedFor(client:Client):Bool {
+		if (!videoList.isOpen) {
+			if (!checkPermission(client, LockPlaylistPerm)) return true;
+		}
+		return false;
 	}
 }
