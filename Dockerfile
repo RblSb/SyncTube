@@ -1,9 +1,7 @@
-FROM frolvlad/alpine-glibc
+FROM haxe:4.2.5-alpine3.15
 WORKDIR /usr/src/app
 
-RUN apk add nodejs npm git; \
-    npm install --global lix; \
-    lix install haxe 4.2.2 --global
+RUN apk add nodejs npm git
 
 COPY res ./res
 COPY src ./src
