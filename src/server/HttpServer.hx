@@ -123,7 +123,14 @@ class HttpServer {
 		if (!Fs.existsSync(filePath)) return false;
 		final videoSize = Fs.statSync(filePath).size;
 		var range:String = req.headers["range"];
-		if (range == null) range = "bytes=0-";
+		if (range == null) {
+			res.statusCode = 200;
+			res.setHeader("Content-Length", '$videoSize');
+			final videoStream = Fs.createReadStream(filePath);
+			videoStream.pipe(res);
+			return true;
+		}
+		// if (range == null) range = "bytes=0-";
 		final ranges = ~/[-=]/g.split(range);
 		var start = Std.parseFloat(ranges[1]);
 		if (Utils.isOutOfRange(start, 0, videoSize - 1)) start = 0;

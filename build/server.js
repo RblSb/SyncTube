@@ -337,7 +337,7 @@ json2object_reader_BaseParser.prototype = {
 		this.putils = new json2object_PositionUtils(jsonString);
 		this.errors = [];
 		try {
-			this.loadJson(new hxjsonast_Parser(jsonString,filename).parseRec());
+			this.loadJson(new hxjsonast_Parser(jsonString,filename).doParse());
 		} catch( _g ) {
 			var _g1 = haxe_Exception.caught(_g).unwrap();
 			if(((_g1) instanceof hxjsonast_Error)) {
@@ -2900,7 +2900,24 @@ var hxjsonast_Parser = function(source,filename) {
 };
 hxjsonast_Parser.__name__ = true;
 hxjsonast_Parser.prototype = {
-	parseRec: function() {
+	doParse: function() {
+		var result = this.parseRec();
+		var c;
+		while(true) {
+			c = this.source.charCodeAt(this.pos++);
+			if(!(c == c)) {
+				break;
+			}
+			switch(c) {
+			case 9:case 10:case 13:case 32:
+				break;
+			default:
+				this.invalidChar();
+			}
+		}
+		return result;
+	}
+	,parseRec: function() {
 		while(true) {
 			var c = this.source.charCodeAt(this.pos++);
 			switch(c) {
@@ -2928,7 +2945,7 @@ hxjsonast_Parser.prototype = {
 						pm = true;
 						break;
 					case 46:
-						if(minus || point) {
+						if(minus || point || e) {
 							this.invalidNumber(start);
 						}
 						digit = false;
@@ -3033,7 +3050,7 @@ hxjsonast_Parser.prototype = {
 				case 9:case 10:case 13:case 32:
 					break;
 				case 34:
-					if(comma1) {
+					if(field != null || comma1) {
 						this.invalidChar();
 					}
 					var fieldStartPos = this.pos - 1;
@@ -3766,7 +3783,10 @@ server_HttpServer.serveMedia = function(req,res,filePath) {
 	var videoSize = js_node_Fs.statSync(filePath).size;
 	var range = req.headers["range"];
 	if(range == null) {
-		range = "bytes=0-";
+		res.statusCode = 200;
+		res.setHeader("Content-Length","" + videoSize);
+		js_node_Fs.createReadStream(filePath).pipe(res);
+		return true;
 	}
 	var ranges = new EReg("[-=]","g").split(range);
 	var start = parseFloat(ranges[1]);
