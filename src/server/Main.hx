@@ -561,7 +561,9 @@ class Main {
 				}
 				data.message.text = text;
 				data.message.clientName = client.name;
-				final time = Date.now().toString().split(" ")[1];
+				final date = Date.now();
+				final utcTime = date.getTime() + date.getTimezoneOffset() * 60 * 1000;
+				final time = Date.fromTime(utcTime).toString();
 				messages.push({text: text, name: client.name, time: time});
 				if (messages.length > config.serverChatHistory) messages.shift();
 				broadcast(data);

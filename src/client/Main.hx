@@ -761,7 +761,13 @@ class Main {
 		ge("#messagebuffer").textContent = "";
 	}
 
-	function addMessage(name:String, text:String, ?time:String):Void {
+	function getLocalDateFromUtc(utcDate:String):String {
+		final date = Date.fromString(utcDate);
+		final localTime = date.getTime() - date.getTimezoneOffset() * 60 * 1000;
+		return Date.fromTime(localTime).toString();
+	}
+
+	function addMessage(name:String, text:String, ?date:String):Void {
 		final msgBuf = ge("#messagebuffer");
 		final userDiv = document.createDivElement();
 		userDiv.className = 'chat-msg-$name';
@@ -771,8 +777,11 @@ class Main {
 
 		final tstamp = document.createSpanElement();
 		tstamp.className = "timestamp";
-		if (time == null) time = Date.now().toString().split(" ")[1];
-		tstamp.textContent = time;
+		if (date == null) date = Date.now().toString();
+		else date = getLocalDateFromUtc(date);
+		final time = date.split(" ")[1];
+		tstamp.textContent = time == null ? date : time;
+		tstamp.title = date;
 
 		final nameDiv = document.createElement("strong");
 		nameDiv.className = "username";

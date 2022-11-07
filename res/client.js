@@ -118,6 +118,28 @@ HxOverrides.dateStr = function(date) {
 	var s = date.getSeconds();
 	return date.getFullYear() + "-" + (m < 10 ? "0" + m : "" + m) + "-" + (d < 10 ? "0" + d : "" + d) + " " + (h < 10 ? "0" + h : "" + h) + ":" + (mi < 10 ? "0" + mi : "" + mi) + ":" + (s < 10 ? "0" + s : "" + s);
 };
+HxOverrides.strDate = function(s) {
+	switch(s.length) {
+	case 8:
+		var k = s.split(":");
+		var d = new Date();
+		d["setTime"](0);
+		d["setUTCHours"](k[0]);
+		d["setUTCMinutes"](k[1]);
+		d["setUTCSeconds"](k[2]);
+		return d;
+	case 10:
+		var k = s.split("-");
+		return new Date(k[0],k[1] - 1,k[2],0,0,0);
+	case 19:
+		var k = s.split(" ");
+		var y = k[0].split("-");
+		var t = k[1].split(":");
+		return new Date(y[0],y[1] - 1,y[2],t[0],t[1],t[2]);
+	default:
+		throw haxe_Exception.thrown("Invalid date format : " + s);
+	}
+};
 HxOverrides.cca = function(s,index) {
 	var x = s.charCodeAt(index);
 	if(x != x) {
@@ -1862,7 +1884,11 @@ client_Main.prototype = {
 	,clearChat: function() {
 		window.document.querySelector("#messagebuffer").textContent = "";
 	}
-	,addMessage: function(name,text,time) {
+	,getLocalDateFromUtc: function(utcDate) {
+		var date = HxOverrides.strDate(utcDate);
+		return HxOverrides.dateStr(new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000));
+	}
+	,addMessage: function(name,text,date) {
 		var msgBuf = window.document.querySelector("#messagebuffer");
 		var userDiv = window.document.createElement("div");
 		userDiv.className = "chat-msg-" + name;
@@ -1870,10 +1896,14 @@ client_Main.prototype = {
 		headDiv.className = "head";
 		var tstamp = window.document.createElement("span");
 		tstamp.className = "timestamp";
-		if(time == null) {
-			time = HxOverrides.dateStr(new Date()).split(" ")[1];
+		if(date == null) {
+			date = HxOverrides.dateStr(new Date());
+		} else {
+			date = this.getLocalDateFromUtc(date);
 		}
-		tstamp.textContent = time;
+		var time = date.split(" ")[1];
+		tstamp.textContent = time == null ? date : time;
+		tstamp.title = date;
 		var nameDiv = window.document.createElement("strong");
 		nameDiv.className = "username";
 		nameDiv.textContent = name;

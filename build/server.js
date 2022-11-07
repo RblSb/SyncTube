@@ -4616,7 +4616,8 @@ server_Main.prototype = {
 			}
 			data.message.text = text;
 			data.message.clientName = client.name;
-			var time = HxOverrides.dateStr(new Date()).split(" ")[1];
+			var date = new Date();
+			var time = HxOverrides.dateStr(new Date(date.getTime() + date.getTimezoneOffset() * 60 * 1000));
 			this.messages.push({ text : text, name : client.name, time : time});
 			if(this.messages.length > this.config.serverChatHistory) {
 				this.messages.shift();
@@ -4895,7 +4896,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 927, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 929, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;
