@@ -1969,6 +1969,9 @@ client_Main.prototype = {
 		}
 		var args = StringTools.trim(command).split(" ");
 		command = HxOverrides.substr(args.shift(),1,null);
+		if(command.length == 0) {
+			return false;
+		}
 		switch(command) {
 		case "ban":
 			this.mergeRedundantArgs(args,0,2);

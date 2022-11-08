@@ -856,6 +856,7 @@ class Main {
 		if (!command.startsWith("/")) return false;
 		final args = command.trim().split(" ");
 		command = args.shift().substr(1);
+		if (command.length == 0) return false;
 
 		switch (command) {
 			case "ban":
