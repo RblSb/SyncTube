@@ -26,6 +26,7 @@ typedef Config = {
 	requestLeaderOnPause:Bool,
 	localAdmins:Bool,
 	allowProxyIps:Bool,
+	localNetworkOnly:Bool,
 	templateUrl:String,
 	youtubeApiKey:String,
 	youtubePlaylistLimit:Int,

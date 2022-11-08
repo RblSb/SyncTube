@@ -91,7 +91,8 @@ class Main {
 		userList = loadUsers();
 		config.isVerbose = verbose;
 		config.salt = generateConfigSalt();
-		localIp = Utils.getLocalIp();
+		if (config.localNetworkOnly) localIp = "127.0.0.1";
+		else localIp = Utils.getLocalIp();
 		globalIp = localIp;
 		port = config.port;
 		final envPort = (process.env : Dynamic).PORT;
@@ -115,10 +116,14 @@ class Main {
 
 	function runServer():Void {
 		trace('Local: http://$localIp:$port');
-		if (!isNoState) Utils.getGlobalIp(ip -> {
-			globalIp = ip;
-			trace('Global: http://$globalIp:$port');
-		});
+		if (config.localNetworkOnly) {
+			trace("Global network is disabled in config");
+		} else {
+			if (!isNoState) Utils.getGlobalIp(ip -> {
+				globalIp = ip;
+				trace('Global: http://$globalIp:$port');
+			});
+		}
 
 		final dir = '$rootDir/res';
 		HttpServer.init(dir, '$rootDir/user/res', config.localAdmins);
@@ -129,7 +134,8 @@ class Main {
 		});
 		wss = new WSServer({server: server});
 		wss.on("connection", onConnect);
-		server.listen(port, onServerInited);
+		if (config.localNetworkOnly) server.listen(port, localIp, onServerInited);
+		else server.listen(port, onServerInited);
 
 		new Timer(25000).run = () -> {
 			for (client in clients) {
