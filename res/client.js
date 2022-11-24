@@ -827,14 +827,7 @@ client_Buttons.initHotkeys = function(main,player) {
 			main.toggleLeader();
 			break;
 		case 80:
-			if((main.personal.group & 4) == 0) {
-				client_JsApi.once("SetLeader",function(event) {
-					if(event.setLeader.clientName == main.personal.name) {
-						player.pause();
-					}
-				});
-			}
-			main.toggleLeader();
+			main.toggleLeaderAndPause();
 			break;
 		case 82:
 			window.document.querySelector("#mediarefresh").onclick();
@@ -1277,7 +1270,12 @@ client_Main.prototype = {
 	,initListeners: function() {
 		var _gthis = this;
 		client_Buttons.init(this);
-		window.document.querySelector("#leader_btn").onclick = $bind(this,this.toggleLeader);
+		var leaderBtn = window.document.querySelector("#leader_btn");
+		leaderBtn.onclick = $bind(this,this.toggleLeader);
+		leaderBtn.oncontextmenu = function(e) {
+			_gthis.toggleLeaderAndPause();
+			e.preventDefault();
+		};
 		window.document.querySelector("#voteskip").onclick = function(e) {
 			if(client_Utils.isTouch() && !window.confirm(Lang.get("skipItemConfirm"))) {
 				return;
@@ -1494,7 +1492,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 384, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 390, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -2105,6 +2103,17 @@ client_Main.prototype = {
 	,toggleLeader: function() {
 		this.setLeaderButton((this.personal.group & 4) == 0);
 		this.send({ type : "SetLeader", setLeader : { clientName : (this.personal.group & 4) != 0 ? "" : this.personal.name}});
+	}
+	,toggleLeaderAndPause: function() {
+		var _gthis = this;
+		if((this.personal.group & 4) == 0) {
+			client_JsApi.once("SetLeader",function(event) {
+				if(event.setLeader.clientName == _gthis.personal.name) {
+					_gthis.player.pause();
+				}
+			});
+		}
+		this.toggleLeader();
 	}
 	,hasLeader: function() {
 		return ClientTools.hasLeader(this.clients);

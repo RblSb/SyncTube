@@ -136,7 +136,13 @@ class Main {
 	function initListeners():Void {
 		Buttons.init(this);
 
-		ge("#leader_btn").onclick = toggleLeader;
+		final leaderBtn = ge("#leader_btn");
+		leaderBtn.onclick = toggleLeader;
+		leaderBtn.oncontextmenu = (e:MouseEvent) -> {
+			toggleLeaderAndPause();
+			e.preventDefault();
+		}
+
 		final voteSkip = ge("#voteskip");
 		voteSkip.onclick = e -> {
 			if (Utils.isTouch() && !window.confirm(Lang.get("skipItemConfirm"))) return;
@@ -1009,6 +1015,16 @@ class Main {
 				clientName: name
 			}
 		});
+	}
+
+	public function toggleLeaderAndPause():Void {
+		if (!isLeader()) {
+			JsApi.once(SetLeader, event -> {
+				final name = event.setLeader.clientName;
+				if (name == getName()) player.pause();
+			});
+		}
+		toggleLeader();
 	}
 
 	public function hasLeader():Bool {

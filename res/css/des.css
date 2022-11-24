@@ -241,6 +241,11 @@ button.danger-bg:focus {
   display: flex;
 }
 
+.unselectable {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Info */
 
 .info {

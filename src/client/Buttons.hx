@@ -311,13 +311,7 @@ class Buttons {
 				case L:
 					main.toggleLeader();
 				case P:
-					if (!main.isLeader()) {
-						JsApi.once(SetLeader, event -> {
-							final name = event.setLeader.clientName;
-							if (name == main.getName()) player.pause();
-						});
-					}
-					main.toggleLeader();
+					main.toggleLeaderAndPause();
 				default:
 					return;
 			}
