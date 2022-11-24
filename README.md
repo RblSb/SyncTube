@@ -2,12 +2,12 @@
 Synchronized video viewing with chat and other features.
 Lightweight modern implementation and very easy way to run locally.
 
-Default channel example: http://synctube-example.herokuapp.com/
+Default channel example: https://synctube.onrender.com/
 
 ### New features
 - Reworked layout and theme
 - Multi-Language support
-- Hotkeys (`Alt-P` for global play/pause, [etc](https://github.com/RblSb/SyncTube/blob/80ec4ba1747d22ec136a95d6b35ba6289e15e8ad/src/client/Buttons.hx#L267-L271))
+- Hotkeys (`Alt-P` for global play/pause, [etc](https://github.com/RblSb/SyncTube/blob/d3f6d4e6434527569d13f211a0eb074c5a11992e/src/client/Buttons.hx#L303-L314))
 - Mobile view with page fullscreen
 - Way to play local videos for network users (without NAT loopback feature)
 - Playback rate synchronization (with leader)
