@@ -17,7 +17,7 @@ Default channel example: https://synctube.onrender.com/
 - [Native mobile client](https://github.com/RblSb/SyncTubeApp)
 
 ### Supported players
-- Youtube (videos, streams and playlists)
+- Youtube (videos, shorts, streams and playlists)
 - Raw mp4 videos and m3u8 playlists (or any other media format supported in browser)
 - Iframes (without sync)
 

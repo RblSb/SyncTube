@@ -3196,6 +3196,7 @@ var client_players_Youtube = function(main,player) {
 	this.videosUrl = "https://www.googleapis.com/youtube/v3/videos";
 	this.matchPlaylist = new EReg("youtube\\.com.*list=([A-z0-9_-]+)","");
 	this.matchEmbed = new EReg("youtube\\.com/embed/([A-z0-9_-]+)","");
+	this.matchShorts = new EReg("youtube\\.com/shorts/([A-z0-9_-]+)","");
 	this.matchShort = new EReg("youtu\\.be/([A-z0-9_-]+)","");
 	this.matchId = new EReg("youtube\\.com.*v=([A-z0-9_-]+)","");
 	this.main = main;
@@ -3216,6 +3217,9 @@ client_players_Youtube.prototype = {
 		}
 		if(this.matchShort.match(url)) {
 			return this.matchShort.matched(1);
+		}
+		if(this.matchShorts.match(url)) {
+			return this.matchShorts.matched(1);
 		}
 		if(this.matchEmbed.match(url)) {
 			return this.matchEmbed.matched(1);
@@ -3354,7 +3358,7 @@ client_players_Youtube.prototype = {
 			}
 			callback({ duration : _gthis.tempYoutube.getDuration()});
 		}, onError : function(e) {
-			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 201, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 205, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}

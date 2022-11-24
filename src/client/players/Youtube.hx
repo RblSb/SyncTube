@@ -16,6 +16,7 @@ using StringTools;
 class Youtube implements IPlayer {
 	final matchId = ~/youtube\.com.*v=([A-z0-9_-]+)/;
 	final matchShort = ~/youtu\.be\/([A-z0-9_-]+)/;
+	final matchShorts = ~/youtube\.com\/shorts\/([A-z0-9_-]+)/;
 	final matchEmbed = ~/youtube\.com\/embed\/([A-z0-9_-]+)/;
 	final matchPlaylist = ~/youtube\.com.*list=([A-z0-9_-]+)/;
 	final videosUrl = "https://www.googleapis.com/youtube/v3/videos";
@@ -46,6 +47,9 @@ class Youtube implements IPlayer {
 		}
 		if (matchShort.match(url)) {
 			return matchShort.matched(1);
+		}
+		if (matchShorts.match(url)) {
+			return matchShorts.matched(1);
 		}
 		if (matchEmbed.match(url)) {
 			return matchEmbed.matched(1);
