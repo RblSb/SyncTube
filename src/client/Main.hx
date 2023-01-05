@@ -905,6 +905,9 @@ class Main {
 			case "flashback", "fb":
 				send({type: Flashback});
 				return false;
+			case "ad":
+				player.skipAd();
+				return false;
 			case "dump":
 				send({type: Dump});
 				return true;

@@ -1971,6 +1971,9 @@ client_Main.prototype = {
 			return false;
 		}
 		switch(command) {
+		case "ad":
+			this.player.skipAd();
+			return false;
 		case "ban":
 			this.mergeRedundantArgs(args,0,2);
 			var name = args[0];
@@ -2146,7 +2149,8 @@ var client_Player = function(main) {
 	this.videoItemsEl = window.document.querySelector("#queue");
 	this.videoList = new VideoList();
 	this.main = main;
-	this.players = [new client_players_Youtube(main,this)];
+	this.youtube = new client_players_Youtube(main,this);
+	this.players = [this.youtube];
 	this.iframePlayer = new client_players_Iframe(main,this);
 	this.rawPlayer = new client_players_Raw(main,this);
 	this.initItemButtons();
@@ -2579,6 +2583,41 @@ client_Player.prototype = {
 		}
 		this.skipSetRate = isLocal;
 		this.player.setPlaybackRate(rate);
+	}
+	,skipAd: function() {
+		var _gthis = this;
+		var _this = this.videoList;
+		var item = _this.items[_this.pos];
+		if(item == null) {
+			return;
+		}
+		if(!this.youtube.isSupportedLink(item.url)) {
+			return;
+		}
+		var http = new haxe_http_HttpJs("https://sponsor.ajay.app/api/skipSegments?videoID=" + this.youtube.extractVideoId(item.url));
+		http.onData = function(text) {
+			var json;
+			try {
+				json = JSON.parse(text);
+			} catch( _g ) {
+				return;
+			}
+			var _g = 0;
+			while(_g < json.length) {
+				var block = json[_g];
+				++_g;
+				var start = block.segment[0];
+				var end = block.segment[1];
+				var time = _gthis.getTime();
+				if(time > start - 1 && time < end) {
+					_gthis.main.send({ type : "Rewind", rewind : { time : end - time - 1}});
+				}
+			}
+		};
+		http.onError = function(msg) {
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 477, className : "client.Player", methodName : "skipAd"});
+		};
+		http.request();
 	}
 };
 var client_Settings = function() { };

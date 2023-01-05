@@ -41,7 +41,7 @@ class Youtube implements IPlayer {
 		return extractVideoId(url) != "" || extractPlaylistId(url) != "";
 	}
 
-	function extractVideoId(url:String):String {
+	public function extractVideoId(url:String):String {
 		if (matchId.match(url)) {
 			return matchId.matched(1);
 		}

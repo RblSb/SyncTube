@@ -7,6 +7,8 @@ import client.Main.ge;
 import client.players.Iframe;
 import client.players.Raw;
 import client.players.Youtube;
+import haxe.Http;
+import haxe.Json;
 import js.html.Element;
 
 using Lambda;
@@ -14,6 +16,7 @@ using StringTools;
 
 class Player {
 	final main:Main;
+	final youtube:Youtube;
 	final players:Array<IPlayer>;
 	final iframePlayer:IPlayer;
 	final rawPlayer:IPlayer;
@@ -27,8 +30,9 @@ class Player {
 
 	public function new(main:Main):Void {
 		this.main = main;
+		youtube = new Youtube(main, this);
 		players = [
-			new Youtube(main, this)
+			youtube
 		];
 		iframePlayer = new Iframe(main, this);
 		rawPlayer = new Raw(main, this);
@@ -441,5 +445,36 @@ class Player {
 		if (!player.isVideoLoaded()) return;
 		skipSetRate = isLocal;
 		player.setPlaybackRate(rate);
+	}
+
+	public function skipAd():Void {
+		final item = videoList.getCurrentItem();
+		if (item == null) return;
+		if (!youtube.isSupportedLink(item.url)) return;
+		final id = youtube.extractVideoId(item.url);
+		final url = 'https://sponsor.ajay.app/api/skipSegments?videoID=$id';
+		final http = new Http(url);
+		http.onData = text -> {
+			final json:Array<{segment:Array<Float>}> = try {
+				Json.parse(text);
+			} catch (e) {
+				return;
+			}
+			for (block in json) {
+				final start = block.segment[0];
+				final end = block.segment[1];
+				final time = getTime();
+				if (time > start - 1 && time < end) {
+					main.send({
+						type: Rewind,
+						rewind: {
+							time: end - time - 1
+						}
+					});
+				}
+			}
+		}
+		http.onError = msg -> trace(msg);
+		http.request();
 	}
 }
