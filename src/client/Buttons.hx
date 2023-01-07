@@ -40,13 +40,21 @@ class Buttons {
 
 		final smilesBtn = ge("#smilesbtn");
 		smilesBtn.onclick = e -> {
-			final smilesWrap = ge("#smileswrap");
-			if (smilesWrap.children.length == 0) return;
+			final wrap = ge("#smiles-wrap");
+			final list = ge("#smiles-list");
+			if (list.children.length == 0) return;
 			final isActive = smilesBtn.classList.toggle("active");
-			if (isActive) smilesWrap.style.display = "grid";
-			else smilesWrap.style.display = "none";
-			if (smilesWrap.firstElementChild.dataset.src == null) return;
-			for (child in smilesWrap.children) {
+			if (isActive) {
+				wrap.style.display = "block";
+				wrap.style.height = outerHeight(list) + "px";
+			} else {
+				wrap.style.height = "0";
+				wrap.addEventListener("transitionend", e -> {
+					wrap.style.display = "none";
+				}, {once: true});
+			}
+			if (list.firstElementChild.dataset.src == null) return;
+			for (child in list.children) {
 				(cast child : ImageElement).src = child.dataset.src;
 				child.removeAttribute("data-src");
 			}
@@ -79,19 +87,34 @@ class Buttons {
 		userlistToggle.onclick = e -> {
 			final icon = userlistToggle.firstElementChild;
 			final isHidden = icon.getAttribute("name") == "chevron-forward";
+			final wrap = ge("#userlist-wrap");
 			final style = ge("#userlist").style;
 			if (isHidden) {
-				style.display = "block";
 				icon.setAttribute("name", "chevron-down");
+				style.display = "block";
+				final list = wrap.firstElementChild;
+				wrap.style.height = outerHeight(list) + "px";
+				wrap.style.marginBottom = "1rem";
 			} else {
-				style.display = "none";
 				icon.setAttribute("name", "chevron-forward");
+				style.display = "none";
+				wrap.style.height = "0";
+				wrap.style.marginBottom = "0rem";
 			}
 			settings.isUserListHidden = !isHidden;
 			Settings.write(settings);
 		}
 		ge("#usercount").onclick = userlistToggle.onclick;
 		if (settings.isUserListHidden) userlistToggle.onclick();
+		else {
+			final wrap = ge("#userlist-wrap");
+			final list = wrap.firstElementChild;
+			wrap.style.height = outerHeight(list) + "px";
+		}
+		// enable animation after page loads
+		Timer.delay(() -> {
+			ge("#userlist-wrap").style.transition = "200ms";
+		}, 0);
 
 		final toggleSynch = ge("#togglesynch");
 		toggleSynch.onclick = e -> {
@@ -154,10 +177,22 @@ class Buttons {
 		}
 
 		final showMediaUrl = ge("#showmediaurl");
-		showMediaUrl.onclick = e -> showPlayerGroup(showMediaUrl);
+		showMediaUrl.onclick = e -> {
+			final isOpen = showPlayerGroup(showMediaUrl);
+			if (isOpen) Timer.delay(() -> {
+				ge("#addfromurl").scrollIntoView();
+				ge("#mediaurl").focus();
+			}, 100);
+		}
 
 		final showCustomEmbed = ge("#showcustomembed");
-		showCustomEmbed.onclick = e -> showPlayerGroup(showCustomEmbed);
+		showCustomEmbed.onclick = e -> {
+			final isOpen = showPlayerGroup(showCustomEmbed);
+			if (isOpen) Timer.delay(() -> {
+				ge("#customembed").scrollIntoView();
+				ge("#customembed-title").focus();
+			}, 100);
+		}
 
 		final mediaUrl:InputElement = cast ge("#mediaurl");
 		mediaUrl.oninput = () -> {
@@ -175,7 +210,14 @@ class Buttons {
 		}
 
 		final showOptions = ge("#showoptions");
-		showOptions.onclick = e -> toggleGroup(showOptions);
+		showOptions.onclick = e -> {
+			final isActive = toggleGroup(showOptions);
+			ge("#optionsPanel").style.opacity = isActive ? "1" : "0";
+			Timer.delay(() -> {
+				if (showOptions.classList.contains("active") != isActive) return;
+				ge("#optionsPanel").classList.toggle("collapse", !isActive);
+			}, isActive ? 0 : 200);
+		}
 
 		final exitBtn = ge("#exitBtn");
 		exitBtn.onclick = e -> {
@@ -191,20 +233,35 @@ class Buttons {
 		}
 	}
 
-	static function showPlayerGroup(el:Element):Void {
+	static function showPlayerGroup(el:Element):Bool {
 		final groups:Array<Element> = cast document.querySelectorAll('[data-target]');
 		for (group in groups) {
 			if (el == group) continue;
 			if (group.classList.contains("collapsed")) continue;
 			toggleGroup(group);
 		}
-		toggleGroup(el);
+		return toggleGroup(el);
 	}
 
 	static function toggleGroup(el:Element):Bool {
 		el.classList.toggle("collapsed");
-		ge(el.dataset.target).classList.toggle("collapse");
+		final target = ge(el.dataset.target);
+		final isClosed = target.classList.toggle("collapse");
+		if (isClosed) {
+			target.style.height = "0";
+		} else {
+			final list = target.firstElementChild;
+			if (target.style.height == "") target.style.height = "0";
+			target.style.height = outerHeight(list) + "px";
+		}
 		return el.classList.toggle("active");
+	}
+
+	static function outerHeight(el:Element):Float {
+		final style = window.getComputedStyle(el);
+		return (el.getBoundingClientRect().height
+			+ Std.parseFloat(style.marginTop)
+			+ Std.parseFloat(style.marginBottom));
 	}
 
 	static function swapPlayerAndChat():Void {

@@ -266,8 +266,7 @@ class Player {
 		btn.title = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
 		final iconType = isTemp ? "lock-open" : "lock-closed";
 		btn.firstElementChild.setAttribute("name", iconType);
-		if (isTemp) item.classList.add("queue_temp");
-		else item.classList.remove("queue_temp");
+		item.classList.toggle("queue_temp", isTemp);
 	}
 
 	public function removeItem(url:String):Void {

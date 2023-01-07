@@ -175,7 +175,7 @@ class Youtube implements IPlayer {
 	function youtubeApiError(error:Dynamic):Void {
 		final code:Int = error.code;
 		final msg:String = error.message;
-		Main.serverMessage(4, 'Error $code: $msg', false);
+		Main.serverMessage('Error $code: $msg', false);
 	}
 
 	function getRemoteDataFallback(url:String, callback:(data:VideoData) -> Void):Void {

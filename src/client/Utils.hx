@@ -17,6 +17,11 @@ class Utils {
 			|| (~/^Mac/.match(navigator.platform) && navigator.maxTouchPoints > 4);
 	}
 
+	public static function isAndroid():Bool {
+		final ua = navigator.userAgent.toLowerCase();
+		return ua.indexOf("android") > -1;
+	}
+
 	public static function nodeFromString(div:String):Element {
 		final wrapper = document.createDivElement();
 		wrapper.innerHTML = div;

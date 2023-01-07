@@ -12,5 +12,6 @@ typedef ClientSettings = {
 	isUserListHidden:Bool,
 	latestLinks:Array<String>,
 	latestSubs:Array<String>,
-	hotkeysEnabled:Bool
+	hotkeysEnabled:Bool,
+	showHintList:Bool
 }

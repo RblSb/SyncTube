@@ -187,7 +187,7 @@ class RawSubs {
 
 	static function isProxyError(text:String):Bool {
 		if (text.startsWith("Proxy error:")) {
-			Main.serverMessage(4, 'Failed to add subs: proxy error');
+			Main.serverMessage("Failed to add subs: proxy error");
 			trace('Failed to add subs: $text');
 			return true;
 		}

@@ -82,37 +82,41 @@
         </span>
       </div>
       <!-- Add video -->
-      <div class="collapse" id="addfromurl" aria-expanded="false">
-        <div class="display-flex">
-          <button id="insert_template" title="${addTemplateUrl}">
-            <div>&gt;</div>
-          </button>
-          <input id="mediaurl" type="text" placeholder="${addVideoFromUrl}">
-        </div>
-        <div id="mediatitleblock" class="display-flex" style="display: none;">
-          <input id="mediatitle" type="text" placeholder="${optionalTitle}">
-        </div>
-        <div id="subsurlblock" class="display-flex" style="display: none;">
-          <input id="subsurl" type="text" placeholder="${subtitlesUrlOptional}">
-        </div>
-        <div>
-          <label>
-            <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
-          </label>
-          <button id="queue_next">${queueNext}</button>
-          <button id="queue_end">${queueLast}</button>
+      <div id="addfromurl" class="collapsible collapse" aria-expanded="false">
+        <div class="collapse-list">
+          <div class="display-flex">
+            <button id="insert_template" title="${addTemplateUrl}">
+              <div>&gt;</div>
+            </button>
+            <input id="mediaurl" type="text" placeholder="${addVideoFromUrl}">
+          </div>
+          <div id="mediatitleblock" class="display-flex" style="display: none;">
+            <input id="mediatitle" type="text" placeholder="${optionalTitle}">
+          </div>
+          <div id="subsurlblock" class="display-flex" style="display: none;">
+            <input id="subsurl" type="text" placeholder="${subtitlesUrlOptional}">
+          </div>
+          <div>
+            <label>
+              <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
+            </label>
+            <button id="queue_next">${queueNext}</button>
+            <button id="queue_end">${queueLast}</button>
+          </div>
         </div>
       </div>
-      <div class="collapse" id="customembed" aria-expanded="false">
-        <input id="customembed-title" type="text" placeholder="${optionalTitle}">
-        <textarea id="customembed-content" rows="5"
-          placeholder="${pasteEmbedCodeAndClick} '${queueNext}' ${or} '${queueLast}'. &#10;${acceptableEmbedCodesAre} &lt;iframe&gt; ${or} &lt;object&gt;. &#10;${customEmbedsCannotBeSynchronized}."></textarea>
-        <div>
-          <label>
-            <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
-          </label>
-          <button id="ce_queue_next">${queueNext}</button>
-          <button id="ce_queue_end">${queueLast}</button>
+      <div class="collapsible collapse" id="customembed" aria-expanded="false">
+        <div class="collapse-list">
+          <input id="customembed-title" type="text" placeholder="${optionalTitle}">
+          <textarea id="customembed-content" rows="5"
+            placeholder="${pasteEmbedCodeAndClick} '${queueNext}' ${or} '${queueLast}'. &#10;${acceptableEmbedCodesAre} &lt;iframe&gt; ${or} &lt;object&gt;. &#10;${customEmbedsCannotBeSynchronized}."></textarea>
+          <div>
+            <label>
+              <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
+            </label>
+            <button id="ce_queue_next">${queueNext}</button>
+            <button id="ce_queue_end">${queueLast}</button>
+          </div>
         </div>
       </div>
       <!-- Queue -->
@@ -142,35 +146,41 @@
       <span>
         <button id="leader_btn" class="unselectable" title="${leaderDesc}">${leader}</button>
         <!-- Settings button -->
-        <button id="showoptions" class="collapsed" data-toggle="collapse" data-target="#optionsPanel"
+        <button id="showoptions" class="collapsed" data-toggle="collapse" data-target="#optionsList"
           aria-expanded="false">
           <ion-icon name="settings-sharp"></ion-icon>
         </button>
       </span>
     </div>
     <!-- User list -->
-    <div id="userlist"></div>
+    <div id="userlist-wrap" class="collapsible">
+      <div id="userlist"></div>
+    </div>
     <!-- Settings list -->
     <ul id="optionsPanel" class="collapse" aria-expanded="false">
-      <div>
-        <h4>${account}</h4>
-        <li><button id="exitBtn">${login}</button></li>
-      </div>
-      <div>
-        <h4>${general}</h4>
-        <li><button id="hotkeysBtn"><span>${hotkeys}</span></button></li>
-        <li><button id="swapLayoutBtn" title="${swapLayout}"><span>${swapLayout}</span></button></li>
-      </div>
-      <div>
-        <h4>${video}</h4>
-        <li><button id="synchThresholdBtn"><span>${synchThreshold}</span></button></li>
-        <li><button id="setVideoUrlBtn"><span>${setVideoUrl}</span></button></li>
-        <li><button id="selectLocalVideoBtn"><span>${selectLocalVideo}</span></button></li>
-        <li><button id="removeVideoBtn"><span>${removeVideo}</span></button></li>
-      </div>
-      <div id="adminMenu" style="display: none;">
-        <h4>${chat}</h4>
-        <li><button id="clearchatbtn"><span>${clearChat}</span></button></li>
+      <div id="optionsList" class="collapse">
+        <div>
+          <div>
+            <h4>${account}</h4>
+            <li><button id="exitBtn">${login}</button></li>
+          </div>
+          <div>
+            <h4>${general}</h4>
+            <li><button id="hotkeysBtn"><span>${hotkeys}</span></button></li>
+            <li><button id="swapLayoutBtn" title="${swapLayout}"><span>${swapLayout}</span></button></li>
+          </div>
+          <div>
+            <h4>${video}</h4>
+            <li><button id="synchThresholdBtn"><span>${synchThreshold}</span></button></li>
+            <li><button id="setVideoUrlBtn"><span>${setVideoUrl}</span></button></li>
+            <li><button id="selectLocalVideoBtn"><span>${selectLocalVideo}</span></button></li>
+            <li><button id="removeVideoBtn"><span>${removeVideo}</span></button></li>
+          </div>
+          <div id="adminMenu" style="display: none;">
+            <h4>${chat}</h4>
+            <li><button id="clearchatbtn"><span>${clearChat}</span></button></li>
+          </div>
+        </div>
       </div>
     </ul>
     <!-- Messages -->
@@ -182,7 +192,9 @@
         <ion-icon name="happy"></ion-icon>
       </button>
     </div>
-    <div id="smileswrap"></div>
+    <div id="smiles-wrap" class="collapsible">
+      <div id="smiles-list"></div>
+    </div>
     <!-- Guest login -->
     <div id="guestlogin" style="display: none;">
       <label>${enterAsGuest}</label>

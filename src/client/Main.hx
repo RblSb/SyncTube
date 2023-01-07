@@ -25,7 +25,7 @@ using ClientTools;
 using StringTools;
 
 class Main {
-	static inline var SETTINGS_VERSION = 3;
+	static inline var SETTINGS_VERSION = 4;
 
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
@@ -67,7 +67,8 @@ class Main {
 			isUserListHidden: true,
 			latestLinks: [],
 			latestSubs: [],
-			hotkeysEnabled: true
+			hotkeysEnabled: true,
+			showHintList: true
 		}
 		Settings.init(defaults, settingsPatcher);
 		settings = Settings.read();
@@ -98,6 +99,9 @@ class Main {
 			case 2:
 				final data:ClientSettings = data;
 				data.latestSubs = [];
+			case 3:
+				final data:ClientSettings = data;
+				data.showHintList = true;
 			case SETTINGS_VERSION, _:
 				throw 'skipped version $version';
 		}
@@ -119,13 +123,13 @@ class Main {
 		ws = new WebSocket('$protocol//$host$colonPort$path');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
-			serverMessage(1);
+			chatMessageConnected();
 			isConnected = true;
 		}
 		ws.onclose = () -> {
 			// if initial connection refused
 			// or server/client offline
-			if (isConnected) serverMessage(2);
+			if (isConnected) chatMessageDisconnected();
 			isConnected = false;
 			player.pause();
 			if (disabledReconnection) return;
@@ -282,7 +286,7 @@ class Main {
 		};
 		player.getVideoData(obj, (data:VideoData) -> {
 			if (data.duration == 0) {
-				serverMessage(4, Lang.get("addVideoError"));
+				serverMessage(Lang.get("addVideoError"));
 				return;
 			}
 			if (data.title == null) data.title = Lang.get("rawVideo");
@@ -322,7 +326,7 @@ class Main {
 		};
 		player.getIframeData(obj, (data:VideoData) -> {
 			if (data.duration == 0) {
-				serverMessage(4, Lang.get("addVideoError"));
+				serverMessage(Lang.get("addVideoError"));
 				return;
 			}
 			if (title.length > 0) data.title = title;
@@ -438,7 +442,7 @@ class Main {
 					default:
 						Lang.get(id);
 				}
-				serverMessage(4, text);
+				serverMessage(text);
 
 			case AddVideo:
 				player.addVideoItem(data.addVideo.item, data.addVideo.atEnd);
@@ -573,12 +577,82 @@ class Main {
 		setLeaderButton(isLeader());
 		setPlaylistLock(connected.isPlaylistOpen);
 		clearChat();
-		serverMessage(1);
+		chatMessageConnected();
 		for (message in connected.history) {
 			addMessage(message.name, message.text, message.time);
 		}
 		player.setItems(connected.videoList, connected.itemPos);
 		onUserGroupChanged();
+		if (settings.showHintList) showChatHintList();
+	}
+
+	function showChatHintList():Void {
+		var text = Lang.get("hintListStart");
+
+		final addVideos = '<button id="addVideosHintButton">${Lang.get("addVideos")}</button>';
+		text += "</br>" + Lang.get("hintListAddVideo").replace("$addVideos", addVideos);
+
+		final requestLeader = '<button id="requestLeaderHintButton">${Lang.get("requestLeader")}</button>';
+		text += "</br>"
+			+ Lang.get("hintListRequestLeader").replace("$requestLeader", requestLeader);
+
+		if (Utils.isTouch()) text += " " + Lang.get("hintListRequestLeaderTouch");
+		else text += " " + Lang.get("hintListRequestLeaderMouse");
+
+		if (Utils.isAndroid()) {
+			final openInAppLink = '<button id="openInApp">${Lang.get("openInApp")}</button>';
+			text += "</br>"
+				+ Lang.get("hintListOpenInApp").replace("$openInApp", openInAppLink);
+		}
+
+		final hideThisMessage = '<button id="hideHintList">${Lang.get("hideThisMessage")}</button>';
+		text += "</br>"
+			+ Lang.get("hintListHide").replace("$hideThisMessage", hideThisMessage);
+
+		serverMessage(text, false, false);
+
+		ge("#addVideosHintButton").onclick = e -> {
+			final addBtn = ge("#showmediaurl");
+			addBtn.scrollIntoView();
+			Timer.delay(() -> {
+				if (!ge("#addfromurl").classList.contains("collapse")) {
+					ge("#mediaurl").focus();
+					return;
+				}
+				addBtn.onclick();
+			}, 300);
+		}
+		ge("#requestLeaderHintButton").onclick = (e:MouseEvent) -> {
+			window.scrollTo(0, 0);
+			if (Utils.isTouch()) {
+				ge("#leader_btn").classList.add("hint");
+				Timer.delay(() -> ge("#leader_btn").classList.remove("hint"), 1000);
+			}
+		}
+		ge("#requestLeaderHintButton").onpointerenter = e -> {
+			if (Utils.isTouch()) return;
+			ge("#leader_btn").classList.add("hint");
+		}
+		ge("#requestLeaderHintButton").onpointerleave = e -> {
+			ge("#leader_btn").classList.remove("hint");
+		}
+		if (Utils.isAndroid()) {
+			ge("#openInApp").onclick = e -> {
+				var isRedirected = false;
+				window.addEventListener("blur", e -> isRedirected = true, {once: true});
+				window.setTimeout(function() {
+					if (isRedirected || document.hidden) return;
+					window.location.href = "https://github.com/RblSb/SyncTubeApp#readme";
+				}, 500);
+				window.location.href = 'synctube://${Browser.location.href}';
+				return false;
+			}
+		}
+		ge("#hideHintList").onclick = e -> {
+			ge("#hideHintList").parentElement.remove();
+			settings.showHintList = false;
+			Settings.write(settings);
+		}
 	}
 
 	function onUserGroupChanged():Void {
@@ -649,23 +723,24 @@ class Main {
 			});
 		}
 		ge("#smilesbtn").classList.remove("active");
-		final smilesWrap = ge("#smileswrap");
+		final smilesWrap = ge("#smiles-wrap");
 		smilesWrap.style.display = "none";
-		smilesWrap.onclick = (e:MouseEvent) -> {
+		final smilesList = ge("#smiles-list");
+		smilesList.onclick = (e:MouseEvent) -> {
 			final el:Element = cast e.target;
-			if (el == smilesWrap) return;
+			if (el == smilesList) return;
 			final form:InputElement = cast ge("#chatline");
 			form.value += ' ${el.title}';
 			form.focus();
 		}
-		smilesWrap.textContent = "";
+		smilesList.textContent = "";
 		for (emote in config.emotes) {
 			final tag = emote.image.endsWith("mp4") ? "video" : "img";
 			final el = document.createElement(tag);
 			el.className = "smile-preview";
 			el.dataset.src = emote.image;
 			el.title = emote.name;
-			smilesWrap.appendChild(el);
+			smilesList.appendChild(el);
 		}
 	}
 
@@ -713,31 +788,50 @@ class Main {
 		ws.send(Json.stringify(data));
 	}
 
-	public static function serverMessage(type:Int, ?text:String, isText = true):Void {
+	static function chatMessageConnected():Void {
+		final div = document.createDivElement();
+		div.className = "server-msg-reconnect";
+		div.textContent = Lang.get("msgConnected");
 		final msgBuf = ge("#messagebuffer");
+		msgBuf.appendChild(div);
+		msgBuf.scrollTop = msgBuf.scrollHeight;
+	}
+
+	static function chatMessageDisconnected():Void {
+		final div = document.createDivElement();
+		div.className = "server-msg-disconnect";
+		div.textContent = Lang.get("msgDisconnected");
+		final msgBuf = ge("#messagebuffer");
+		msgBuf.appendChild(div);
+		msgBuf.scrollTop = msgBuf.scrollHeight;
+	}
+
+	public static function serverMessage(text:String, isText = true, withTimestamp = true):Void {
 		final div = document.createDivElement();
 		final time = Date.now().toString().split(" ")[1];
-		switch (type) {
-			case 1:
-				div.className = "server-msg-reconnect";
-				div.textContent = Lang.get("msgConnected");
-			case 2:
-				div.className = "server-msg-disconnect";
-				div.textContent = Lang.get("msgDisconnected");
-			case 3:
-				div.className = "server-whisper";
-				div.textContent = time + text + " " + Lang.get("entered");
-			case 4:
-				div.className = "server-whisper";
-				div.innerHTML = '<div class="head">
-					<div class="server-whisper"></div>
-					<span class="timestamp">$time</span>
-				</div>';
-				final textDiv = div.querySelector(".server-whisper");
-				if (isText) textDiv.textContent = text;
-				else textDiv.innerHTML = text;
-			default:
-		}
+		div.className = "server-whisper";
+		div.innerHTML = '<div class="head">
+			<div class="server-whisper"></div>
+			<span class="timestamp">${withTimestamp ? time : ""}</span>
+		</div>';
+		final textDiv = div.querySelector(".server-whisper");
+		if (isText) textDiv.textContent = text;
+		else textDiv.innerHTML = text;
+		final msgBuf = ge("#messagebuffer");
+		msgBuf.appendChild(div);
+		msgBuf.scrollTop = msgBuf.scrollHeight;
+	}
+
+	public static function serverHtmlMessage(el:Element):Void {
+		final div = document.createDivElement();
+		final time = Date.now().toString().split(" ")[1];
+		div.className = "server-whisper";
+		div.innerHTML = '<div class="head">
+			<div class="server-whisper"></div>
+			<span class="timestamp">$time</span>
+		</div>';
+		div.querySelector(".server-whisper").appendChild(el);
+		final msgBuf = ge("#messagebuffer");
 		msgBuf.appendChild(div);
 		msgBuf.scrollTop = msgBuf.scrollHeight;
 	}
@@ -865,6 +959,9 @@ class Main {
 		if (command.length == 0) return false;
 
 		switch (command) {
+			case "help":
+				showChatHintList();
+				return true;
 			case "ban":
 				mergeRedundantArgs(args, 0, 2);
 				final name = args[0];
@@ -977,8 +1074,7 @@ class Main {
 
 	function setLeaderButton(flag:Bool):Void {
 		final leaderBtn = ge("#leader_btn");
-		if (flag) leaderBtn.classList.add("success-bg");
-		else leaderBtn.classList.remove("success-bg");
+		leaderBtn.classList.toggle("success-bg", flag);
 	}
 
 	function setPlaylistLock(isOpen:Bool):Void {
@@ -987,13 +1083,11 @@ class Main {
 		final icon = lockPlaylist.firstElementChild;
 		if (isOpen) {
 			lockPlaylist.title = Lang.get("playlistOpen");
-			lockPlaylist.classList.add("btn-success");
 			lockPlaylist.classList.add("success");
 			lockPlaylist.classList.remove("danger");
 			icon.setAttribute("name", "lock-open");
 		} else {
 			lockPlaylist.title = Lang.get("playlistLocked");
-			lockPlaylist.classList.add("btn-danger");
 			lockPlaylist.classList.add("danger");
 			lockPlaylist.classList.remove("success");
 			icon.setAttribute("name", "lock-closed");

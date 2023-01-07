@@ -547,20 +547,26 @@ client_Buttons.init = function(main) {
 	};
 	var smilesBtn = window.document.querySelector("#smilesbtn");
 	smilesBtn.onclick = function(e) {
-		var smilesWrap = window.document.querySelector("#smileswrap");
-		if(smilesWrap.children.length == 0) {
+		var wrap = window.document.querySelector("#smiles-wrap");
+		var list = window.document.querySelector("#smiles-list");
+		if(list.children.length == 0) {
 			return;
 		}
 		if(smilesBtn.classList.toggle("active")) {
-			smilesWrap.style.display = "grid";
+			wrap.style.display = "block";
+			var tmp = client_Buttons.outerHeight(list);
+			wrap.style.height = tmp + "px";
 		} else {
-			smilesWrap.style.display = "none";
+			wrap.style.height = "0";
+			wrap.addEventListener("transitionend",function(e) {
+				return wrap.style.display = "none";
+			},{ once : true});
 		}
-		if(smilesWrap.firstElementChild.dataset.src == null) {
+		if(list.firstElementChild.dataset.src == null) {
 			return;
 		}
 		var _g = 0;
-		var _g1 = smilesWrap.children;
+		var _g1 = list.children;
 		while(_g < _g1.length) {
 			var child = _g1[_g];
 			++_g;
@@ -595,13 +601,19 @@ client_Buttons.init = function(main) {
 	userlistToggle.onclick = function(e) {
 		var icon = userlistToggle.firstElementChild;
 		var isHidden = icon.getAttribute("name") == "chevron-forward";
+		var wrap = window.document.querySelector("#userlist-wrap");
 		var style = window.document.querySelector("#userlist").style;
 		if(isHidden) {
-			style.display = "block";
 			icon.setAttribute("name","chevron-down");
+			style.display = "block";
+			var tmp = client_Buttons.outerHeight(wrap.firstElementChild);
+			wrap.style.height = tmp + "px";
+			wrap.style.marginBottom = "1rem";
 		} else {
-			style.display = "none";
 			icon.setAttribute("name","chevron-forward");
+			style.display = "none";
+			wrap.style.height = "0";
+			wrap.style.marginBottom = "0rem";
 		}
 		client_Buttons.settings.isUserListHidden = !isHidden;
 		client_Settings.write(client_Buttons.settings);
@@ -609,7 +621,14 @@ client_Buttons.init = function(main) {
 	window.document.querySelector("#usercount").onclick = userlistToggle.onclick;
 	if(client_Buttons.settings.isUserListHidden) {
 		userlistToggle.onclick();
+	} else {
+		var wrap = window.document.querySelector("#userlist-wrap");
+		var tmp = client_Buttons.outerHeight(wrap.firstElementChild);
+		wrap.style.height = tmp + "px";
 	}
+	haxe_Timer.delay(function() {
+		window.document.querySelector("#userlist-wrap").style.transition = "200ms";
+	},0);
 	var toggleSynch = window.document.querySelector("#togglesynch");
 	toggleSynch.onclick = function(e) {
 		var icon = toggleSynch.firstElementChild;
@@ -672,11 +691,21 @@ client_Buttons.init = function(main) {
 	};
 	var showMediaUrl = window.document.querySelector("#showmediaurl");
 	showMediaUrl.onclick = function(e) {
-		client_Buttons.showPlayerGroup(showMediaUrl);
+		if(client_Buttons.showPlayerGroup(showMediaUrl)) {
+			haxe_Timer.delay(function() {
+				window.document.querySelector("#addfromurl").scrollIntoView();
+				window.document.querySelector("#mediaurl").focus();
+			},100);
+		}
 	};
 	var showCustomEmbed = window.document.querySelector("#showcustomembed");
 	showCustomEmbed.onclick = function(e) {
-		client_Buttons.showPlayerGroup(showCustomEmbed);
+		if(client_Buttons.showPlayerGroup(showCustomEmbed)) {
+			haxe_Timer.delay(function() {
+				window.document.querySelector("#customembed").scrollIntoView();
+				window.document.querySelector("#customembed-title").focus();
+			},100);
+		}
 	};
 	var mediaUrl = window.document.querySelector("#mediaurl");
 	mediaUrl.oninput = function() {
@@ -692,7 +721,15 @@ client_Buttons.init = function(main) {
 	};
 	var showOptions = window.document.querySelector("#showoptions");
 	showOptions.onclick = function(e) {
-		return client_Buttons.toggleGroup(showOptions);
+		var isActive = client_Buttons.toggleGroup(showOptions);
+		var tmp = isActive ? "1" : "0";
+		window.document.querySelector("#optionsPanel").style.opacity = tmp;
+		return haxe_Timer.delay(function() {
+			if(showOptions.classList.contains("active") != isActive) {
+				return;
+			}
+			window.document.querySelector("#optionsPanel").classList.toggle("collapse",!isActive);
+		},isActive ? 0 : 200);
 	};
 	window.document.querySelector("#exitBtn").onclick = function(e) {
 		if((main.personal.group & 2) != 0) {
@@ -721,13 +758,26 @@ client_Buttons.showPlayerGroup = function(el) {
 		}
 		client_Buttons.toggleGroup(group);
 	}
-	client_Buttons.toggleGroup(el);
+	return client_Buttons.toggleGroup(el);
 };
 client_Buttons.toggleGroup = function(el) {
 	el.classList.toggle("collapsed");
 	var id = el.dataset.target;
-	window.document.querySelector(id).classList.toggle("collapse");
+	var target = window.document.querySelector(id);
+	if(target.classList.toggle("collapse")) {
+		target.style.height = "0";
+	} else {
+		if(target.style.height == "") {
+			target.style.height = "0";
+		}
+		var tmp = client_Buttons.outerHeight(target.firstElementChild);
+		target.style.height = tmp + "px";
+	}
 	return el.classList.toggle("active");
+};
+client_Buttons.outerHeight = function(el) {
+	var style = window.getComputedStyle(el);
+	return el.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
 };
 client_Buttons.swapPlayerAndChat = function() {
 	client_Buttons.settings.isSwapped = window.document.querySelector("body").classList.toggle("swap");
@@ -1157,7 +1207,7 @@ var client_Main = function() {
 	if(this.host == "") {
 		this.host = "localhost";
 	}
-	client_Settings.init({ version : 3, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], latestSubs : [], hotkeysEnabled : true},$bind(this,this.settingsPatcher));
+	client_Settings.init({ version : 4, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], latestSubs : [], hotkeysEnabled : true, showHintList : true},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
 	this.initListeners();
 	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
@@ -1180,38 +1230,40 @@ client_Main.__name__ = true;
 client_Main.main = function() {
 	new client_Main();
 };
-client_Main.serverMessage = function(type,text,isText) {
+client_Main.chatMessageConnected = function() {
+	var div = window.document.createElement("div");
+	div.className = "server-msg-reconnect";
+	div.textContent = Lang.get("msgConnected");
+	var msgBuf = window.document.querySelector("#messagebuffer");
+	msgBuf.appendChild(div);
+	msgBuf.scrollTop = msgBuf.scrollHeight;
+};
+client_Main.chatMessageDisconnected = function() {
+	var div = window.document.createElement("div");
+	div.className = "server-msg-disconnect";
+	div.textContent = Lang.get("msgDisconnected");
+	var msgBuf = window.document.querySelector("#messagebuffer");
+	msgBuf.appendChild(div);
+	msgBuf.scrollTop = msgBuf.scrollHeight;
+};
+client_Main.serverMessage = function(text,isText,withTimestamp) {
+	if(withTimestamp == null) {
+		withTimestamp = true;
+	}
 	if(isText == null) {
 		isText = true;
 	}
-	var msgBuf = window.document.querySelector("#messagebuffer");
 	var div = window.document.createElement("div");
 	var time = HxOverrides.dateStr(new Date()).split(" ")[1];
-	switch(type) {
-	case 1:
-		div.className = "server-msg-reconnect";
-		div.textContent = Lang.get("msgConnected");
-		break;
-	case 2:
-		div.className = "server-msg-disconnect";
-		div.textContent = Lang.get("msgDisconnected");
-		break;
-	case 3:
-		div.className = "server-whisper";
-		div.textContent = time + text + " " + Lang.get("entered");
-		break;
-	case 4:
-		div.className = "server-whisper";
-		div.innerHTML = "<div class=\"head\">\n\t\t\t\t\t<div class=\"server-whisper\"></div>\n\t\t\t\t\t<span class=\"timestamp\">" + time + "</span>\n\t\t\t\t</div>";
-		var textDiv = div.querySelector(".server-whisper");
-		if(isText) {
-			textDiv.textContent = text;
-		} else {
-			textDiv.innerHTML = text;
-		}
-		break;
-	default:
+	div.className = "server-whisper";
+	div.innerHTML = "<div class=\"head\">\n\t\t\t<div class=\"server-whisper\"></div>\n\t\t\t<span class=\"timestamp\">" + (withTimestamp ? time : "") + "</span>\n\t\t</div>";
+	var textDiv = div.querySelector(".server-whisper");
+	if(isText) {
+		textDiv.textContent = text;
+	} else {
+		textDiv.innerHTML = text;
 	}
+	var msgBuf = window.document.querySelector("#messagebuffer");
 	msgBuf.appendChild(div);
 	msgBuf.scrollTop = msgBuf.scrollHeight;
 };
@@ -1225,6 +1277,9 @@ client_Main.prototype = {
 			data.latestSubs = [];
 			break;
 		case 3:
+			data.showHintList = true;
+			break;
+		case 4:
 			throw haxe_Exception.thrown("skipped version " + version);
 		default:
 			throw haxe_Exception.thrown("skipped version " + version);
@@ -1252,12 +1307,12 @@ client_Main.prototype = {
 		this.ws = new WebSocket("" + protocol + "//" + this.host + colonPort + path);
 		this.ws.onmessage = $bind(this,this.onMessage);
 		this.ws.onopen = function() {
-			client_Main.serverMessage(1);
+			client_Main.chatMessageConnected();
 			return _gthis.isConnected = true;
 		};
 		this.ws.onclose = function() {
 			if(_gthis.isConnected) {
-				client_Main.serverMessage(2);
+				client_Main.chatMessageDisconnected();
 			}
 			_gthis.isConnected = false;
 			_gthis.player.pause();
@@ -1414,7 +1469,7 @@ client_Main.prototype = {
 		}
 		this.player.getVideoData({ url : url, atEnd : atEnd},function(data) {
 			if(data.duration == 0) {
-				client_Main.serverMessage(4,Lang.get("addVideoError"));
+				client_Main.serverMessage(Lang.get("addVideoError"));
 				return;
 			}
 			if(data.title == null) {
@@ -1443,7 +1498,7 @@ client_Main.prototype = {
 		var isTemp = window.document.querySelector("#customembed").querySelector(".add-temp").checked;
 		this.player.getIframeData({ url : iframe, atEnd : atEnd},function(data) {
 			if(data.duration == 0) {
-				client_Main.serverMessage(4,Lang.get("addVideoError"));
+				client_Main.serverMessage(Lang.get("addVideoError"));
 				return;
 			}
 			if(title.length > 0) {
@@ -1492,7 +1547,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 390, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 394, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1627,7 +1682,7 @@ client_Main.prototype = {
 			break;
 		case "ServerMessage":
 			var id = data.serverMessage.textId;
-			client_Main.serverMessage(4,id == "usernameError" ? StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength) : Lang.get(id));
+			client_Main.serverMessage(id == "usernameError" ? StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength) : Lang.get(id));
 			break;
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
@@ -1713,7 +1768,7 @@ client_Main.prototype = {
 		this.setLeaderButton((this.personal.group & 4) != 0);
 		this.setPlaylistLock(connected.isPlaylistOpen);
 		this.clearChat();
-		client_Main.serverMessage(1);
+		client_Main.chatMessageConnected();
 		var _g = 0;
 		var _g1 = connected.history;
 		while(_g < _g1.length) {
@@ -1723,6 +1778,80 @@ client_Main.prototype = {
 		}
 		this.player.setItems(connected.videoList,connected.itemPos);
 		this.onUserGroupChanged();
+		if(this.settings.showHintList) {
+			this.showChatHintList();
+		}
+	}
+	,showChatHintList: function() {
+		var _gthis = this;
+		var text = Lang.get("hintListStart");
+		var addVideos = "<button id=\"addVideosHintButton\">" + Lang.get("addVideos") + "</button>";
+		text += "</br>" + StringTools.replace(Lang.get("hintListAddVideo"),"$addVideos",addVideos);
+		var requestLeader = "<button id=\"requestLeaderHintButton\">" + Lang.get("requestLeader") + "</button>";
+		text += "</br>" + StringTools.replace(Lang.get("hintListRequestLeader"),"$requestLeader",requestLeader);
+		if(client_Utils.isTouch()) {
+			text += " " + Lang.get("hintListRequestLeaderTouch");
+		} else {
+			text += " " + Lang.get("hintListRequestLeaderMouse");
+		}
+		if(client_Utils.isAndroid()) {
+			var openInAppLink = "<button id=\"openInApp\">" + Lang.get("openInApp") + "</button>";
+			text += "</br>" + StringTools.replace(Lang.get("hintListOpenInApp"),"$openInApp",openInAppLink);
+		}
+		var hideThisMessage = "<button id=\"hideHintList\">" + Lang.get("hideThisMessage") + "</button>";
+		text += "</br>" + StringTools.replace(Lang.get("hintListHide"),"$hideThisMessage",hideThisMessage);
+		client_Main.serverMessage(text,false,false);
+		window.document.querySelector("#addVideosHintButton").onclick = function(e) {
+			var addBtn = window.document.querySelector("#showmediaurl");
+			addBtn.scrollIntoView();
+			return haxe_Timer.delay(function() {
+				if(!window.document.querySelector("#addfromurl").classList.contains("collapse")) {
+					window.document.querySelector("#mediaurl").focus();
+					return;
+				}
+				addBtn.onclick();
+			},300);
+		};
+		window.document.querySelector("#requestLeaderHintButton").onclick = function(e) {
+			window.scrollTo(0,0);
+			if(client_Utils.isTouch()) {
+				window.document.querySelector("#leader_btn").classList.add("hint");
+				haxe_Timer.delay(function() {
+					window.document.querySelector("#leader_btn").classList.remove("hint");
+				},1000);
+			}
+		};
+		window.document.querySelector("#requestLeaderHintButton").onpointerenter = function(e) {
+			if(client_Utils.isTouch()) {
+				return;
+			}
+			window.document.querySelector("#leader_btn").classList.add("hint");
+		};
+		window.document.querySelector("#requestLeaderHintButton").onpointerleave = function(e) {
+			window.document.querySelector("#leader_btn").classList.remove("hint");
+		};
+		if(client_Utils.isAndroid()) {
+			window.document.querySelector("#openInApp").onclick = function(e) {
+				var isRedirected = false;
+				window.addEventListener("blur",function(e) {
+					isRedirected = true;
+					return isRedirected;
+				},{ once : true});
+				window.setTimeout(function() {
+					if(isRedirected || window.document.hidden) {
+						return;
+					}
+					window.location.href = "https://github.com/RblSb/SyncTubeApp#readme";
+				},500);
+				window.location.href = "synctube://" + $global.location.href;
+				return false;
+			};
+		}
+		window.document.querySelector("#hideHintList").onclick = function(e) {
+			window.document.querySelector("#hideHintList").parentElement.remove();
+			_gthis.settings.showHintList = false;
+			client_Settings.write(_gthis.settings);
+		};
 	}
 	,onUserGroupChanged: function() {
 		var button = window.document.querySelector("#queue_next");
@@ -1789,18 +1918,18 @@ client_Main.prototype = {
 			this.filters.push({ regex : new EReg("(^| )" + this.escapeRegExp(emote.name) + "(?!\\S)","g"), replace : "$1<" + tag + " class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>"});
 		}
 		window.document.querySelector("#smilesbtn").classList.remove("active");
-		var smilesWrap = window.document.querySelector("#smileswrap");
-		smilesWrap.style.display = "none";
-		smilesWrap.onclick = function(e) {
+		window.document.querySelector("#smiles-wrap").style.display = "none";
+		var smilesList = window.document.querySelector("#smiles-list");
+		smilesList.onclick = function(e) {
 			var el = e.target;
-			if(el == smilesWrap) {
+			if(el == smilesList) {
 				return;
 			}
 			var form = window.document.querySelector("#chatline");
 			form.value += " " + el.title;
 			form.focus();
 		};
-		smilesWrap.textContent = "";
+		smilesList.textContent = "";
 		var _g = 0;
 		var _g1 = config.emotes;
 		while(_g < _g1.length) {
@@ -1811,7 +1940,7 @@ client_Main.prototype = {
 			el.className = "smile-preview";
 			el.dataset.src = emote.image;
 			el.title = emote.name;
-			smilesWrap.appendChild(el);
+			smilesList.appendChild(el);
 		}
 	}
 	,onLogin: function(data,clientName) {
@@ -1992,6 +2121,9 @@ client_Main.prototype = {
 		case "fb":case "flashback":
 			this.send({ type : "Flashback"});
 			return false;
+		case "help":
+			this.showChatHintList();
+			return true;
 		case "kick":
 			this.mergeRedundantArgs(args,0,1);
 			this.send({ type : "KickClient", kickClient : { name : args[0]}});
@@ -2071,12 +2203,7 @@ client_Main.prototype = {
 		this.onBlinkTab.run();
 	}
 	,setLeaderButton: function(flag) {
-		var leaderBtn = window.document.querySelector("#leader_btn");
-		if(flag) {
-			leaderBtn.classList.add("success-bg");
-		} else {
-			leaderBtn.classList.remove("success-bg");
-		}
+		window.document.querySelector("#leader_btn").classList.toggle("success-bg",flag);
 	}
 	,setPlaylistLock: function(isOpen) {
 		this.isPlaylistOpen = isOpen;
@@ -2084,13 +2211,11 @@ client_Main.prototype = {
 		var icon = lockPlaylist.firstElementChild;
 		if(isOpen) {
 			lockPlaylist.title = Lang.get("playlistOpen");
-			lockPlaylist.classList.add("btn-success");
 			lockPlaylist.classList.add("success");
 			lockPlaylist.classList.remove("danger");
 			icon.setAttribute("name","lock-open");
 		} else {
 			lockPlaylist.title = Lang.get("playlistLocked");
-			lockPlaylist.classList.add("btn-danger");
 			lockPlaylist.classList.add("danger");
 			lockPlaylist.classList.remove("success");
 			icon.setAttribute("name","lock-closed");
@@ -2339,11 +2464,7 @@ client_Player.prototype = {
 		var btn = item.querySelector(".qbtn-tmp");
 		btn.title = isTemp ? Lang.get("makePermanent") : Lang.get("makeTemporary");
 		btn.firstElementChild.setAttribute("name",isTemp ? "lock-open" : "lock-closed");
-		if(isTemp) {
-			item.classList.add("queue_temp");
-		} else {
-			item.classList.remove("queue_temp");
-		}
+		item.classList.toggle("queue_temp",isTemp);
 	}
 	,removeItem: function(url) {
 		this.removeElementItem(url);
@@ -2615,7 +2736,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 477, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 476, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -2678,6 +2799,9 @@ client_Utils.isIOS = function() {
 	} else {
 		return true;
 	}
+};
+client_Utils.isAndroid = function() {
+	return $global.navigator.userAgent.toLowerCase().indexOf("android") > -1;
 };
 client_Utils.nodeFromString = function(div) {
 	var wrapper = window.document.createElement("div");
@@ -3208,7 +3332,7 @@ client_players_RawSubs.convertAssTime = function(time) {
 };
 client_players_RawSubs.isProxyError = function(text) {
 	if(StringTools.startsWith(text,"Proxy error:")) {
-		client_Main.serverMessage(4,"Failed to add subs: proxy error");
+		client_Main.serverMessage("Failed to add subs: proxy error");
 		haxe_Log.trace("Failed to add subs: " + text,{ fileName : "src/client/players/RawSubs.hx", lineNumber : 191, className : "client.players.RawSubs", methodName : "isProxyError"});
 		return true;
 	}
@@ -3378,7 +3502,7 @@ client_players_Youtube.prototype = {
 		loadJson(dataUrl);
 	}
 	,youtubeApiError: function(error) {
-		client_Main.serverMessage(4,"Error " + error.code + ": " + error.message,false);
+		client_Main.serverMessage("Error " + error.code + ": " + error.message,false);
 	}
 	,getRemoteDataFallback: function(url,callback) {
 		var _gthis = this;
