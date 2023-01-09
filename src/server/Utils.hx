@@ -6,7 +6,30 @@ import js.node.Os;
 import js.node.url.URL;
 import sys.FileSystem;
 
+using StringTools;
+
 class Utils {
+	public static function parseArgs(args:Array<String>, caseSensitive = true):Map<String,
+		String> {
+		final map:Map<String, String> = [];
+		for (arg in args) {
+			if (arg.length == 0) continue;
+			if (arg.fastCodeAt(0) == "-".code) {
+				arg = arg.substr(arg.fastCodeAt(1) == "-".code ? 2 : 1);
+			}
+			final delimiterPos = arg.indexOf("=");
+			if (delimiterPos < 1) {
+				final key = caseSensitive ? arg : arg.toLowerCase();
+				map[key] = "";
+				continue;
+			}
+			var key = arg.substr(0, delimiterPos);
+			if (!caseSensitive) key = key.toLowerCase();
+			map[key] = arg.substr(delimiterPos + 1);
+		}
+		return map;
+	}
+
 	public static function ensureDir(path:String):Void {
 		if (!FileSystem.exists(path)) FileSystem.createDirectory(path);
 	}

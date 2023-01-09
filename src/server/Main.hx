@@ -63,7 +63,8 @@ class Main {
 
 	function new(opts:MainOptions) {
 		isNoState = !opts.loadState;
-		verbose = Sys.args().has("--verbose");
+		final args = Utils.parseArgs(Sys.args(), false);
+		verbose = args.exists("verbose");
 		statePath = '$rootDir/user/state.json';
 		logsDir = '$rootDir/user/logs';
 		// process.on("exit", exit);
@@ -97,6 +98,11 @@ class Main {
 		port = config.port;
 		final envPort = (process.env : Dynamic).PORT;
 		if (envPort != null) port = envPort;
+		final argPort = args["port"];
+		if (argPort != null) {
+			final newPort = Std.parseInt(argPort);
+			if (newPort != null) port = newPort;
+		}
 
 		var attempts = isNoState ? 500 : 5;
 		function preparePort():Void {
