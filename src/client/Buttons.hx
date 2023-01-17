@@ -201,6 +201,12 @@ class Buttons {
 				&& main.isSingleVideoLink(value);
 			ge("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
 			ge("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
+			final panel = ge("#addfromurl");
+			final oldH = panel.style.height; // save for animation
+			panel.style.height = ""; // to calculate height from content
+			final newH = outerHeight(panel) + "px";
+			panel.style.height = oldH;
+			Timer.delay(() -> panel.style.height = newH, 0);
 		}
 		mediaUrl.onfocus = mediaUrl.oninput;
 

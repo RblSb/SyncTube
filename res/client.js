@@ -712,7 +712,15 @@ client_Buttons.init = function(main) {
 		var value = mediaUrl.value;
 		var isRawSingleVideo = value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value);
 		window.document.querySelector("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
-		return window.document.querySelector("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
+		window.document.querySelector("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
+		var panel = window.document.querySelector("#addfromurl");
+		var oldH = panel.style.height;
+		panel.style.height = "";
+		var newH = client_Buttons.outerHeight(panel) + "px";
+		panel.style.height = oldH;
+		return haxe_Timer.delay(function() {
+			panel.style.height = newH;
+		},0);
 	};
 	mediaUrl.onfocus = mediaUrl.oninput;
 	window.document.querySelector("#insert_template").onclick = function(e) {
