@@ -16,7 +16,7 @@ jobs:
         run: |
           node -v
           npm install --global lix
-          lix install haxe 4.2.3 --global
+          lix install haxe 4.3.0 --global
           lix download
           npm ci
           haxelib install tests.hxml --always

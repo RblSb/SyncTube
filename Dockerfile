@@ -1,4 +1,4 @@
-FROM haxe:4.2.5-alpine3.15
+FROM haxe:4.3.0-alpine3.15
 WORKDIR /usr/src/app
 
 RUN apk add nodejs npm git

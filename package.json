@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/RblSb/SyncTube#readme",
   "dependencies": {
-    "ws": "^8.3.0"
+    "ws": "^8.13.0"
   }
 }
