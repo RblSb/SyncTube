@@ -323,13 +323,13 @@ class Buttons {
 		}
 		updateHotkeysBtn();
 
-		final removeBtn = ge("#removeVideoBtn");
+		final removeBtn = ge("#removePlayerBtn");
 		removeBtn.onclick = e -> {
-			final hasVideo = main.toggleVideoElement();
-			if (hasVideo || main.isListEmpty()) {
-				removeBtn.innerText = Lang.get("removeVideo");
+			final isActive = main.toggleVideoElement();
+			if (isActive) {
+				removeBtn.innerText = Lang.get("removePlayer");
 			} else {
-				removeBtn.innerText = Lang.get("addVideo");
+				removeBtn.innerText = Lang.get("restorePlayer");
 			}
 		}
 		final setVideoUrlBtn = ge("#setVideoUrlBtn");

@@ -30,6 +30,7 @@ class Main {
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
 	public var forceSyncNextTick = false;
+	public var isVideoEnabled = true;
 	public final host:String;
 	public var globalIp(default, null) = "";
 	public var isPlaylistOpen = true;
@@ -359,11 +360,13 @@ class Main {
 	}
 
 	public function toggleVideoElement():Bool {
-		if (player.hasVideo()) player.removeVideo();
-		else if (!player.isListEmpty()) {
+		isVideoEnabled = !isVideoEnabled;
+		if (!isVideoEnabled && player.hasVideo()) {
+			player.removeVideo();
+		} else if (isVideoEnabled && !player.isListEmpty()) {
 			player.setVideo(player.getItemPos());
 		}
-		return player.hasVideo();
+		return isVideoEnabled;
 	}
 
 	public function isListEmpty():Bool {

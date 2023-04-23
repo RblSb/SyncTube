@@ -127,12 +127,17 @@ class Player {
 		addActiveLabel(videoList.pos);
 
 		isLoaded = false;
-		player.loadVideo(item);
+		if (main.isVideoEnabled) {
+			player.loadVideo(item);
+		} else {
+			onCanBePlayed();
+		}
 		JsApi.fireVideoChangeEvents(item);
 		ge("#currenttitle").textContent = item.title;
 	}
 
 	public function changeVideoSrc(src:String):Void {
+		if (!main.isVideoEnabled) return;
 		if (player == null) return;
 		final item = videoList.getCurrentItem() ?? return;
 		player.loadVideo({
