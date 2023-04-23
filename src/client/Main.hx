@@ -289,8 +289,8 @@ class Main {
 				serverMessage(Lang.get("addVideoError"));
 				return;
 			}
-			if (data.title == null) data.title = Lang.get("rawVideo");
-			if (data.url == null) data.url = url;
+			data.title ??= Lang.get("rawVideo");
+			data.url ??= url;
 			send({
 				type: AddVideo,
 				addVideo: {
@@ -330,8 +330,8 @@ class Main {
 				return;
 			}
 			if (title.length > 0) data.title = title;
-			if (data.title == null) data.title = "Custom Media";
-			if (data.url == null) data.url = iframe;
+			data.title ??= "Custom Media";
+			data.url ??= iframe;
 			send({
 				type: AddVideo,
 				addVideo: {
@@ -480,8 +480,8 @@ class Main {
 				player.play();
 
 			case GetTime:
-				if (data.getTime.paused == null) data.getTime.paused = false;
-				if (data.getTime.rate == null) data.getTime.rate = 1;
+				data.getTime.paused ??= false;
+				data.getTime.rate ??= 1;
 
 				if (player.getPlaybackRate() != data.getTime.rate) {
 					player.setPlaybackRate(data.getTime.rate);
@@ -746,8 +746,7 @@ class Main {
 
 	function onLogin(data:Array<ClientData>, clientName:String):Void {
 		updateClients(data);
-		final newPersonal = clients.getByName(clientName);
-		if (newPersonal == null) return;
+		final newPersonal = clients.getByName(clientName) ?? return;
 		personal = newPersonal;
 		onUserGroupChanged();
 		hideGuestLoginPanel();
@@ -880,7 +879,7 @@ class Main {
 		if (date == null) date = Date.now().toString();
 		else date = getLocalDateFromUtc(date);
 		final time = date.split(" ")[1];
-		tstamp.textContent = time == null ? date : time;
+		tstamp.textContent = time ?? date;
 		tstamp.title = date;
 
 		final nameDiv = document.createElement("strong");
@@ -932,10 +931,8 @@ class Main {
 
 	function onChatVideoLoaded(e:Event):Void {
 		final el:VideoElement = cast e.target;
-		if (emoteMaxSize == null) {
-			emoteMaxSize = Std.parseInt(window.getComputedStyle(el)
-				.getPropertyValue("max-width"));
-		}
+		emoteMaxSize ??= Std.parseInt(window.getComputedStyle(el)
+			.getPropertyValue("max-width"));
 		// fixes default video tag size in chat when tab unloads videos in background
 		// (some browsers optimization i guess)
 		final max = emoteMaxSize;

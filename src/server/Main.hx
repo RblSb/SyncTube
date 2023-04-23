@@ -164,9 +164,7 @@ class Main {
 	}
 
 	function generateConfigSalt():String {
-		if (userList.salt == null) {
-			userList.salt = Sha256.encode('${Math.random()}');
-		}
+		userList.salt ??= Sha256.encode('${Math.random()}');
 		return userList.salt;
 	}
 
@@ -222,8 +220,8 @@ class Main {
 			bans: []
 		};
 		final users:UserList = Json.parse(File.getContent(customPath));
-		if (users.admins == null) users.admins = [];
-		if (users.bans == null) users.bans = [];
+		users.admins ??= [];
+		users.bans ??= [];
 		for (field in users.bans) {
 			field.toDate = Date.fromString(cast field.toDate);
 		}

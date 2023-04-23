@@ -79,7 +79,7 @@ class Youtube implements IPlayer {
 
 	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
 		final url = data.url;
-		if (apiKey == null) apiKey = main.getYoutubeApiKey();
+		apiKey ??= main.getYoutubeApiKey();
 		final id = extractVideoId(url);
 		if (id == "") {
 			getPlaylistVideoData(data, callback);

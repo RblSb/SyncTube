@@ -28,7 +28,7 @@ class JsApi {
 
 	static function initPluginsSpace():Void {
 		final w:Dynamic = window;
-		if (w.synctube == null) w.synctube = {};
+		w.synctube ??= {};
 	}
 
 	@:expose

@@ -56,13 +56,13 @@ class Lang {
 	public static function get(lang:String, ?key:String):String {
 		if (langs[lang] == null) lang = "en";
 		final text = langs[lang][key];
-		return text == null ? key : text;
+		return text ?? key;
 	}
 	#else
 	public static function get(key:String):String {
 		if (langs[lang] == null) lang = "en";
 		final text = langs[lang][key];
-		return text == null ? key : text;
+		return text ?? key;
 	}
 	#end
 }

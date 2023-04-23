@@ -220,9 +220,7 @@ class HttpServer {
 	}
 
 	static function getMimeType(ext:String):String {
-		final contentType = mimeTypes[ext];
-		if (contentType == null) return "application/octet-stream";
-		return contentType;
+		return mimeTypes[ext] ?? return "application/octet-stream";
 	}
 
 	static final ctrlCharacters = ~/[\u0000-\u001F\u007F-\u009F\u2000-\u200D\uFEFF]/g;

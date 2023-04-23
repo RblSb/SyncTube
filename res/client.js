@@ -242,10 +242,10 @@ Lang.get = function(key) {
 		Lang.lang = "en";
 	}
 	var text = Lang.langs.h[Lang.lang].h[key];
-	if(text == null) {
-		return key;
-	} else {
+	if(text != null) {
 		return text;
+	} else {
+		return key;
 	}
 };
 Math.__name__ = true;
@@ -1049,9 +1049,7 @@ client_JsApi.init = function(main,player) {
 };
 client_JsApi.initPluginsSpace = function() {
 	var w = window;
-	if(w.synctube == null) {
-		w.synctube = { };
-	}
+	w.synctube = w.synctube != null ? w.synctube : { };
 };
 client_JsApi.addPlugin = $hx_exports["client"]["JsApi"]["addPlugin"] = function(id,onLoaded) {
 	client_JsApi.addScriptToHead("/plugins/" + id + "/index.js",function() {
@@ -1451,12 +1449,8 @@ client_Main.prototype = {
 				client_Main.serverMessage(Lang.get("addVideoError"));
 				return;
 			}
-			if(data.title == null) {
-				data.title = Lang.get("rawVideo");
-			}
-			if(data.url == null) {
-				data.url = url;
-			}
+			data.title = data.title != null ? data.title : Lang.get("rawVideo");
+			data.url = data.url != null ? data.url : url;
 			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, subs : data.subs, isIframe : data.isIframe == true}, atEnd : atEnd}});
 			if(callback != null) {
 				callback();
@@ -1483,12 +1477,8 @@ client_Main.prototype = {
 			if(title.length > 0) {
 				data.title = title;
 			}
-			if(data.title == null) {
-				data.title = "Custom Media";
-			}
-			if(data.url == null) {
-				data.url = iframe;
-			}
+			data.title = data.title != null ? data.title : "Custom Media";
+			data.url = data.url != null ? data.url : iframe;
 			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, isIframe : true}, atEnd : atEnd}});
 		});
 	}
@@ -1559,12 +1549,8 @@ client_Main.prototype = {
 		case "Flashback":
 			break;
 		case "GetTime":
-			if(data.getTime.paused == null) {
-				data.getTime.paused = false;
-			}
-			if(data.getTime.rate == null) {
-				data.getTime.rate = 1;
-			}
+			data.getTime.paused = data.getTime.paused != null && data.getTime.paused;
+			data.getTime.rate = data.getTime.rate != null ? data.getTime.rate : 1;
 			if(this.player.getPlaybackRate() != data.getTime.rate) {
 				this.player.setPlaybackRate(data.getTime.rate);
 			}
@@ -1924,11 +1910,11 @@ client_Main.prototype = {
 	}
 	,onLogin: function(data,clientName) {
 		this.updateClients(data);
-		var newPersonal = ClientTools.getByName(this.clients,clientName);
-		if(newPersonal == null) {
+		var tmp = ClientTools.getByName(this.clients,clientName);
+		if(tmp == null) {
 			return;
 		}
-		this.personal = newPersonal;
+		this.personal = tmp;
 		this.onUserGroupChanged();
 		this.hideGuestLoginPanel();
 	}
@@ -2008,7 +1994,7 @@ client_Main.prototype = {
 			date = this.getLocalDateFromUtc(date);
 		}
 		var time = date.split(" ")[1];
-		tstamp.textContent = time == null ? date : time;
+		tstamp.textContent = time != null ? time : date;
 		tstamp.title = date;
 		var nameDiv = window.document.createElement("strong");
 		nameDiv.className = "username";
@@ -2055,9 +2041,7 @@ client_Main.prototype = {
 	}
 	,onChatVideoLoaded: function(e) {
 		var el = e.target;
-		if(this.emoteMaxSize == null) {
-			this.emoteMaxSize = Std.parseInt(window.getComputedStyle(el).getPropertyValue("max-width"));
-		}
+		this.emoteMaxSize = this.emoteMaxSize != null ? this.emoteMaxSize : Std.parseInt(window.getComputedStyle(el).getPropertyValue("max-width"));
 		var max = this.emoteMaxSize;
 		var ratio = Math.min(max / el.videoWidth,max / el.videoHeight);
 		el.style.width = "" + el.videoWidth * ratio + "px";
@@ -2348,11 +2332,11 @@ client_Player.prototype = {
 			return;
 		}
 		var _this = this.videoList;
-		var item = _this.items[_this.pos];
-		if(item == null) {
+		var tmp = _this.items[_this.pos];
+		if(tmp == null) {
 			return;
 		}
-		this.player.loadVideo({ url : src, title : item.title, author : item.author, duration : item.duration, subs : item.subs, isTemp : item.isTemp, isIframe : item.isIframe});
+		this.player.loadVideo({ url : src, title : tmp.title, author : tmp.author, duration : tmp.duration, subs : tmp.subs, isTemp : tmp.isTemp, isIframe : tmp.isIframe});
 	}
 	,removeVideo: function() {
 		var _this = this.videoList;
@@ -2688,14 +2672,14 @@ client_Player.prototype = {
 	,skipAd: function() {
 		var _gthis = this;
 		var _this = this.videoList;
-		var item = _this.items[_this.pos];
-		if(item == null) {
+		var tmp = _this.items[_this.pos];
+		if(tmp == null) {
 			return;
 		}
-		if(!this.youtube.isSupportedLink(item.url)) {
+		if(!this.youtube.isSupportedLink(tmp.url)) {
 			return;
 		}
-		var http = new haxe_http_HttpJs("https://sponsor.ajay.app/api/skipSegments?videoID=" + this.youtube.extractVideoId(item.url));
+		var http = new haxe_http_HttpJs("https://sponsor.ajay.app/api/skipSegments?videoID=" + this.youtube.extractVideoId(tmp.url));
 		http.onData = function(text) {
 			var json;
 			try {
@@ -2716,7 +2700,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 476, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 474, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -3395,9 +3379,7 @@ client_players_Youtube.prototype = {
 	,getVideoData: function(data,callback) {
 		var _gthis = this;
 		var url = data.url;
-		if(this.apiKey == null) {
-			this.apiKey = this.main.getYoutubeApiKey();
-		}
+		this.apiKey = this.apiKey != null ? this.apiKey : this.main.getYoutubeApiKey();
 		var id = this.extractVideoId(url);
 		if(id == "") {
 			this.getPlaylistVideoData(data,callback);

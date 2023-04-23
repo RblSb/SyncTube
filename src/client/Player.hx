@@ -102,7 +102,7 @@ class Player {
 
 	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
 		var player = players.find(player -> player.isSupportedLink(data.url));
-		if (player == null) player = rawPlayer;
+		player ??= rawPlayer;
 		player.getVideoData(data, callback);
 	}
 
@@ -134,8 +134,7 @@ class Player {
 
 	public function changeVideoSrc(src:String):Void {
 		if (player == null) return;
-		final item = videoList.getCurrentItem();
-		if (item == null) return;
+		final item = videoList.getCurrentItem() ?? return;
 		player.loadVideo({
 			url: src,
 			title: item.title,
@@ -447,8 +446,7 @@ class Player {
 	}
 
 	public function skipAd():Void {
-		final item = videoList.getCurrentItem();
-		if (item == null) return;
+		final item = videoList.getCurrentItem() ?? return;
 		if (!youtube.isSupportedLink(item.url)) return;
 		final id = youtube.extractVideoId(item.url);
 		final url = 'https://sponsor.ajay.app/api/skipSegments?videoID=$id';
