@@ -8,6 +8,15 @@ import js.html.Element;
 import js.html.URL;
 
 class Utils {
+	public static function nativeTrace(msg:Dynamic, ?infos:haxe.PosInfos):Void {
+		final fileData = '${infos.fileName}:${infos.lineNumber}';
+		var args:Array<Dynamic> = [fileData, msg];
+		if (infos.customParams != null) args = args.concat(infos.customParams);
+		js.Browser.window.console.log(
+			...haxe.Rest.of(args)
+		);
+	}
+
 	public static function isTouch():Bool {
 		return js.Syntax.code("'ontouchstart' in window");
 	}

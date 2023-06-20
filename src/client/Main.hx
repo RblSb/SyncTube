@@ -52,6 +52,7 @@ class Main {
 	}
 
 	function new() {
+		haxe.Log.trace = Utils.nativeTrace;
 		player = new Player(this);
 		host = Browser.location.hostname;
 		if (host == "") host = "localhost";
@@ -790,22 +791,22 @@ class Main {
 		ws.send(Json.stringify(data));
 	}
 
-	static function chatMessageConnected():Void {
+	function chatMessageConnected():Void {
 		final div = document.createDivElement();
 		div.className = "server-msg-reconnect";
 		div.textContent = Lang.get("msgConnected");
 		final msgBuf = ge("#messagebuffer");
 		msgBuf.appendChild(div);
-		msgBuf.scrollTop = msgBuf.scrollHeight;
+		scrollChatToEnd();
 	}
 
-	static function chatMessageDisconnected():Void {
+	function chatMessageDisconnected():Void {
 		final div = document.createDivElement();
 		div.className = "server-msg-disconnect";
 		div.textContent = Lang.get("msgDisconnected");
 		final msgBuf = ge("#messagebuffer");
 		msgBuf.appendChild(div);
-		msgBuf.scrollTop = msgBuf.scrollHeight;
+		scrollChatToEnd();
 	}
 
 	public static function serverMessage(text:String, isText = true, withTimestamp = true):Void {
@@ -897,7 +898,8 @@ class Main {
 			text = filter.regex.replace(text, filter.replace);
 		}
 		textDiv.innerHTML = text;
-		final isInChatEnd = msgBuf.scrollTop + msgBuf.clientHeight >= msgBuf.scrollHeight - 1;
+		final isInChatEnd = msgBuf.scrollTop
+			+ msgBuf.clientHeight >= msgBuf.scrollHeight - 50;
 
 		if (isInChatEnd) { // scroll chat to end after images loaded
 			for (img in textDiv.getElementsByTagName("img")) {
@@ -917,17 +919,27 @@ class Main {
 			while (msgBuf.children.length > 200) {
 				msgBuf.removeChild(msgBuf.firstChild);
 			}
-			msgBuf.scrollTop = msgBuf.scrollHeight;
 		}
-		if (name == personal.name) {
-			msgBuf.scrollTop = msgBuf.scrollHeight;
+		if (isInChatEnd || name == personal.name) {
+			scrollChatToEnd();
+		} else {
+			showScrollToChatEndBtn();
 		}
 		if (onBlinkTab == null) blinkTabWithTitle("*Chat*");
+	}
+
+	function showScrollToChatEndBtn() {
+		final btn = ge("#scroll-to-chat-end");
+		btn.style.display = "block";
+		Timer.delay(() -> btn.style.opacity = "1", 0);
 	}
 
 	function onChatImageLoaded(e:Event):Void {
 		scrollChatToEnd();
 		(cast e.target : Element).onload = null;
+		final btn = ge("#scroll-to-chat-end");
+		btn.style.opacity = "0";
+		btn.style.display = "none";
 	}
 
 	var emoteMaxSize:Null<Int>;

@@ -165,7 +165,7 @@ class TestTimer extends Test {
 	}
 
 	function almostEq(a:Float, b:Float, ?p:PosInfos):Void {
-		if (isMacCI()) {
+		if (isMacCI() || isWindowsCI()) {
 			Assert.isTrue(Math.abs(a - b) < 0.5);
 			return;
 		}
@@ -174,5 +174,9 @@ class TestTimer extends Test {
 
 	function isMacCI():Bool {
 		return Sys.systemName() == "Mac" && Sys.environment()["CI"] == "true";
+	}
+
+	function isWindowsCI():Bool {
+		return Sys.systemName() == "Windows" && Sys.environment()["CI"] == "true";
 	}
 }

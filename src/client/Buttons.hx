@@ -60,6 +60,25 @@ class Buttons {
 			}
 		}
 
+		final scrollToChatEndBtn = ge("#scroll-to-chat-end");
+		function scrollToChatEndBtnAnim():Void {
+			if (scrollToChatEndBtn.style.opacity == "0") return;
+			scrollToChatEndBtn.style.opacity = "0";
+			scrollToChatEndBtn.addEventListener("transitionend", e -> {
+				scrollToChatEndBtn.style.display = "none";
+			}, {once: true});
+		}
+		scrollToChatEndBtn.onclick = e -> {
+			main.scrollChatToEnd();
+			scrollToChatEndBtnAnim();
+		}
+		// hide scroll button when chat is scrolled to the end
+		final msgBuf = ge("#messagebuffer");
+		msgBuf.onscroll = e -> {
+			if (msgBuf.offsetHeight + msgBuf.scrollTop < msgBuf.scrollHeight - 1) return;
+			scrollToChatEndBtnAnim();
+		}
+
 		ge("#clearchatbtn").onclick = e -> {
 			if (main.isAdmin()) main.send({type: ClearChat});
 		}

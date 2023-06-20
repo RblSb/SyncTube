@@ -185,28 +185,33 @@
     </ul>
     <!-- Messages -->
     <div id="messagebuffer"></div>
-    <!-- Message input -->
-    <div id="chatbox">
-      <input id="chatline" type="text" placeholder="${chatlinePlaceholder}">
-      <button id="smilesbtn" title="${emotes}">
-        <ion-icon name="happy"></ion-icon>
+    <div id="chat-inputs-wrapper">
+      <button id="scroll-to-chat-end" style="display: none; opacity: 0;" class="active">
+        <ion-icon name="arrow-down" role="img" class="md hydrated" aria-label="arrow down"></ion-icon>
       </button>
-    </div>
-    <div id="smiles-wrap" class="collapsible">
-      <div id="smiles-list"></div>
-    </div>
-    <!-- Guest login -->
-    <div id="guestlogin" style="display: none;">
-      <label>${enterAsGuest}</label>
-      <input id="guestname" type="text" placeholder="${yourName}">
-    </div>
-    <div id="guestpassword" style="display: none;">
-      <label>${enterUserPassword}</label>
-      <div id="passwordbox">
-        <input id="guestpass" type="text" placeholder="${yourPassword}">
-        <button id="guestpass_icon">
-          <ion-icon name="eye"></ion-icon>
+      <!-- Message input -->
+      <div id="chatbox">
+        <input id="chatline" type="text" placeholder="${chatlinePlaceholder}">
+        <button id="smilesbtn" title="${emotes}">
+          <ion-icon name="happy"></ion-icon>
         </button>
+      </div>
+      <div id="smiles-wrap" class="collapsible">
+        <div id="smiles-list"></div>
+      </div>
+      <!-- Guest login -->
+      <div id="guestlogin" style="display: none;">
+        <label>${enterAsGuest}</label>
+        <input id="guestname" type="text" placeholder="${yourName}">
+      </div>
+      <div id="guestpassword" style="display: none;">
+        <label>${enterUserPassword}</label>
+        <div id="passwordbox">
+          <input id="guestpass" type="text" placeholder="${yourPassword}">
+          <button id="guestpass_icon">
+            <ion-icon name="eye"></ion-icon>
+          </button>
+        </div>
       </div>
     </div>
   </aside>

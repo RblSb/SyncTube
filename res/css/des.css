@@ -7,6 +7,7 @@
 :root {
   --background-video: #000;
   --background-chat: #111;
+  --scroll-to-end-bg: #fff;
   --midground: #888;
   --foreground: #bbb;
   --accent: #0055ff;
@@ -646,7 +647,26 @@ footer#footer {
   font-style: italic;
 }
 
+#scroll-to-chat-end {
+  transition: opacity 200ms;
+  position: absolute;
+  margin-left: auto;
+  top: -4em;
+  right: 1em;
+  padding: 0.8em;
+  border-radius: 50%;
+  background-color: var(--scroll-to-end-bg);
+}
+
+#scroll-to-chat-end ion-icon {
+  color: var(--midground);
+}
+
 /* Chat input */
+
+#chat-inputs-wrapper {
+  position: relative;
+}
 
 #chatbox {
   padding-top: 1rem;
