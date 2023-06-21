@@ -18,12 +18,12 @@ private typedef Duration = {
 }
 
 class RawSubs {
-	public static function loadSubs(item:VideoItem, video:VideoElement):Void {
-		if (item.subs == null || item.subs.length == 0) return;
-		final ext = PathTools.urlExtension(item.subs);
+	public static function loadSubs(subsUrl:String, video:VideoElement):Void {
+		if (subsUrl == null || subsUrl.length == 0) return;
+		final ext = PathTools.urlExtension(subsUrl);
 		// do not load subs if there is custom plugin
 		if (JsApi.hasSubtitleSupport(ext)) return;
-		var url = encodeURI(item.subs);
+		var url = encodeURI(subsUrl);
 		if (!url.startsWith("/")) {
 			final protocol = Browser.location.protocol;
 			if (!url.startsWith("http")) url = '$protocol//$url';

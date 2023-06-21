@@ -3111,7 +3111,35 @@ client_players_Raw.prototype = {
 			this.initHlsSource(this.video,url);
 		}
 		this.restartControlsHider();
-		client_players_RawSubs.loadSubs(item,this.video);
+		var subsUrl;
+		var tmp = item.subs;
+		if(tmp != null) {
+			subsUrl = tmp;
+		} else {
+			return;
+		}
+		if(subsUrl.length == 0) {
+			return;
+		}
+		if(StringTools.startsWith(subsUrl,"/")) {
+			client_players_RawSubs.loadSubs(subsUrl,this.video);
+			return;
+		}
+		if(!StringTools.startsWith(subsUrl,"http")) {
+			var protocol = $global.location.protocol;
+			subsUrl = "" + protocol + "//" + subsUrl;
+		}
+		var subsUri;
+		try {
+			subsUri = new URL(subsUrl);
+		} catch( _g ) {
+			client_Main.serverMessage("Failed to add subs: bad url (" + subsUrl + ")");
+			return;
+		}
+		if(subsUri.hostname == this.main.host || subsUri.hostname == this.main.globalIp) {
+			subsUrl = subsUri.pathname;
+		}
+		client_players_RawSubs.loadSubs(subsUrl,this.video);
 	}
 	,restartControlsHider: function() {
 		var _gthis = this;
@@ -3180,15 +3208,15 @@ client_players_Raw.prototype = {
 };
 var client_players_RawSubs = function() { };
 client_players_RawSubs.__name__ = true;
-client_players_RawSubs.loadSubs = function(item,video) {
-	if(item.subs == null || item.subs.length == 0) {
+client_players_RawSubs.loadSubs = function(subsUrl,video) {
+	if(subsUrl == null || subsUrl.length == 0) {
 		return;
 	}
-	var ext = PathTools.urlExtension(item.subs);
+	var ext = PathTools.urlExtension(subsUrl);
 	if(client_JsApi.hasSubtitleSupport(ext)) {
 		return;
 	}
-	var url = encodeURI(item.subs);
+	var url = encodeURI(subsUrl);
 	if(!StringTools.startsWith(url,"/")) {
 		var protocol = $global.location.protocol;
 		if(!StringTools.startsWith(url,"http")) {

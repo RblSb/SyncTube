@@ -6,9 +6,11 @@ import Types.VideoItem;
 import client.Main.ge;
 import haxe.Timer;
 import js.Browser.document;
+import js.Browser;
 import js.hlsjs.Hls;
 import js.html.Element;
 import js.html.InputElement;
+import js.html.URL;
 import js.html.VideoElement;
 
 using StringTools;
@@ -119,7 +121,28 @@ class Raw implements IPlayer {
 		}
 		if (isHls) initHlsSource(video, url);
 		restartControlsHider();
-		RawSubs.loadSubs(item, video);
+
+		var subsUrl = item.subs ?? return;
+		if (subsUrl.length == 0) return;
+		if (subsUrl.startsWith("/")) {
+			RawSubs.loadSubs(subsUrl, video);
+			return;
+		}
+		if (!subsUrl.startsWith("http")) {
+			final protocol = Browser.location.protocol;
+			subsUrl = '$protocol//$subsUrl';
+		}
+		final subsUri = try {
+			new URL(subsUrl);
+		} catch (e) {
+			Main.serverMessage('Failed to add subs: bad url ($subsUrl)');
+			return;
+		}
+		// make local url as relative path to skip proxy
+		if (subsUri.hostname == main.host || subsUri.hostname == main.globalIp) {
+			subsUrl = subsUri.pathname;
+		}
+		RawSubs.loadSubs(subsUrl, video);
 	}
 
 	function restartControlsHider():Void {
