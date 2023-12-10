@@ -4363,7 +4363,7 @@ server_Main.prototype = {
 				this.serverMessage(client,"totalVideoLimitError");
 				return;
 			}
-			if(this.config.userVideoLimit != 0 && this.videoList.itemsByUser(client) >= this.config.userVideoLimit) {
+			if(this.config.userVideoLimit != 0 && ((client.group & 8) == 0) && this.videoList.itemsByUser(client) >= this.config.userVideoLimit) {
 				this.serverMessage(client,"videoLimitPerUserError");
 				return;
 			}
