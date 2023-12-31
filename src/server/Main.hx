@@ -586,7 +586,7 @@ class Main {
 					serverMessage(client, "totalVideoLimitError");
 					return;
 				}
-				if (config.userVideoLimit != 0
+				if (config.userVideoLimit != 0 && !client.isAdmin
 					&& videoList.itemsByUser(client) >= config.userVideoLimit) {
 					serverMessage(client, "videoLimitPerUserError");
 					return;
