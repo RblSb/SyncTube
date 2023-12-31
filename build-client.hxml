@@ -3,5 +3,6 @@
 --class-path src
 --main client.Main
 -D analyzer-optimize
+-w -WDeprecatedEnumAbstract
 --dce full
 --js res/client.js

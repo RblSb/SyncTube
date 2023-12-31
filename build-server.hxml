@@ -8,5 +8,6 @@
 --class-path src
 --main server.Main
 -D analyzer-optimize
+-w -WDeprecatedEnumAbstract
 --dce full
 --js build/server.js
