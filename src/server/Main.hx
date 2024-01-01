@@ -2,9 +2,11 @@ package server;
 
 import Client.ClientData;
 import Types.Config;
+import Types.FlashbackItem;
 import Types.Message;
 import Types.Permission;
 import Types.UserList;
+import Types.VideoItem;
 import Types.WsEvent;
 import haxe.Json;
 import haxe.Timer;
@@ -618,10 +620,13 @@ class Main {
 				if (!checkPermission(client, RemoveVideoPerm)) return;
 				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
-				var index = videoList.findIndex(item -> item.url == url);
+				final index = videoList.findIndex(item -> item.url == url);
 				if (index == -1) return;
 
-				final isCurrent = videoList.getCurrentItem().url == url;
+				final isCurrent = videoList.currentItem.url == url;
+				if (isCurrent && videoTimer.getTime() > FLASHBACK_DIST) {
+					saveFlashbackTime(videoList.currentItem);
+				}
 				videoList.removeItem(index);
 				if (isCurrent && videoList.length > 0) {
 					broadcast(data);
@@ -638,7 +643,7 @@ class Main {
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
 				if (Math.abs(data.pause.time - videoTimer.getTime()) > FLASHBACK_DIST) {
-					saveFlashbackTime();
+					saveFlashbackTime(videoList.currentItem);
 				}
 				videoTimer.setTime(data.pause.time);
 				videoTimer.pause();
@@ -651,7 +656,7 @@ class Main {
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
 				if (Math.abs(data.play.time - videoTimer.getTime()) > FLASHBACK_DIST) {
-					saveFlashbackTime();
+					saveFlashbackTime(videoList.currentItem);
 				}
 				videoTimer.setTime(data.play.time);
 				videoTimer.play();
@@ -662,11 +667,11 @@ class Main {
 
 			case GetTime:
 				if (videoList.length == 0) return;
-				final maxTime = videoList.getCurrentItem().duration - 0.01;
+				final maxTime = videoList.currentItem.duration - 0.01;
 				if (videoTimer.getTime() > maxTime) {
 					videoTimer.pause();
 					videoTimer.setTime(maxTime);
-					final skipUrl = videoList.getCurrentItem().url;
+					final skipUrl = videoList.currentItem.url;
 					Timer.delay(() -> {
 						skipVideo({
 							type: SkipVideo,
@@ -694,7 +699,7 @@ class Main {
 				if (videoList.length == 0) return;
 				if (!client.isLeader) return;
 				if (Math.abs(data.setTime.time - videoTimer.getTime()) > FLASHBACK_DIST) {
-					saveFlashbackTime();
+					saveFlashbackTime(videoList.currentItem);
 				}
 				videoTimer.setTime(data.setTime.time);
 				broadcastExcept(client, {
@@ -716,7 +721,7 @@ class Main {
 				if (videoList.length == 0) return;
 				data.rewind.time += videoTimer.getTime();
 				if (data.rewind.time < 0) data.rewind.time = 0;
-				saveFlashbackTime();
+				saveFlashbackTime(videoList.currentItem);
 				videoTimer.setTime(data.rewind.time);
 				broadcast({
 					type: data.type,
@@ -726,7 +731,7 @@ class Main {
 			case Flashback:
 				if (!checkPermission(client, RewindPerm)) return;
 				if (videoList.length == 0) return;
-				loadFlashbackTime();
+				loadFlashbackTime(videoList.currentItem);
 				broadcast({
 					type: Rewind,
 					rewind: {
@@ -762,6 +767,9 @@ class Main {
 
 			case PlayItem:
 				if (!checkPermission(client, ChangeOrderPerm)) return;
+				if (videoTimer.getTime() > FLASHBACK_DIST) {
+					saveFlashbackTime(videoList.currentItem);
+				}
 				videoList.setPos(data.playItem.pos);
 				data.playItem.pos = videoList.pos;
 				restartWaitTimer();
@@ -790,6 +798,9 @@ class Main {
 			case ClearPlaylist:
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, RemoveVideoPerm)) return;
+				if (videoTimer.getTime() > FLASHBACK_DIST) {
+					saveFlashbackTime(videoList.currentItem);
+				}
 				videoTimer.stop();
 				videoList.clear();
 				broadcast(data);
@@ -902,8 +913,13 @@ class Main {
 
 	function skipVideo(data:WsEvent):Void {
 		if (videoList.length == 0) return;
-		final item = videoList.getCurrentItem();
+		final item = videoList.currentItem;
 		if (item.url != data.skipVideo.url) return;
+		final dur = videoList.currentItem.duration;
+		if (videoTimer.getTime() > FLASHBACK_DIST
+			&& videoTimer.getTime() < dur - FLASHBACK_DIST) {
+			saveFlashbackTime(videoList.currentItem);
+		}
 		videoList.skipItem();
 		if (videoList.length > 0) restartWaitTimer();
 		broadcast(data);
@@ -959,7 +975,6 @@ class Main {
 	var loadedClientsCount = 0;
 
 	function restartWaitTimer():Void {
-		if (videoTimer.getTime() > FLASHBACK_DIST) saveFlashbackTime();
 		videoTimer.stop();
 		if (waitVideoStart != null) waitVideoStart.stop();
 		waitVideoStart = Timer.delay(startVideoPlayback, VIDEO_START_MAX_DELAY);
@@ -979,18 +994,48 @@ class Main {
 		videoTimer.start();
 	}
 
-	var flashbackTime = 0.0;
-
-	function saveFlashbackTime() {
+	function saveFlashbackTime(item:VideoItem):Void {
+		final url = item.url;
+		final duration = item.duration;
 		final time = videoTimer.getTime();
+		final flashbackTime = findFlashbackTime(url, duration);
 		if (Math.abs(flashbackTime - time) < FLASHBACK_DIST) return;
-		flashbackTime = time;
+		addRecentFlashback(url, duration, time);
 	}
 
-	function loadFlashbackTime() {
+	function loadFlashbackTime(item:VideoItem):Void {
+		final url = item.url;
+		final duration = item.duration;
 		final time = videoTimer.getTime();
+		final flashbackTime = findFlashbackTime(url, duration);
 		videoTimer.setTime(flashbackTime);
-		flashbackTime = time;
+		addRecentFlashback(url, duration, time);
+	}
+
+	function findFlashbackTime(url:String, duration:Float):Float {
+		return findFlashbackItem(url, duration)?.time ?? 0.0;
+	}
+
+	final flashbackTimes:Array<FlashbackItem> = [];
+
+	function findFlashbackItem(url:String, ?duration:Float):Null<FlashbackItem> {
+		var item = flashbackTimes.find(item -> item.url == url);
+		// if there is no url match, find recent flashback item with same duration
+		if (duration != null && item == null) {
+			item = flashbackTimes.find(item -> item.duration == duration);
+		}
+		return item;
+	}
+
+	function addRecentFlashback(url:String, duration:Float, time:Float):Void {
+		flashbackTimes.remove(findFlashbackItem(url));
+		flashbackTimes.unshift({
+			url: url,
+			duration: duration,
+			time: time
+		});
+		final length = flashbackTimes.count();
+		if (length > 10) flashbackTimes.pop();
 	}
 
 	function isPlaylistLockedFor(client:Client):Bool {

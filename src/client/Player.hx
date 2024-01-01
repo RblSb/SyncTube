@@ -92,7 +92,7 @@ class Player {
 	function setPlayer(newPlayer:IPlayer):Void {
 		if (player != newPlayer) {
 			if (player != null) {
-				JsApi.fireVideoRemoveEvents(videoList.getCurrentItem());
+				JsApi.fireVideoRemoveEvents(videoList.currentItem);
 				player.removeVideo();
 			}
 			main.blinkTabWithTitle("*Video*");
@@ -139,7 +139,7 @@ class Player {
 	public function changeVideoSrc(src:String):Void {
 		if (!main.isVideoEnabled) return;
 		if (player == null) return;
-		final item = videoList.getCurrentItem() ?? return;
+		final item = videoList.currentItem ?? return;
 		player.loadVideo({
 			url: src,
 			title: item.title,
@@ -152,7 +152,7 @@ class Player {
 	}
 
 	public function removeVideo():Void {
-		JsApi.fireVideoRemoveEvents(videoList.getCurrentItem());
+		JsApi.fireVideoRemoveEvents(videoList.currentItem);
 		player.removeVideo();
 		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
 		setPauseIndicator(true);
@@ -278,7 +278,7 @@ class Player {
 		var index = videoList.findIndex(item -> item.url == url);
 		if (index == -1) return;
 
-		final isCurrent = videoList.getCurrentItem().url == url;
+		final isCurrent = videoList.currentItem.url == url;
 		videoList.removeItem(index);
 		updateCounters();
 
@@ -301,7 +301,7 @@ class Player {
 		if (pos == -1) return;
 		removeActiveLabel(videoList.pos);
 		videoList.setPos(pos);
-		if (videoList.getCurrentItem().isTemp) removeElementItem(url);
+		if (videoList.currentItem.isTemp) removeElementItem(url);
 		videoList.skipItem();
 		updateCounters();
 		if (videoList.length == 0) return;
@@ -332,15 +332,14 @@ class Player {
 	}
 
 	public function setItems(list:Array<VideoItem>, ?pos:Int):Void {
-		final currentUrl = videoList.pos >= videoList.length ? "" : videoList.getCurrentItem()
-			.url;
+		final currentUrl = videoList.pos >= videoList.length ? "" : videoList.currentItem.url;
 		clearItems();
 		if (list.length == 0) return;
 		for (video in list) {
 			addVideoItem(video, true);
 		}
 		if (pos != null) videoList.setPos(pos);
-		if (currentUrl != videoList.getCurrentItem().url) setVideo(videoList.pos);
+		if (currentUrl != videoList.currentItem.url) setVideo(videoList.pos);
 		else addActiveLabel(videoList.pos);
 	}
 
@@ -401,7 +400,7 @@ class Player {
 
 	public function getDuration():Float {
 		if (videoList.pos >= videoList.length) return 0;
-		return videoList.getCurrentItem().duration;
+		return videoList.currentItem.duration;
 	}
 
 	public function isVideoLoaded():Bool {
@@ -451,7 +450,7 @@ class Player {
 	}
 
 	public function skipAd():Void {
-		final item = videoList.getCurrentItem() ?? return;
+		final item = videoList.currentItem ?? return;
 		if (!youtube.isSupportedLink(item.url)) return;
 		final id = youtube.extractVideoId(item.url);
 		final url = 'https://sponsor.ajay.app/api/skipSegments?videoID=$id';

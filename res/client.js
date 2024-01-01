@@ -1884,7 +1884,7 @@ client_Main.prototype = {
 		while(_g < _g1.length) {
 			var emote = _g1[_g];
 			++_g;
-			var tag = StringTools.endsWith(emote.image,"mp4") ? "video autoplay=\"\" loop=\"\" muted=\"\"" : "img";
+			var tag = StringTools.endsWith(emote.image,"mp4") || StringTools.endsWith(emote.image,"webm") ? "video autoplay=\"\" loop=\"\" muted=\"\"" : "img";
 			this.filters.push({ regex : new EReg("(^| )" + this.escapeRegExp(emote.name) + "(?!\\S)","g"), replace : "$1<" + tag + " class=\"channel-emote\" src=\"" + emote.image + "\" title=\"" + emote.name + "\"/>"});
 		}
 		window.document.querySelector("#smilesbtn").classList.remove("active");
@@ -1905,7 +1905,7 @@ client_Main.prototype = {
 		while(_g < _g1.length) {
 			var emote = _g1[_g];
 			++_g;
-			var tag = StringTools.endsWith(emote.image,"mp4") ? "video" : "img";
+			var tag = StringTools.endsWith(emote.image,"mp4") || StringTools.endsWith(emote.image,"webm") ? "video" : "img";
 			var el = window.document.createElement(tag);
 			el.className = "smile-preview";
 			el.dataset.src = emote.image;
@@ -2737,7 +2737,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 479, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 478, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}

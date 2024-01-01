@@ -17,7 +17,9 @@ class VideoList {
 		return items.length;
 	}
 
-	public inline function getCurrentItem():VideoItem {
+	public var currentItem(get, never):VideoItem;
+
+	inline function get_currentItem():Null<VideoItem> {
 		return items[pos];
 	}
 

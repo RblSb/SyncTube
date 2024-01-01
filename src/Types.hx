@@ -107,6 +107,12 @@ typedef VideoItem = {
 	isIframe:Bool
 }
 
+typedef FlashbackItem = {
+	url:String,
+	duration:Float,
+	time:Float
+}
+
 typedef WsEvent = {
 	type:WsEventType,
 	?connected:{

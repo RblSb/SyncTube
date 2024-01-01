@@ -21,13 +21,16 @@ class HttpServer {
 		"css" => "text/css",
 		"json" => "application/json",
 		"png" => "image/png",
-		"jpg" => "image/jpg",
+		"jpg" => "image/jpeg",
+		"jpeg" => "image/jpeg",
 		"gif" => "image/gif",
+		"webp" => "image/webp",
 		"svg" => "image/svg+xml",
 		"ico" => "image/x-icon",
 		"wav" => "audio/wav",
 		"mp3" => "audio/mpeg",
 		"mp4" => "video/mp4",
+		"webm" => "video/webm",
 		"woff" => "application/font-woff",
 		"ttf" => "application/font-ttf",
 		"eot" => "application/vnd.ms-fontobject",
@@ -152,7 +155,7 @@ class HttpServer {
 	}
 
 	static function isMediaExtension(ext:String):Bool {
-		return ext == "mp4" || ext == "mp3" || ext == "wav";
+		return ext == "mp4" || ext == "webm" || ext == "mp3" || ext == "wav";
 	}
 
 	static final matchLang = ~/^[A-z]+/;
