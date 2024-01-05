@@ -3756,32 +3756,50 @@ server_HttpServer.serveMedia = function(req,res,filePath) {
 		return false;
 	}
 	var videoSize = js_node_Fs.statSync(filePath).size;
-	var range = req.headers["range"];
-	if(range == null) {
+	var rangeHeader = req.headers["range"];
+	if(rangeHeader == null) {
 		res.statusCode = 200;
 		res.setHeader("Content-Length","" + videoSize);
 		var videoStream = js_node_Fs.createReadStream(filePath);
 		videoStream.pipe(res);
+		res.on("error",function() {
+			return videoStream.destroy();
+		});
+		res.on("close",function() {
+			return videoStream.destroy();
+		});
 		return true;
 	}
-	var ranges = new EReg("[-=]","g").split(range);
+	var range = server_HttpServer.parseRangeHeader(rangeHeader,videoSize);
+	var start = range.start;
+	var end = range.end;
+	res.setHeader("Content-Range","bytes " + start + "-" + end + "/" + videoSize);
+	res.setHeader("Content-Length","" + (end - start + 1));
+	res.statusCode = 206;
+	var videoStream1 = js_node_Fs.createReadStream(filePath,{ start : start, end : end});
+	videoStream1.pipe(res);
+	res.on("error",function() {
+		return videoStream1.destroy();
+	});
+	res.on("close",function() {
+		return videoStream1.destroy();
+	});
+	return true;
+};
+server_HttpServer.parseRangeHeader = function(rangeHeader,videoSize) {
+	var ranges = new EReg("[-=]","g").split(rangeHeader);
 	var start = parseFloat(ranges[1]);
 	if(server_Utils.isOutOfRange(start,0,videoSize - 1)) {
 		start = 0;
 	}
 	var end = parseFloat(ranges[2]);
 	if(isNaN(end)) {
-		end = start + 5242880;
+		end = start + server_HttpServer.CHUNK_SIZE;
 	}
 	if(server_Utils.isOutOfRange(end,start,videoSize - 1)) {
 		end = videoSize - 1;
 	}
-	res.setHeader("Content-Range","bytes " + start + "-" + end + "/" + videoSize);
-	res.setHeader("Content-Length","" + (end - start + 1));
-	res.statusCode = 206;
-	var videoStream = js_node_Fs.createReadStream(filePath,{ start : start, end : end});
-	videoStream.pipe(res);
-	return true;
+	return { start : start, end : end};
 };
 server_HttpServer.isMediaExtension = function(ext) {
 	if(!(ext == "mp4" || ext == "webm" || ext == "mp3")) {
@@ -3805,24 +3823,24 @@ server_HttpServer.localizeHtml = function(data,lang) {
 server_HttpServer.proxyUrl = function(req,res) {
 	var url = StringTools.replace(req.url,"/proxy?url=","");
 	var proxy = server_HttpServer.proxyRequest(url,req,res,function(proxyReq) {
-		var url = proxyReq.headers["location"];
-		if(url == null) {
+		var tmp = proxyReq.headers["location"];
+		if(tmp == null) {
 			return false;
 		}
-		var proxy2 = server_HttpServer.proxyRequest(url,req,res,function(proxyReq) {
+		var proxy2 = server_HttpServer.proxyRequest(tmp,req,res,function(proxyReq) {
 			return false;
 		});
 		if(proxy2 == null) {
-			res.end("Proxy error: multiple redirects for url " + url);
+			res.end("Proxy error: multiple redirects for url " + tmp);
 			return true;
 		}
-		req.pipe(proxy2,{ end : true});
+		req.pipe(proxy2);
 		return true;
 	});
 	if(proxy == null) {
 		return false;
 	}
-	req.pipe(proxy,{ end : true});
+	req.pipe(proxy);
 	return true;
 };
 server_HttpServer.proxyRequest = function(url,req,res,fn) {
@@ -3843,7 +3861,7 @@ server_HttpServer.proxyRequest = function(url,req,res,fn) {
 		}
 		proxyReq.headers["Content-Type"] = "application/octet-stream";
 		res.writeHead(proxyReq.statusCode,proxyReq.headers);
-		proxyReq.pipe(res,{ end : true});
+		proxyReq.pipe(res);
 	});
 	proxy.on("error",function(err) {
 		res.end("Proxy error: " + url1.href);
@@ -5317,6 +5335,7 @@ server_HttpServer.mimeTypes = (function($this) {
 server_HttpServer.hasCustomRes = false;
 server_HttpServer.allowedLocalFiles = new haxe_ds_StringMap();
 server_HttpServer.allowLocalRequests = false;
+server_HttpServer.CHUNK_SIZE = 5242880;
 server_HttpServer.matchLang = new EReg("^[A-z]+","");
 server_HttpServer.matchVarString = new EReg("\\${([A-z_]+)}","g");
 server_HttpServer.ctrlCharacters = new EReg("[\\u0000-\\u001F\\u007F-\\u009F\\u2000-\\u200D\\uFEFF]","g");
