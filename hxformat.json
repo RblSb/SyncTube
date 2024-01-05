@@ -5,8 +5,8 @@
 	"sameLine": {
 		"ifBody": "same",
 		"elseBody": "same",
-		"ifElse": "keep",
-		"comprehensionFor": "keep"
+		"comprehensionFor": "keep",
+		"forBody": "keep"
 	},
 	"wrapping": {
 		"maxLineLength": 90,
@@ -22,6 +22,10 @@
 		},
 		"methodChain": {
 			"rules": []
-		}
+		},
+	},
+	"emptyLines": {
+		"beforeDocCommentEmptyLines": "ignore",
+		"afterFieldsWithDocComments": "ignore"
 	}
 }

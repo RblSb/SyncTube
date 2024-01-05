@@ -33,6 +33,7 @@ private typedef MainOptions = {
 class Main {
 	static inline var VIDEO_START_MAX_DELAY = 3000;
 	static inline var VIDEO_SKIP_DELAY = 1000;
+	static inline var FLASHBACKS_COUNT = 50;
 	static inline var FLASHBACK_DIST = 30;
 
 	final rootDir = '$__dirname/..';
@@ -55,6 +56,7 @@ class Main {
 	final videoList = new VideoList();
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
+	final flashbacks:Array<FlashbackItem> = [];
 	final logger:Logger;
 
 	static function main():Void {
@@ -262,7 +264,8 @@ class Main {
 			timer: {
 				time: videoTimer.getTime(),
 				paused: videoTimer.isPaused()
-			}
+			},
+			flashbacks: flashbacks
 		}
 	}
 
@@ -270,16 +273,19 @@ class Main {
 		if (isNoState) return;
 		if (!FileSystem.exists(statePath)) return;
 		trace("Loading state...");
-		final data:ServerState = Json.parse(File.getContent(statePath));
-		videoList.setItems(data.videoList);
+		final state:ServerState = Json.parse(File.getContent(statePath));
+		videoList.setItems(state.videoList);
+		videoList.isOpen = state.isPlaylistOpen;
+		videoList.setPos(state.itemPos);
+
 		messages.resize(0);
-		videoList.isOpen = data.isPlaylistOpen;
-		videoList.setPos(data.itemPos);
-		for (message in data.messages) {
-			messages.push(message);
-		}
+		for (message in state.messages) messages.push(message);
+
+		flashbacks.resize(0);
+		for (flashback in state.flashbacks ?? []) flashbacks.push(flashback);
+
 		videoTimer.start();
-		videoTimer.setTime(data.timer.time);
+		videoTimer.setTime(state.timer.time);
 		videoTimer.pause();
 	}
 
@@ -1016,26 +1022,23 @@ class Main {
 		return findFlashbackItem(url, duration)?.time ?? 0.0;
 	}
 
-	final flashbackTimes:Array<FlashbackItem> = [];
-
 	function findFlashbackItem(url:String, ?duration:Float):Null<FlashbackItem> {
-		var item = flashbackTimes.find(item -> item.url == url);
+		var item = flashbacks.find(item -> item.url == url);
 		// if there is no url match, find recent flashback item with same duration
 		if (duration != null && item == null) {
-			item = flashbackTimes.find(item -> item.duration == duration);
+			item = flashbacks.find(item -> item.duration == duration);
 		}
 		return item;
 	}
 
 	function addRecentFlashback(url:String, duration:Float, time:Float):Void {
-		flashbackTimes.remove(findFlashbackItem(url));
-		flashbackTimes.unshift({
+		flashbacks.remove(findFlashbackItem(url));
+		flashbacks.unshift({
 			url: url,
 			duration: duration,
 			time: time
 		});
-		final length = flashbackTimes.count();
-		if (length > 10) flashbackTimes.pop();
+		while (flashbacks.length > FLASHBACKS_COUNT) flashbacks.pop();
 	}
 
 	function isPlaylistLockedFor(client:Client):Bool {
