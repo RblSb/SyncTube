@@ -1,4 +1,4 @@
-FROM haxe:4.3.0-alpine3.15
+FROM haxe:4.3-alpine
 WORKDIR /usr/src/app
 
 RUN apk add nodejs npm git
@@ -10,9 +10,9 @@ COPY build-*.hxml ./
 COPY package*.json ./
 COPY default-config.json ./
 
-RUN npm ci; \
-    haxelib install all --always; \
-    haxe build-all.hxml
+RUN npm ci;
+RUN haxelib install all --always
+RUN haxe build-all.hxml
 
 EXPOSE 4200
 
