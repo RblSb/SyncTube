@@ -24,6 +24,7 @@ typedef Config = {
 	totalVideoLimit:Int,
 	userVideoLimit:Int,
 	requestLeaderOnPause:Bool,
+	resumeVideoOnLeaderLeave:Bool,
 	localAdmins:Bool,
 	allowProxyIps:Bool,
 	localNetworkOnly:Bool,
