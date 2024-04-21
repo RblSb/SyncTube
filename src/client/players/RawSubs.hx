@@ -51,17 +51,24 @@ class RawSubs {
 				time:String,
 				text:String
 			}> = [];
-			final blocks = text.replace("\r\n", "\n").split("\n\n");
-			for (block in blocks) {
-				final lines = block.split("\n");
+			final lines = text.replace("\r\n", "\n").split("\n");
+			final blocks = getSrtBlocks(lines);
+			final badTimeReg = ~/(,[0-9]+)/g;
+			for (lines in blocks) {
 				if (lines.length < 3) continue;
 				final textLines = [
 					for (i in 2...lines.length) lines[i]
 				];
+				// fix incomplete ms in timestamps like `00:00:02,50 --> 00:00:06,220`
+				final time = badTimeReg.map(lines[1], reg -> {
+					final ms = reg.matched(1);
+					if (ms.length < 4) return ms.rpad("0", 4);
+					return ms;
+				});
 				subs.push({
 					counter: lines[0],
-					time: lines[1].replace(",", "."),
-					text: textLines.join("\n")
+					time: time.replace(",", "."),
+					text: textLines.join("\n").ltrim()
 				});
 			}
 			var data = "WEBVTT\n\n";
@@ -74,6 +81,29 @@ class RawSubs {
 			final url = textBase64 + Base64.encode(Bytes.ofString(data));
 			onParsed(video, "SRT subtitles", url);
 		});
+	}
+
+	static function getSrtBlocks(lines:Array<String>):Array<Array<String>> {
+		final blocks = [];
+		final isNumLineReg = ~/^([0-9]+)$/;
+		// [id, time, firstTextLine, ... lastTextLine]
+		var block = [];
+		for (i => line in lines) {
+			if (blocks.length == 0 && line.length == 0) continue;
+			final prevLine = lines[i - 1] ?? "";
+			final nextLine = lines[i + 1] ?? "";
+			// block id line
+			if (prevLine.length == 0 && isNumLineReg.match(line) && nextLine.contains("-->")) {
+				// push previously collected block and start new one
+				if (block.length > 0) {
+					blocks.push(block);
+					block = [];
+				}
+			}
+			block.push(line);
+		}
+		if (block.length > 0) blocks.push(block);
+		return blocks;
 	}
 
 	static function parseAss(video:VideoElement, url:String):Void {
