@@ -497,4 +497,34 @@ class Buttons {
 			} else el.classList.remove("mobile-view");
 		}
 	}
+
+	public static function updatePausedBy(name:String):Void {
+		
+		// update the field
+		final list = new StringBuf();
+
+		list.add('<div class="pausedby_item">');
+		list.add('<ion-icon name="pause"></ion-icon>');
+		list.add('<span>'+ name + '</span></div>');
+
+		final pausedlist = ge("#pausedby");
+		pausedlist.innerHTML = list.toString();
+		
+		//check if it is hidden and do the animation
+		final wrap = ge("#pausedby-wrap");
+		final pb = ge("#pausedby");
+		final isHidden = pb.style.display == "none";
+		
+		//if(isHidden && name != null){
+		pb.style.display = "block";
+		final list = wrap.firstElementChild;
+		wrap.style.height = "3rem"; //outerHeight(list) + "px";
+		wrap.style.marginBottom = ".5rem";
+		// }
+		// else{
+		// 	pb.style.display = "none";
+		// 	wrap.style.height = "0";
+		// 	wrap.style.marginBottom = "0rem";
+		// }
+	}
 }
