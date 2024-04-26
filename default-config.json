@@ -7,6 +7,7 @@
 	"totalVideoLimit": 0,
 	"userVideoLimit": 0,
 	"requestLeaderOnPause": false,
+	"resumeVideoOnLeaderLeave": false,
 	"localAdmins": true,
 	"allowProxyIps": true,
 	"localNetworkOnly": false,

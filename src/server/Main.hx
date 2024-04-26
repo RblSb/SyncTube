@@ -429,7 +429,7 @@ class Main {
 			case Connected:
 				if (!internal) return;
 				if (clients.length == 1 && videoList.length > 0) {
-					if (videoTimer.isPaused()) videoTimer.play();
+					if (videoTimer.isPaused() && config.resumeVideoOnLeaderLeave) videoTimer.play();
 				}
 
 				checkBan(client);
@@ -456,7 +456,7 @@ class Main {
 				clients.remove(client);
 				sendClientList();
 				if (client.isLeader) {
-					if (videoTimer.isPaused()) videoTimer.play();
+					if (videoTimer.isPaused() && config.resumeVideoOnLeaderLeave) videoTimer.play();
 				}
 				if (clients.length == 0) {
 					if (waitVideoStart != null) waitVideoStart.stop();
@@ -760,7 +760,7 @@ class Main {
 					}
 				});
 				if (videoList.length == 0) return;
-				if (!clients.hasLeader()) {
+				if (!clients.hasLeader() && config.resumeVideoOnLeaderLeave) {
 					if (videoTimer.isPaused()) videoTimer.play();
 					videoTimer.setRate(1);
 					broadcast({

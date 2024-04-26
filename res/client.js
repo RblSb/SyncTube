@@ -242,6 +242,10 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var haxe_ds_StringMap = function() {
+	this.h = Object.create(null);
+};
+haxe_ds_StringMap.__name__ = true;
 var Lang = function() { };
 Lang.__name__ = true;
 Lang.request = function(path,callback) {
@@ -1049,6 +1053,17 @@ client_Buttons.initPageFullscreen = function() {
 		}
 	};
 };
+client_Buttons.updatePausedBy = function(name) {
+	var list_b = "";
+	list_b = "<div class=\"pausedby_item\">";
+	list_b = "<div class=\"pausedby_item\">" + "<ion-icon name=\"pause\"></ion-icon>";
+	list_b += Std.string("<span>" + name + "</span></div>");
+	window.document.querySelector("#pausedby").innerHTML = list_b;
+	var wrap = window.document.querySelector("#pausedby-wrap");
+	window.document.querySelector("#pausedby").style.display = "block";
+	wrap.style.height = "3rem";
+	wrap.style.marginBottom = ".5rem";
+};
 var client_InputWithHistory = function(element,history,maxItems,onEnter) {
 	this.historyId = -1;
 	this.element = element;
@@ -1681,6 +1696,7 @@ client_Main.prototype = {
 			break;
 		case "Pause":
 			this.player.setPauseIndicator(false);
+			client_Buttons.updatePausedBy(this.personal.name);
 			if((this.personal.group & 4) != 0) {
 				return;
 			}
@@ -2288,6 +2304,7 @@ client_Main.prototype = {
 	}
 	,toggleLeaderAndPause: function() {
 		var _gthis = this;
+		client_Buttons.updatePausedBy(this.personal.name);
 		if((this.personal.group & 4) == 0) {
 			client_JsApi.once("SetLeader",function(event) {
 				if(event.setLeader.clientName == _gthis.personal.name) {
@@ -4123,10 +4140,6 @@ haxe_crypto_Sha256.prototype = {
 		return str.toLowerCase();
 	}
 };
-var haxe_ds_StringMap = function() {
-	this.h = Object.create(null);
-};
-haxe_ds_StringMap.__name__ = true;
 var haxe_http_HttpBase = function(url) {
 	this.url = url;
 	this.headers = [];

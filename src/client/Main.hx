@@ -468,6 +468,7 @@ class Main {
 
 			case Pause:
 				player.setPauseIndicator(false);
+				Buttons.updatePausedBy(getName());
 				if (isLeader()) return;
 				player.pause();
 				player.setTime(data.pause.time);
@@ -1129,10 +1130,13 @@ class Main {
 	}
 
 	public function toggleLeaderAndPause():Void {
+		Buttons.updatePausedBy(getName());
 		if (!isLeader()) {
 			JsApi.once(SetLeader, event -> {
 				final name = event.setLeader.clientName;
-				if (name == getName()) player.pause();
+				if (name == getName()) {
+					player.pause();
+				}
 			});
 		}
 		toggleLeader();

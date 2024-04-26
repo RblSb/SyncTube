@@ -507,6 +507,33 @@ footer#footer {
   padding-bottom: 1rem;
 }
 
+/* Paused by */
+
+#pausedby-wrap {
+  overflow-y: auto;
+  background-color: var(--background-video);
+  border-right: 0;
+  border-radius: 1rem;
+  flex-shrink: 0;
+
+  transition: 0ms;
+  height: 0;
+  margin-bottom: 0rem;
+}
+
+#pausedby {
+  padding: 1rem;
+  height: 2rem;
+  display: none;
+}
+
+.pausedby_item {
+  display: flex;
+  align-items: center;
+  margin-bottom: .25em;
+  cursor: pointer;
+}
+
 /* Users online */
 
 #userlist-wrap {
