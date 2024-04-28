@@ -22,7 +22,7 @@
 		},
 		"methodChain": {
 			"rules": []
-		},
+		}
 	},
 	"emptyLines": {
 		"beforeDocCommentEmptyLines": "ignore",

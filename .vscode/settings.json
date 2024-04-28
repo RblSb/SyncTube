@@ -8,11 +8,12 @@
 		"res/client.js": true
 	},
 	"[haxe]": {
-		"editor.formatOnSave": true,
-		"editor.codeActionsOnSave": {
-			"source.organizeImports": "explicit",
-			"source.fixAll": "explicit"
-		}
+			"editor.formatOnSave": true,
+			"editor.formatOnPaste": false
+	},
+	"editor.codeActionsOnSave": {
+		"source.sortImports": "explicit",
+		"source.fixAll": "explicit"
 	},
 	"[html]": {
 		"editor.formatOnSave": true,
@@ -20,6 +21,6 @@
 	},
 	"[css]": {
 		"editor.formatOnSave": true,
-		"editor.defaultFormatter": "HookyQR.beautify"
+		"editor.defaultFormatter": "vscode.css-language-features"
 	},
 }

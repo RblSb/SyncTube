@@ -18,6 +18,7 @@ import js.html.Event;
 import js.html.InputElement;
 import js.html.KeyboardEvent;
 import js.html.MouseEvent;
+import js.html.URL;
 import js.html.VideoElement;
 import js.html.WebSocket;
 
@@ -387,7 +388,13 @@ class Main {
 
 	public function tryLocalIp(url:String):String {
 		if (host == globalIp) return url;
-		return url.replace(globalIp, host);
+		try {
+			final url = new URL(url);
+			url.hostname = url.hostname.replace(globalIp, host);
+			return '$url';
+		} catch (e) {
+			return url;
+		}
 	}
 
 	function onMessage(e):Void {
@@ -557,6 +564,9 @@ class Main {
 
 			case Dump:
 				Utils.saveFile("dump.json", ApplicationJson, data.dump.data);
+
+			case GetYoutubeVideoInfo:
+				// handled by event listeners like `JsApi.once`
 		}
 	}
 

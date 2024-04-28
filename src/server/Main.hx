@@ -531,8 +531,7 @@ class Main {
 					if (userList.admins.exists(
 						a -> a.name.toLowerCase() == lcName && a.hash == hash)) {
 						client.isAdmin = true;
-					}
-					else {
+					} else {
 						serverMessage(client, "passwordMatchError");
 						send(client, {type: LoginError});
 						return;
@@ -587,6 +586,17 @@ class Main {
 				broadcast(data);
 
 			case ServerMessage:
+			case GetYoutubeVideoInfo:
+				final url = data.getYoutubeVideoInfo.url;
+				YoutubeFallback.getInfo(url, info -> {
+					send(client, {
+						type: data.type,
+						getYoutubeVideoInfo: {
+							url: url,
+							response: info
+						}
+					});
+				});
 			case AddVideo:
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, AddVideoPerm)) return;
@@ -1038,7 +1048,9 @@ class Main {
 			duration: duration,
 			time: time
 		});
-		while (flashbacks.length > FLASHBACKS_COUNT) flashbacks.pop();
+		while (flashbacks.length > FLASHBACKS_COUNT) {
+			flashbacks.pop();
+		}
 	}
 
 	function isPlaylistLockedFor(client:Client):Bool {

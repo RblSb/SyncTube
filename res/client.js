@@ -1576,13 +1576,19 @@ client_Main.prototype = {
 		if(this.host == this.globalIp) {
 			return url;
 		}
-		return StringTools.replace(url,this.globalIp,this.host);
+		try {
+			var url1 = new URL(url);
+			url1.hostname = StringTools.replace(url1.hostname,this.globalIp,this.host);
+			return "" + Std.string(url1);
+		} catch( _g ) {
+			return url;
+		}
 	}
 	,onMessage: function(e) {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 398, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 405, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1650,6 +1656,8 @@ client_Main.prototype = {
 			} else {
 				this.player.setTime(newTime);
 			}
+			break;
+		case "GetYoutubeVideoInfo":
 			break;
 		case "KickClient":
 			this.disabledReconnection = true;
@@ -2367,6 +2375,10 @@ client_Player.prototype = {
 		var el = this.videoItemsEl.children[pos];
 		this.setItemElementType(el,this.videoList.items[pos].isTemp);
 	}
+	,getCurrentItem: function() {
+		var _this = this.videoList;
+		return _this.items[_this.pos];
+	}
 	,setPlayer: function(newPlayer) {
 		if(this.player != newPlayer) {
 			if(this.player != null) {
@@ -2798,7 +2810,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 478, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 482, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -3490,11 +3502,6 @@ var client_players_Youtube = function(main,player) {
 	this.urlTitleDuration = "?part=snippet,contentDetails&fields=items(snippet/title,contentDetails/duration)";
 	this.playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
 	this.videosUrl = "https://www.googleapis.com/youtube/v3/videos";
-	this.matchPlaylist = new EReg("youtube\\.com.*list=([A-z0-9_-]+)","");
-	this.matchEmbed = new EReg("youtube\\.com/embed/([A-z0-9_-]+)","");
-	this.matchShorts = new EReg("youtube\\.com/shorts/([A-z0-9_-]+)","");
-	this.matchShort = new EReg("youtu\\.be/([A-z0-9_-]+)","");
-	this.matchId = new EReg("youtube\\.com.*v=([A-z0-9_-]+)","");
 	this.main = main;
 	this.player = player;
 };
@@ -3508,25 +3515,10 @@ client_players_Youtube.prototype = {
 		}
 	}
 	,extractVideoId: function(url) {
-		if(this.matchId.match(url)) {
-			return this.matchId.matched(1);
-		}
-		if(this.matchShort.match(url)) {
-			return this.matchShort.matched(1);
-		}
-		if(this.matchShorts.match(url)) {
-			return this.matchShorts.matched(1);
-		}
-		if(this.matchEmbed.match(url)) {
-			return this.matchEmbed.matched(1);
-		}
-		return "";
+		return utils_YoutubeUtils.extractVideoId(url);
 	}
 	,extractPlaylistId: function(url) {
-		if(!this.matchPlaylist.match(url)) {
-			return "";
-		}
-		return this.matchPlaylist.matched(1);
+		return utils_YoutubeUtils.extractPlaylistId(url);
 	}
 	,convertTime: function(duration) {
 		var total = 0;
@@ -3652,7 +3644,7 @@ client_players_Youtube.prototype = {
 			}
 			callback({ duration : _gthis.tempYoutube.getDuration()});
 		}, onError : function(e) {
-			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 205, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 188, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
@@ -3699,7 +3691,50 @@ client_players_Youtube.prototype = {
 			}
 		}, onPlaybackRateChange : function(e) {
 			_gthis.player.onRateChange();
+		}, onError : function(e) {
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 245, className : "client.players.Youtube", methodName : "loadVideo"});
+			_gthis.rawSourceFallback(item.url);
 		}}});
+	}
+	,rawSourceFallback: function(url) {
+		var _gthis = this;
+		client_JsApi.once("GetYoutubeVideoInfo",function(event) {
+			var info = event.getYoutubeVideoInfo.response;
+			var tmp = _gthis.getBestStreamFormat(info);
+			if(tmp == null) {
+				haxe_Log.trace("format not found in response info:",{ fileName : "src/client/players/Youtube.hx", lineNumber : 257, className : "client.players.Youtube", methodName : "rawSourceFallback"});
+				haxe_Log.trace(info,{ fileName : "src/client/players/Youtube.hx", lineNumber : 258, className : "client.players.Youtube", methodName : "rawSourceFallback"});
+				return;
+			}
+			_gthis.player.getCurrentItem().url = tmp.url;
+			_gthis.player.refresh();
+		});
+		this.main.send({ type : "GetYoutubeVideoInfo", getYoutubeVideoInfo : { url : url}});
+	}
+	,getBestStreamFormat: function(info) {
+		info.formats = info.formats != null ? info.formats : [];
+		info.adaptiveFormats = info.adaptiveFormats != null ? info.adaptiveFormats : [];
+		var formats = info.adaptiveFormats.concat(info.formats);
+		var qPriority = [1080,720,480,360,240];
+		var _g = 0;
+		while(_g < qPriority.length) {
+			var quality = "" + qPriority[_g++] + "p";
+			var _g1 = 0;
+			while(_g1 < formats.length) {
+				var format = formats[_g1];
+				++_g1;
+				if(format.audioQuality == null) {
+					continue;
+				}
+				if(format.width == null) {
+					continue;
+				}
+				if(format.qualityLabel == quality) {
+					return format;
+				}
+			}
+		}
+		return null;
 	}
 	,removeVideo: function() {
 		if(this.video == null) {
@@ -4515,6 +4550,29 @@ js_youtube_Youtube.init = function(onAPIReady) {
 		}
 	};
 };
+var utils_YoutubeUtils = function() { };
+utils_YoutubeUtils.__name__ = true;
+utils_YoutubeUtils.extractVideoId = function(url) {
+	if(utils_YoutubeUtils.matchId.match(url)) {
+		return utils_YoutubeUtils.matchId.matched(1);
+	}
+	if(utils_YoutubeUtils.matchShort.match(url)) {
+		return utils_YoutubeUtils.matchShort.matched(1);
+	}
+	if(utils_YoutubeUtils.matchShorts.match(url)) {
+		return utils_YoutubeUtils.matchShorts.matched(1);
+	}
+	if(utils_YoutubeUtils.matchEmbed.match(url)) {
+		return utils_YoutubeUtils.matchEmbed.matched(1);
+	}
+	return "";
+};
+utils_YoutubeUtils.extractPlaylistId = function(url) {
+	if(!utils_YoutubeUtils.matchPlaylist.match(url)) {
+		return "";
+	}
+	return utils_YoutubeUtils.matchPlaylist.matched(1);
+};
 function $getIterator(o) { if( o instanceof Array ) return new haxe_iterators_ArrayIterator(o); else return o.iterator(); }
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 $global.$haxeUID |= 0;
@@ -4538,5 +4596,10 @@ client_players_RawSubs.assTimeStamp = new EReg("([0-9]+):([0-9][0-9]):([0-9][0-9
 haxe_crypto_Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 haxe_crypto_Base64.BYTES = haxe_io_Bytes.ofString(haxe_crypto_Base64.CHARS);
 js_youtube_Youtube.isLoadedAPI = false;
+utils_YoutubeUtils.matchId = new EReg("youtube\\.com.*v=([A-z0-9_-]+)","");
+utils_YoutubeUtils.matchShort = new EReg("youtu\\.be/([A-z0-9_-]+)","");
+utils_YoutubeUtils.matchShorts = new EReg("youtube\\.com/shorts/([A-z0-9_-]+)","");
+utils_YoutubeUtils.matchEmbed = new EReg("youtube\\.com/embed/([A-z0-9_-]+)","");
+utils_YoutubeUtils.matchPlaylist = new EReg("youtube\\.com.*list=([A-z0-9_-]+)","");
 client_Main.main();
 })(typeof exports != "undefined" ? exports : typeof window != "undefined" ? window : typeof self != "undefined" ? self : this, typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);

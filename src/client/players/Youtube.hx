@@ -10,15 +10,11 @@ import js.Browser.document;
 import js.html.Element;
 import js.youtube.Youtube as YtInit;
 import js.youtube.YoutubePlayer;
+import utils.YoutubeUtils;
 
 using StringTools;
 
 class Youtube implements IPlayer {
-	final matchId = ~/youtube\.com.*v=([A-z0-9_-]+)/;
-	final matchShort = ~/youtu\.be\/([A-z0-9_-]+)/;
-	final matchShorts = ~/youtube\.com\/shorts\/([A-z0-9_-]+)/;
-	final matchEmbed = ~/youtube\.com\/embed\/([A-z0-9_-]+)/;
-	final matchPlaylist = ~/youtube\.com.*list=([A-z0-9_-]+)/;
 	final videosUrl = "https://www.googleapis.com/youtube/v3/videos";
 	final playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
 	final urlTitleDuration = "?part=snippet,contentDetails&fields=items(snippet/title,contentDetails/duration)";
@@ -41,25 +37,12 @@ class Youtube implements IPlayer {
 		return extractVideoId(url) != "" || extractPlaylistId(url) != "";
 	}
 
-	public function extractVideoId(url:String):String {
-		if (matchId.match(url)) {
-			return matchId.matched(1);
-		}
-		if (matchShort.match(url)) {
-			return matchShort.matched(1);
-		}
-		if (matchShorts.match(url)) {
-			return matchShorts.matched(1);
-		}
-		if (matchEmbed.match(url)) {
-			return matchEmbed.matched(1);
-		}
-		return "";
+	public function extractVideoId(url:String) {
+		return YoutubeUtils.extractVideoId(url);
 	}
 
-	function extractPlaylistId(url:String):String {
-		if (!matchPlaylist.match(url)) return "";
-		return matchPlaylist.matched(1);
+	public function extractPlaylistId(url:String) {
+		return YoutubeUtils.extractPlaylistId(url);
 	}
 
 	final matchHours = ~/([0-9]+)H/;
@@ -256,9 +239,51 @@ class Youtube implements IPlayer {
 				},
 				onPlaybackRateChange: e -> {
 					player.onRateChange();
+				},
+				onError: e -> {
+					// TODO message error codes
+					trace('Error ${e.data}');
+					rawSourceFallback(item.url);
 				}
 			}
 		});
+	}
+
+	function rawSourceFallback(url:String):Void {
+		JsApi.once(GetYoutubeVideoInfo, event -> {
+			final data = event.getYoutubeVideoInfo;
+			final info = data.response;
+			final format = getBestStreamFormat(info) ?? {
+				trace("format not found in response info:");
+				trace(info);
+				return;
+			};
+			final item = player.getCurrentItem();
+			item.url = format.url;
+			player.refresh();
+		});
+		main.send({
+			type: GetYoutubeVideoInfo,
+			getYoutubeVideoInfo: {
+				url: url
+			}
+		});
+	}
+
+	function getBestStreamFormat(info:YouTubeVideoInfo):Null<YoutubeVideoFormat> {
+		info.formats ??= [];
+		info.adaptiveFormats ??= [];
+		final formats = info.adaptiveFormats.concat(info.formats);
+		final qPriority = [1080, 720, 480, 360, 240];
+		for (q in qPriority) {
+			final quality = '${q}p';
+			for (format in formats) {
+				if (format.audioQuality == null) continue; // no sound
+				if (format.width == null) continue; // no video
+				if (format.qualityLabel == quality) return format;
+			}
+		}
+		return null;
 	}
 
 	public function removeVideo():Void {

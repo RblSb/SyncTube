@@ -187,9 +187,9 @@ class HttpServer {
 
 	static function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
 		final url = req.url.replace("/proxy?url=", "");
-		final proxy = proxyRequest(url, req, res, proxyReq -> {
-			final url = proxyReq.headers["location"] ?? return false;
-			final proxy2 = proxyRequest(url, req, res, proxyReq -> false);
+		final proxy = proxyRequest(url, req, res, proxyRes -> {
+			final url = proxyRes.headers["location"] ?? return false;
+			final proxy2 = proxyRequest(url, req, res, proxyRes -> false);
 			if (proxy2 == null) {
 				res.end('Proxy error: multiple redirects for url $url');
 				return true;
@@ -203,8 +203,10 @@ class HttpServer {
 	}
 
 	static function proxyRequest(
-		url:String, req:IncomingMessage, res:ServerResponse,
-		fn:(req:IncomingMessage) -> Bool
+		url:String,
+		req:IncomingMessage,
+		res:ServerResponse,
+		cancelProxyRequest:(proxyRes:IncomingMessage) -> Bool
 	):Null<ClientRequest> {
 		final url = try {
 			new URL(safeDecodeURI(url));
@@ -216,12 +218,14 @@ class HttpServer {
 			path: url.pathname + url.search,
 			method: req.method
 		};
+		req.headers["referer"] = url.toString();
+		req.headers["host"] = url.hostname;
 		final request = url.protocol == "https:" ? Https.request : Http.request;
-		final proxy = request(options, proxyReq -> {
-			if (fn(proxyReq)) return;
-			proxyReq.headers["Content-Type"] = "application/octet-stream";
-			res.writeHead(proxyReq.statusCode, proxyReq.headers);
-			proxyReq.pipe(res);
+		final proxy = request(options, proxyRes -> {
+			if (cancelProxyRequest(proxyRes)) return;
+			proxyRes.headers["Content-Type"] = "application/octet-stream";
+			res.writeHead(proxyRes.statusCode, proxyRes.headers);
+			proxyRes.pipe(res);
 		});
 		proxy.on("error", err -> {
 			res.end('Proxy error: ${url.href}');

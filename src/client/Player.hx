@@ -89,6 +89,10 @@ class Player {
 		setItemElementType(el, videoList.getItem(pos).isTemp);
 	}
 
+	public function getCurrentItem():VideoItem {
+		return videoList.currentItem;
+	}
+
 	function setPlayer(newPlayer:IPlayer):Void {
 		if (player != newPlayer) {
 			if (player != null) {

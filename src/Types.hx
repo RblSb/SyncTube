@@ -1,6 +1,7 @@
 package;
 
 import Client.ClientData;
+import utils.YoutubeUtils.YouTubeVideoInfo;
 
 typedef VideoDataRequest = {
 	url:String,
@@ -204,6 +205,10 @@ typedef WsEvent = {
 	},
 	?dump:{
 		data:String
+	},
+	?getYoutubeVideoInfo:{
+		url:String,
+		?response:YouTubeVideoInfo
 	}
 }
 
@@ -242,4 +247,5 @@ enum abstract WsEventType(String) {
 	var UpdatePlaylist;
 	var TogglePlaylistLock;
 	var Dump;
+	var GetYoutubeVideoInfo;
 }
