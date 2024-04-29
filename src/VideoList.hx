@@ -17,13 +17,13 @@ class VideoList {
 		return items.length;
 	}
 
-	public var currentItem(get, never):VideoItem;
+	public var currentItem(get, never):Null<VideoItem>;
 
 	inline function get_currentItem():Null<VideoItem> {
 		return items[pos];
 	}
 
-	public inline function getItem(i:Int):VideoItem {
+	public inline function getItem(i:Int):Null<VideoItem> {
 		return items[i];
 	}
 

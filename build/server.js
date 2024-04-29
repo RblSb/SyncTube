@@ -456,6 +456,22 @@ json2object_reader_BaseParser.prototype = {
 		}
 		return defaultValue;
 	}
+	,loadObjectFieldReflect: function(loadJsonFn,field,name,assigned,pos) {
+		try {
+			this.value[name] = loadJsonFn(field.value,field.name);
+			this.mapSet(assigned,name,true);
+		} catch( _g ) {
+			var _g1 = haxe_Exception.caught(_g).unwrap();
+			if(js_Boot.__instanceof(_g1,json2object_InternalError)) {
+				var e = _g1;
+				if(e != json2object_InternalError.ParsingThrow) {
+					throw haxe_Exception.thrown(e);
+				}
+			} else {
+				this.errors.push(json2object_Error.CustomFunctionException(_g1,pos));
+			}
+		}
+	}
 	,objectSetupAssign: function(assigned,keys,values) {
 		var _g = 0;
 		var _g1 = keys.length;
@@ -1332,7 +1348,7 @@ JsonParser_$43.prototype = $extend(json2object_reader_BaseParser.prototype,{
 				this.value.title = this.loadObjectField(($_=new JsonParser_$44(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"title",assigned,this.value.title,pos);
 				break;
 			case "url":
-				this.value.url = this.loadObjectField(($_=new JsonParser_$44(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"url",assigned,this.value.url,pos);
+				this.loadObjectFieldReflect(($_=new JsonParser_$44(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"url",assigned,pos);
 				break;
 			default:
 				this.errors.push(json2object_Error.UnknownVariable(field.name,this.putils.convertPosition(field.namePos)));
@@ -2767,6 +2783,11 @@ StringTools.hex = function(n,digits) {
 		while(s.length < digits) s = "0" + s;
 	}
 	return s;
+};
+var _$Types_VideoItemTools = function() { };
+_$Types_VideoItemTools.__name__ = true;
+_$Types_VideoItemTools.withUrl = function(item,url) {
+	return { url : url, title : item.title, author : item.author, duration : item.duration, subs : item.subs, isTemp : item.isTemp, isIframe : item.isIframe};
 };
 var VideoList = function() {
 	this.items = [];
@@ -4913,9 +4934,10 @@ server_Main.prototype = {
 			}
 			var item = data.addVideo.item;
 			item.author = client.name;
-			var local = "" + this.localIp + ":" + this.port;
-			if(item.url.indexOf(local) != -1) {
-				item.url = StringTools.replace(item.url,local,"" + this.globalIp + ":" + this.port);
+			var localIpPort = "" + this.localIp + ":" + this.port;
+			if(item.url.indexOf(localIpPort) != -1) {
+				var newUrl = StringTools.replace(item.url,localIpPort,"" + this.globalIp + ":" + this.port);
+				item = _$Types_VideoItemTools.withUrl(item,newUrl);
 			}
 			if(this.videoList.exists(function(i) {
 				return i.url == item.url;
@@ -4923,6 +4945,7 @@ server_Main.prototype = {
 				this.serverMessage(client,"videoAlreadyExistsError");
 				return;
 			}
+			data.addVideo.item = item;
 			this.videoList.addItem(item,data.addVideo.atEnd);
 			this.broadcast(data);
 			if(this.videoList.items.length == 1) {
@@ -5461,7 +5484,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 971, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 973, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;

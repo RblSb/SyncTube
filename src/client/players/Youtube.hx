@@ -243,6 +243,7 @@ class Youtube implements IPlayer {
 				onError: e -> {
 					// TODO message error codes
 					trace('Error ${e.data}');
+					final item = player.getCurrentItem() ?? return;
 					rawSourceFallback(item.url);
 				}
 			}
@@ -258,9 +259,7 @@ class Youtube implements IPlayer {
 				trace(info);
 				return;
 			};
-			final item = player.getCurrentItem();
-			item.url = format.url;
-			player.refresh();
+			player.changeVideoSrc(format.url);
 		});
 		main.send({
 			type: GetYoutubeVideoInfo,

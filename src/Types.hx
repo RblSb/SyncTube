@@ -98,14 +98,30 @@ typedef Message = {
 	time:String
 }
 
+@:using(Types.VideoItemTools)
 typedef VideoItem = {
-	url:String,
-	title:String,
-	author:String,
-	duration:Float,
-	?subs:String,
-	isTemp:Bool,
-	isIframe:Bool
+	/** Immutable, used as identifier for skipping / removing items **/
+	final url:String;
+	var title:String;
+	var author:String;
+	var duration:Float;
+	var ?subs:String;
+	var isTemp:Bool;
+	var isIframe:Bool;
+}
+
+private class VideoItemTools {
+	public static function withUrl(item:VideoItem, url:String):VideoItem {
+		return {
+			url: url,
+			title: item.title,
+			author: item.author,
+			duration: item.duration,
+			subs: item.subs,
+			isTemp: item.isTemp,
+			isIframe: item.isIframe
+		};
+	}
 }
 
 typedef FlashbackItem = {

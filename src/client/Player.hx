@@ -89,7 +89,7 @@ class Player {
 		setItemElementType(el, videoList.getItem(pos).isTemp);
 	}
 
-	public function getCurrentItem():VideoItem {
+	public function getCurrentItem():Null<VideoItem> {
 		return videoList.currentItem;
 	}
 
@@ -121,10 +121,7 @@ class Player {
 	public function setVideo(i:Int):Void {
 		if (!main.isSyncActive) return;
 		final item = videoList.getItem(i);
-		var currentPlayer = players.find(p -> p.isSupportedLink(item.url));
-		if (currentPlayer != null) setPlayer(currentPlayer);
-		else if (item.isIframe) setPlayer(iframePlayer);
-		else setPlayer(rawPlayer);
+		setSupportedPlayer(item.url, item.isIframe);
 
 		removeActiveLabel(videoList.pos);
 		videoList.setPos(i);
@@ -140,19 +137,18 @@ class Player {
 		ge("#currenttitle").textContent = item.title;
 	}
 
-	public function changeVideoSrc(src:String):Void {
+	function setSupportedPlayer(url:String, isIframe:Bool):Void {
+		final currentPlayer = players.find(p -> p.isSupportedLink(url));
+		if (currentPlayer != null) setPlayer(currentPlayer);
+		else if (isIframe) setPlayer(iframePlayer);
+		else setPlayer(rawPlayer);
+	}
+
+	public function changeVideoSrc(url:String):Void {
 		if (!main.isVideoEnabled) return;
-		if (player == null) return;
-		final item = videoList.currentItem ?? return;
-		player.loadVideo({
-			url: src,
-			title: item.title,
-			author: item.author,
-			duration: item.duration,
-			subs: item.subs,
-			isTemp: item.isTemp,
-			isIframe: item.isIframe
-		});
+		final item:VideoItem = videoList.currentItem ?? return;
+		setSupportedPlayer(url, item.isIframe);
+		player.loadVideo(item.withUrl(url));
 	}
 
 	public function removeVideo():Void {
@@ -191,6 +187,13 @@ class Player {
 	}
 
 	public function onPause():Void {
+		final item = videoList.currentItem ?? return;
+		// do not send pause if video is ended
+		if (getTime() >= item.duration - 0.01) return;
+		// youtube raw fallback has around one second difference from rounded youtube duration
+		if (player == rawPlayer && youtube.isSupportedLink(item.url)) {
+			if (getTime() >= item.duration - 1) return;
+		}
 		final hasAutoPause = main.hasLeaderOnPauseRequest() && videoList.length > 0
 			&& getTime() > 1;
 		if (hasAutoPause && !main.hasLeader()) {

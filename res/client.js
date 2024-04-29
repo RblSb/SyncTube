@@ -481,6 +481,11 @@ StringTools.hex = function(n,digits) {
 	}
 	return s;
 };
+var _$Types_VideoItemTools = function() { };
+_$Types_VideoItemTools.__name__ = true;
+_$Types_VideoItemTools.withUrl = function(item,url) {
+	return { url : url, title : item.title, author : item.author, duration : item.duration, subs : item.subs, isTemp : item.isTemp, isIframe : item.isIframe};
+};
 var VideoList = function() {
 	this.items = [];
 	this.pos = 0;
@@ -1186,8 +1191,8 @@ client_JsApi.isLeader = $hx_exports["client"]["JsApi"]["isLeader"] = function() 
 client_JsApi.forceSyncNextTick = $hx_exports["client"]["JsApi"]["forceSyncNextTick"] = function(flag) {
 	client_JsApi.main.forceSyncNextTick = flag;
 };
-client_JsApi.setVideoSrc = $hx_exports["client"]["JsApi"]["setVideoSrc"] = function(src) {
-	client_JsApi.player.changeVideoSrc(src);
+client_JsApi.setVideoSrc = $hx_exports["client"]["JsApi"]["setVideoSrc"] = function(url) {
+	client_JsApi.player.changeVideoSrc(url);
 };
 client_JsApi.getLocalIp = $hx_exports["client"]["JsApi"]["getLocalIp"] = function() {
 	return client_JsApi.main.host;
@@ -2412,16 +2417,7 @@ client_Player.prototype = {
 			return;
 		}
 		var item = this.videoList.items[i];
-		var currentPlayer = Lambda.find(this.players,function(p) {
-			return p.isSupportedLink(item.url);
-		});
-		if(currentPlayer != null) {
-			this.setPlayer(currentPlayer);
-		} else if(item.isIframe) {
-			this.setPlayer(this.iframePlayer);
-		} else {
-			this.setPlayer(this.rawPlayer);
-		}
+		this.setSupportedPlayer(item.url,item.isIframe);
 		this.removeActiveLabel(this.videoList.pos);
 		this.videoList.setPos(i);
 		this.addActiveLabel(this.videoList.pos);
@@ -2434,11 +2430,20 @@ client_Player.prototype = {
 		client_JsApi.fireVideoChangeEvents(item);
 		window.document.querySelector("#currenttitle").textContent = item.title;
 	}
-	,changeVideoSrc: function(src) {
-		if(!this.main.isVideoEnabled) {
-			return;
+	,setSupportedPlayer: function(url,isIframe) {
+		var currentPlayer = Lambda.find(this.players,function(p) {
+			return p.isSupportedLink(url);
+		});
+		if(currentPlayer != null) {
+			this.setPlayer(currentPlayer);
+		} else if(isIframe) {
+			this.setPlayer(this.iframePlayer);
+		} else {
+			this.setPlayer(this.rawPlayer);
 		}
-		if(this.player == null) {
+	}
+	,changeVideoSrc: function(url) {
+		if(!this.main.isVideoEnabled) {
 			return;
 		}
 		var _this = this.videoList;
@@ -2446,7 +2451,8 @@ client_Player.prototype = {
 		if(tmp == null) {
 			return;
 		}
-		this.player.loadVideo({ url : src, title : tmp.title, author : tmp.author, duration : tmp.duration, subs : tmp.subs, isTemp : tmp.isTemp, isIframe : tmp.isIframe});
+		this.setSupportedPlayer(url,tmp.isIframe);
+		this.player.loadVideo(_$Types_VideoItemTools.withUrl(tmp,url));
 	}
 	,removeVideo: function() {
 		var _this = this.videoList;
@@ -2485,6 +2491,19 @@ client_Player.prototype = {
 	}
 	,onPause: function() {
 		var _gthis = this;
+		var _this = this.videoList;
+		var tmp = _this.items[_this.pos];
+		if(tmp == null) {
+			return;
+		}
+		if(this.getTime() >= tmp.duration - 0.01) {
+			return;
+		}
+		if(this.player == this.rawPlayer && this.youtube.isSupportedLink(tmp.url)) {
+			if(this.getTime() >= tmp.duration - 1) {
+				return;
+			}
+		}
 		if(this.main.hasLeaderOnPauseRequest() && this.videoList.items.length > 0 && this.getTime() > 1 && !this.main.hasLeader()) {
 			client_JsApi.once("SetLeader",function(event) {
 				if(event.setLeader.clientName != _gthis.main.personal.name) {
@@ -2810,7 +2829,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 482, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 485, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -3693,7 +3712,11 @@ client_players_Youtube.prototype = {
 			_gthis.player.onRateChange();
 		}, onError : function(e) {
 			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 245, className : "client.players.Youtube", methodName : "loadVideo"});
-			_gthis.rawSourceFallback(item.url);
+			var tmp = _gthis.player.getCurrentItem();
+			if(tmp == null) {
+				return;
+			}
+			_gthis.rawSourceFallback(tmp.url);
 		}}});
 	}
 	,rawSourceFallback: function(url) {
@@ -3702,12 +3725,11 @@ client_players_Youtube.prototype = {
 			var info = event.getYoutubeVideoInfo.response;
 			var tmp = _gthis.getBestStreamFormat(info);
 			if(tmp == null) {
-				haxe_Log.trace("format not found in response info:",{ fileName : "src/client/players/Youtube.hx", lineNumber : 257, className : "client.players.Youtube", methodName : "rawSourceFallback"});
-				haxe_Log.trace(info,{ fileName : "src/client/players/Youtube.hx", lineNumber : 258, className : "client.players.Youtube", methodName : "rawSourceFallback"});
+				haxe_Log.trace("format not found in response info:",{ fileName : "src/client/players/Youtube.hx", lineNumber : 258, className : "client.players.Youtube", methodName : "rawSourceFallback"});
+				haxe_Log.trace(info,{ fileName : "src/client/players/Youtube.hx", lineNumber : 259, className : "client.players.Youtube", methodName : "rawSourceFallback"});
 				return;
 			}
-			_gthis.player.getCurrentItem().url = tmp.url;
-			_gthis.player.refresh();
+			_gthis.player.changeVideoSrc(tmp.url);
 		});
 		this.main.send({ type : "GetYoutubeVideoInfo", getYoutubeVideoInfo : { url : url}});
 	}
