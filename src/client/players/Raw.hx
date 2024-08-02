@@ -13,8 +13,6 @@ import js.html.InputElement;
 import js.html.URL;
 import js.html.VideoElement;
 
-using StringTools;
-
 class Raw implements IPlayer {
 	final main:Main;
 	final player:Player;

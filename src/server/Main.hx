@@ -23,8 +23,6 @@ import sys.FileSystem;
 import sys.io.File;
 
 using ClientTools;
-using Lambda;
-using StringTools;
 
 private typedef MainOptions = {
 	loadState:Bool

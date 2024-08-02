@@ -6,13 +6,11 @@ import Types.VideoItem;
 import client.Main.ge;
 import client.players.Iframe;
 import client.players.Raw;
+import client.players.Streamable;
 import client.players.Youtube;
 import haxe.Http;
 import haxe.Json;
 import js.html.Element;
-
-using Lambda;
-using StringTools;
 
 class Player {
 	final main:Main;
@@ -32,7 +30,8 @@ class Player {
 		this.main = main;
 		youtube = new Youtube(main, this);
 		players = [
-			youtube
+			youtube,
+			new Streamable(main, this)
 		];
 		iframePlayer = new Iframe(main, this);
 		rawPlayer = new Raw(main, this);

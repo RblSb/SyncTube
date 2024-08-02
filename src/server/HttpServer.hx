@@ -12,8 +12,6 @@ import js.node.http.ServerResponse;
 import js.node.url.URL;
 import sys.FileSystem;
 
-using StringTools;
-
 class HttpServer {
 	static final mimeTypes = [
 		"html" => "text/html",

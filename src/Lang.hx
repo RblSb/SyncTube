@@ -2,9 +2,6 @@ package;
 
 import haxe.Json;
 import haxe.io.Path;
-
-using Lambda;
-
 #if (sys || nodejs)
 import sys.io.File;
 #else

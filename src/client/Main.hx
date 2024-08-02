@@ -23,7 +23,6 @@ import js.html.VideoElement;
 import js.html.WebSocket;
 
 using ClientTools;
-using StringTools;
 
 class Main {
 	static inline var SETTINGS_VERSION = 4;

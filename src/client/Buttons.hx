@@ -10,8 +10,6 @@ import js.html.InputElement;
 import js.html.KeyboardEvent;
 import js.html.VisualViewport;
 
-using StringTools;
-
 class Buttons {
 	static inline var CHAT_MIN_SIZE = 200;
 	static var split:Split;

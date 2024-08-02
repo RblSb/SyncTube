@@ -6,8 +6,6 @@ import js.node.Os;
 import js.node.url.URL;
 import sys.FileSystem;
 
-using StringTools;
-
 class Utils {
 	public static function parseArgs(args:Array<String>, caseSensitive = true):Map<String,
 		String> {

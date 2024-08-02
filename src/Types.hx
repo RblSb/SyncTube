@@ -4,16 +4,16 @@ import Client.ClientData;
 import utils.YoutubeUtils.YouTubeVideoInfo;
 
 typedef VideoDataRequest = {
-	url:String,
-	atEnd:Bool
+	final url:String;
+	final atEnd:Bool;
 }
 
 typedef VideoData = {
-	duration:Float,
-	?title:String,
-	?url:String,
-	?subs:String,
-	?isIframe:Bool
+	final duration:Float;
+	var ?title:String;
+	var ?url:String;
+	var ?subs:String;
+	var ?isIframe:Bool;
 }
 
 typedef Config = {

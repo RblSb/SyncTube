@@ -6,9 +6,6 @@ import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
 
-using Lambda;
-using StringTools;
-
 class Logger {
 	final folder:String;
 	final maxCount:Int;

@@ -9,8 +9,6 @@ import js.node.Readline;
 import sys.FileSystem;
 import sys.io.File;
 
-using StringTools;
-
 private typedef CommandData = {
 	args:Array<String>,
 	desc:String

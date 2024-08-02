@@ -2,8 +2,6 @@ package;
 
 import Types.VideoItem;
 
-using Lambda;
-
 class VideoList {
 	public var length(get, never):Int;
 	public var pos(default, null) = 0;

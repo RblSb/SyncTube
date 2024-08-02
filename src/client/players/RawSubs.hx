@@ -8,8 +8,6 @@ import js.Browser.window;
 import js.Browser;
 import js.html.VideoElement;
 
-using StringTools;
-
 private typedef Duration = {
 	h:Int,
 	m:Int,

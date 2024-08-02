@@ -7,8 +7,6 @@ import js.Browser.document;
 import js.Browser.window;
 import js.Syntax;
 
-using StringTools;
-
 private typedef VideoChangeFunc = (item:VideoItem) -> Void;
 private typedef OnceEventFunc = (event:WsEvent) -> Void;
 

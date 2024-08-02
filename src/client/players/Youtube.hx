@@ -12,8 +12,6 @@ import js.youtube.Youtube as YtInit;
 import js.youtube.YoutubePlayer;
 import utils.YoutubeUtils;
 
-using StringTools;
-
 class Youtube implements IPlayer {
 	final videosUrl = "https://www.googleapis.com/youtube/v3/videos";
 	final playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
@@ -133,7 +131,7 @@ class Youtube implements IPlayer {
 				function loadNextItem():Void {
 					final item = items.shift();
 					final id:String = item.snippet.resourceId.videoId;
-					final obj = {
+					final obj:VideoDataRequest = {
 						url: 'https://youtu.be/$id',
 						atEnd: data.atEnd
 					};

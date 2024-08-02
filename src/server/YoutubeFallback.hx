@@ -9,8 +9,6 @@ import js.node.Https.HttpsRequestOptions;
 import js.node.url.URLSearchParams;
 import utils.YoutubeUtils;
 
-using Lambda;
-
 class YoutubeFallback {
 	static function httpsGet(
 		url:String,
