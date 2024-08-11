@@ -28,9 +28,14 @@ Default channel example: https://synctube.onrender.com/
 - Open showed "Local" link for yourself and send "Global" link to friends
 
 ### Setup (Docker)
-- As alternative, you can install Docker and run:
-- `docker build -t synctube .`
-- `docker run --rm -it -p 4200:4200 -v ${PWD}/user:/usr/src/app/user synctube`
+As alternative, you can install Docker and run:
+> - `docker build -t synctube .`
+> - `docker run --rm -it -p 4200:4200 -v ${PWD}/user:/usr/src/app/user synctube`
+
+or 
+
+> - `docker compose up -d`
+
 - (Docker container hides real local/global ips, so you need to checkout it manually)
 
 ### Configuration
