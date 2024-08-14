@@ -41,7 +41,9 @@ class Main {
 	final filters:Array<{regex:EReg, replace:String}> = [];
 	var personal = new Client("Unknown", 0);
 	var isConnected = false;
+	var gotInitialConnection = false;
 	var disabledReconnection = false;
+	var disconnectNotification:Null<Timer>;
 	var ws:WebSocket;
 	final player:Player;
 	var onTimeGet:Timer;
@@ -125,17 +127,29 @@ class Main {
 		ws = new WebSocket('$protocol//$host$colonPort$path');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
+			disconnectNotification?.stop();
+			disconnectNotification = null;
 			chatMessageConnected();
+			gotInitialConnection = true;
 			isConnected = true;
 		}
+		// if initial connection refused, or server/client is offline
 		ws.onclose = () -> {
-			// if initial connection refused
-			// or server/client offline
-			if (isConnected) chatMessageDisconnected();
 			isConnected = false;
-			player.pause();
+			var notificationDelay = gotInitialConnection ? 5000 : 0;
+			if (disabledReconnection) notificationDelay = 0;
+
+			if (disconnectNotification == null) {
+				disconnectNotification = Timer.delay(() -> {
+					if (isConnected) return;
+					chatMessageDisconnected();
+					player.pause();
+				}, notificationDelay);
+			}
+
 			if (disabledReconnection) return;
-			Timer.delay(openWebSocket, 2000);
+			final reconnectionDelay = gotInitialConnection ? 1000 : 2000;
+			Timer.delay(openWebSocket, reconnectionDelay);
 		}
 	}
 
@@ -803,21 +817,32 @@ class Main {
 	}
 
 	function chatMessageConnected():Void {
+		final msgBuf = ge("#messagebuffer");
+		if (isLastMessageConnectionStatus()) {
+			msgBuf.removeChild(msgBuf.lastChild);
+		}
 		final div = document.createDivElement();
 		div.className = "server-msg-reconnect";
 		div.textContent = Lang.get("msgConnected");
-		final msgBuf = ge("#messagebuffer");
 		msgBuf.appendChild(div);
 		scrollChatToEnd();
 	}
 
 	function chatMessageDisconnected():Void {
+		final msgBuf = ge("#messagebuffer");
+		if (isLastMessageConnectionStatus()) {
+			msgBuf.removeChild(msgBuf.lastChild);
+		}
 		final div = document.createDivElement();
 		div.className = "server-msg-disconnect";
 		div.textContent = Lang.get("msgDisconnected");
-		final msgBuf = ge("#messagebuffer");
 		msgBuf.appendChild(div);
 		scrollChatToEnd();
+	}
+
+	function isLastMessageConnectionStatus():Bool {
+		final msgBuf = ge("#messagebuffer");
+		return msgBuf.lastElementChild?.className.startsWith("server-msg");
 	}
 
 	public static function serverMessage(text:String, isText = true, withTimestamp = true):Void {

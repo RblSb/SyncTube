@@ -33,6 +33,7 @@ class Main {
 	static inline var VIDEO_SKIP_DELAY = 1000;
 	static inline var FLASHBACKS_COUNT = 50;
 	static inline var FLASHBACK_DIST = 30;
+	static inline var EMPTY_ROOM_CALLBACK_DELAY = 5000;
 
 	final rootDir = '$__dirname/..';
 
@@ -56,6 +57,14 @@ class Main {
 	final messages:Array<Message> = [];
 	final flashbacks:Array<FlashbackItem> = [];
 	final logger:Logger;
+	/**
+		Stop video timer after `EMPTY_ROOM_CALLBACK_DELAY` in case
+		if server loses connection to all clients for a moment.
+
+		This allows seamless reconnection without rewinds
+		to stopped server time.
+	**/
+	var emptyRoomCallbackTimer:Null<Timer>;
 
 	static function main():Void {
 		new Main({
@@ -426,6 +435,7 @@ class Main {
 		switch (data.type) {
 			case Connected:
 				if (!internal) return;
+				emptyRoomCallbackTimer?.stop();
 				if (clients.length == 1 && videoList.length > 0) {
 					if (videoTimer.isPaused()) videoTimer.play();
 				}
@@ -457,8 +467,12 @@ class Main {
 					if (videoTimer.isPaused()) videoTimer.play();
 				}
 				if (clients.length == 0) {
-					if (waitVideoStart != null) waitVideoStart.stop();
-					videoTimer.pause();
+					emptyRoomCallbackTimer?.stop();
+					emptyRoomCallbackTimer = Timer.delay(() -> {
+						if (clients.length > 0) return;
+						waitVideoStart?.stop();
+						videoTimer.pause();
+					}, EMPTY_ROOM_CALLBACK_DELAY);
 				}
 				Timer.delay(() -> {
 					if (clients.exists(i -> i.name == client.name)) return;
@@ -987,12 +1001,12 @@ class Main {
 		return false;
 	}
 
-	var waitVideoStart:Timer;
+	var waitVideoStart:Null<Timer>;
 	var loadedClientsCount = 0;
 
 	function restartWaitTimer():Void {
 		videoTimer.stop();
-		if (waitVideoStart != null) waitVideoStart.stop();
+		waitVideoStart?.stop();
 		waitVideoStart = Timer.delay(startVideoPlayback, VIDEO_START_MAX_DELAY);
 	}
 
@@ -1004,7 +1018,7 @@ class Main {
 	}
 
 	function startVideoPlayback():Void {
-		if (waitVideoStart != null) waitVideoStart.stop();
+		waitVideoStart?.stop();
 		loadedClientsCount = 0;
 		broadcast({type: VideoLoaded});
 		videoTimer.start();
