@@ -455,6 +455,7 @@ class Main {
 
 			case BanClient: // server-only
 			case KickClient:
+				document.title = '*${Lang.get("kicked")}*';
 				disabledReconnection = true;
 				ws.close();
 			case Message:
@@ -967,7 +968,7 @@ class Main {
 		} else {
 			showScrollToChatEndBtn();
 		}
-		if (onBlinkTab == null) blinkTabWithTitle("*Chat*");
+		if (onBlinkTab == null) blinkTabWithTitle('*${Lang.get("chat")}*');
 	}
 
 	function showScrollToChatEndBtn() {

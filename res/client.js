@@ -1681,6 +1681,8 @@ client_Main.prototype = {
 		case "GetYoutubeVideoInfo":
 			break;
 		case "KickClient":
+			var tmp = "*" + Lang.get("kicked");
+			window.document.title = tmp + "*";
 			this.disabledReconnection = true;
 			this.ws.close();
 			break;
@@ -2160,7 +2162,7 @@ client_Main.prototype = {
 			this.showScrollToChatEndBtn();
 		}
 		if(this.onBlinkTab == null) {
-			this.blinkTabWithTitle("*Chat*");
+			this.blinkTabWithTitle("*" + Lang.get("chat") + "*");
 		}
 	}
 	,showScrollToChatEndBtn: function() {
