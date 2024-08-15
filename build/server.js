@@ -4274,6 +4274,7 @@ server_HttpServer.getPath = function(dir,url) {
 	return haxe_io_Path.addTrailingSlash(filePath) + "index.html";
 };
 server_HttpServer.readFileError = function(err,res,filePath) {
+	res.setHeader("Content-Type",server_HttpServer.getMimeType("html"));
 	if(err.code == "ENOENT") {
 		res.statusCode = 404;
 		var rel = js_node_Path.relative(server_HttpServer.dir,filePath);
