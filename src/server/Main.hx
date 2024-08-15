@@ -13,8 +13,10 @@ import haxe.Timer;
 import haxe.crypto.Sha256;
 import js.Node.__dirname;
 import js.Node.process;
+import js.node.Crypto;
 import js.node.Http;
 import js.node.http.IncomingMessage;
+import js.node.url.URL;
 import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
 import json2object.ErrorUtils;
@@ -378,13 +380,35 @@ class Main {
 		}
 	}
 
+	function randomUuid():String {
+		return (Crypto : Dynamic).randomUUID();
+	}
+
+	function getUrlUuid(link:String):Null<String> {
+		try {
+			if (link.startsWith('/')) link = 'http://127.0.0.1$link';
+			final url = new URL(link);
+			return url.searchParams.get("uuid");
+		} catch (e) {
+			return null;
+		}
+	}
+
 	function onConnect(ws:WebSocket, req:IncomingMessage):Void {
+		final uuid = getUrlUuid(req.url) ?? randomUuid();
+		final oldClient = clients.find(client -> client.uuid == uuid);
+		if (oldClient != null) {
+			send(oldClient, {type: KickClient});
+			onMessage(oldClient, {type: Disconnected}, true);
+		}
+
 		final ip = clientIp(req);
 		final id = freeIds.length > 0 ? freeIds.shift() : clients.length;
 		final name = 'Guest ${id + 1}';
 		trace(Date.now().toString(), '$name connected ($ip)');
 		final isAdmin = config.localAdmins && req.socket.localAddress == ip;
 		final client = new Client(ws, req, id, name, 0);
+		client.uuid = uuid;
 		client.isAdmin = isAdmin;
 		clients.push(client);
 		ws.on("pong", () -> client.isAlive = true);
@@ -444,6 +468,7 @@ class Main {
 				send(client, {
 					type: Connected,
 					connected: {
+						uuid: client.uuid,
 						config: config,
 						history: messages,
 						isUnknownClient: true,
@@ -490,8 +515,7 @@ class Main {
 			case BanClient:
 				if (!checkPermission(client, BanClientPerm)) return;
 				final name = data.banClient.name;
-				final bannedClient = clients.getByName(name);
-				if (bannedClient == null) return;
+				final bannedClient = clients.getByName(name) ?? return;
 				if (client.name == name || bannedClient.isAdmin) {
 					serverMessage(client, "adminsCannotBeBannedError");
 					return;
@@ -517,8 +541,7 @@ class Main {
 			case KickClient:
 				if (!checkPermission(client, BanClientPerm)) return;
 				final name = data.kickClient.name;
-				final kickedClient = clients.getByName(name);
-				if (kickedClient == null) return;
+				final kickedClient = clients.getByName(name) ?? return;
 				if (client.name != name && kickedClient.isAdmin) {
 					serverMessage(client, "adminsCannotBeBannedError");
 					return;

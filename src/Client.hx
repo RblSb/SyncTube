@@ -25,6 +25,7 @@ class Client {
 	public final ws:WebSocket;
 	public final req:IncomingMessage;
 	public final id:Int;
+	public var uuid:String;
 	public var isAlive = true;
 	#end
 	public var name:String;

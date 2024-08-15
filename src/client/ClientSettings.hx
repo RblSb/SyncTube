@@ -2,6 +2,7 @@ package client;
 
 typedef ClientSettings = {
 	version:Int,
+	uuid:Null<String>,
 	name:String,
 	hash:String,
 	isExtendedPlayer:Bool,

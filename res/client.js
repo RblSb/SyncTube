@@ -1272,7 +1272,7 @@ var client_Main = function() {
 	if(this.host == "") {
 		this.host = "localhost";
 	}
-	client_Settings.init({ version : 4, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], latestSubs : [], hotkeysEnabled : true, showHintList : true},$bind(this,this.settingsPatcher));
+	client_Settings.init({ version : 4, uuid : null, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], latestSubs : [], hotkeysEnabled : true, showHintList : true},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
 	this.initListeners();
 	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
@@ -1353,7 +1353,7 @@ client_Main.prototype = {
 		var port = $global.location.port;
 		var colonPort = port.length > 0 ? ":" + port : port;
 		var path = $global.location.pathname;
-		this.ws = new WebSocket("" + protocol + "//" + this.host + colonPort + path);
+		this.ws = new WebSocket("" + protocol + "//" + this.host + colonPort + path + (this.settings.uuid == null ? "" : "?uuid=" + this.settings.uuid));
 		this.ws.onmessage = $bind(this,this.onMessage);
 		this.ws.onopen = function() {
 			var tmp = _gthis.disconnectNotification;
@@ -1609,7 +1609,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 418, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 420, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1805,6 +1805,8 @@ client_Main.prototype = {
 	}
 	,onConnected: function(data) {
 		var connected = data.connected;
+		this.settings.uuid = connected.uuid;
+		client_Settings.write(this.settings);
 		this.globalIp = connected.globalIp;
 		this.setConfig(connected.config);
 		if(connected.isUnknownClient) {

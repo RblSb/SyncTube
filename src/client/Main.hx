@@ -61,6 +61,7 @@ class Main {
 
 		final defaults:ClientSettings = {
 			version: SETTINGS_VERSION,
+			uuid: null,
 			name: "",
 			hash: "",
 			isExtendedPlayer: false,
@@ -124,7 +125,8 @@ class Main {
 		final port = Browser.location.port;
 		final colonPort = port.length > 0 ? ':$port' : port;
 		final path = Browser.location.pathname;
-		ws = new WebSocket('$protocol//$host$colonPort$path');
+		final query = settings.uuid == null ? "" : '?uuid=${settings.uuid}';
+		ws = new WebSocket('$protocol//$host$colonPort$path$query');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
 			disconnectNotification?.stop();
@@ -585,6 +587,10 @@ class Main {
 
 	function onConnected(data:WsEvent):Void {
 		final connected = data.connected;
+
+		settings.uuid = connected.uuid;
+		Settings.write(settings);
+
 		globalIp = connected.globalIp;
 		setConfig(connected.config);
 		if (connected.isUnknownClient) {
