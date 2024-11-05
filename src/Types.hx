@@ -133,6 +133,7 @@ typedef FlashbackItem = {
 typedef WsEvent = {
 	type:WsEventType,
 	?connected:{
+		uuid:String,
 		config:Config,
 		history:Array<Message>,
 		clients:Array<ClientData>,

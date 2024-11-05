@@ -111,6 +111,7 @@ class HttpServer {
 	}
 
 	static function readFileError(err:Dynamic, res:ServerResponse, filePath:String):Void {
+		res.setHeader("Content-Type", getMimeType("html"));
 		if (err.code == "ENOENT") {
 			res.statusCode = 404;
 			var rel = JsPath.relative(dir, filePath);

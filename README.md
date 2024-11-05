@@ -4,8 +4,7 @@ Lightweight modern implementation and very easy way to run locally.
 
 Default channel example: https://synctube.onrender.com/
 
-### New features
-- Reworked layout and theme
+### Features
 - Multi-Language support
 - Hotkeys (`Alt-P` for global play/pause, [etc](https://github.com/RblSb/SyncTube/blob/d3f6d4e6434527569d13f211a0eb074c5a11992e/src/client/Buttons.hx#L303-L314))
 - Mobile view with page fullscreen
@@ -18,19 +17,29 @@ Default channel example: https://synctube.onrender.com/
 
 ### Supported players
 - Youtube (videos, shorts, streams and playlists)
+- [Streamable](https://streamable.com)
 - Raw mp4 videos and m3u8 playlists (or any other media format supported in browser)
 - Iframes (without sync)
 
 ### Setup
 - Open `4200` port in your router settings (port is customizable)
-- `npm install ws` in this project folder ([NodeJS](https://nodejs.org) required)
+- `npm install ws` in this project folder ([NodeJS 14+](https://nodejs.org) required)
 - Run `node build/server.js`
 - Open showed "Local" link for yourself and send "Global" link to friends
 
 ### Setup (Docker)
-- As alternative, you can install Docker and run:
-- `docker build -t synctube .`
-- `docker run --rm -it -p 4200:4200 -v ${PWD}/user:/usr/src/app/user synctube`
+As alternative, you can install Docker and run:
+> ```shell
+> docker build -t synctube .
+> docker run --rm -it -p 4200:4200 -v ${PWD}/user:/usr/src/app/user synctube
+> ```
+
+or
+
+> ```shell
+> docker compose up -d
+> ```
+
 - (Docker container hides real local/global ips, so you need to checkout it manually)
 
 ### Configuration

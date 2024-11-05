@@ -41,7 +41,9 @@ class Main {
 	final filters:Array<{regex:EReg, replace:String}> = [];
 	var personal = new Client("Unknown", 0);
 	var isConnected = false;
+	var gotInitialConnection = false;
 	var disabledReconnection = false;
+	var disconnectNotification:Null<Timer>;
 	var ws:WebSocket;
 	final player:Player;
 	var onTimeGet:Timer;
@@ -59,6 +61,7 @@ class Main {
 
 		final defaults:ClientSettings = {
 			version: SETTINGS_VERSION,
+			uuid: null,
 			name: "",
 			hash: "",
 			isExtendedPlayer: false,
@@ -122,20 +125,33 @@ class Main {
 		final port = Browser.location.port;
 		final colonPort = port.length > 0 ? ':$port' : port;
 		final path = Browser.location.pathname;
-		ws = new WebSocket('$protocol//$host$colonPort$path');
+		final query = settings.uuid == null ? "" : '?uuid=${settings.uuid}';
+		ws = new WebSocket('$protocol//$host$colonPort$path$query');
 		ws.onmessage = onMessage;
 		ws.onopen = () -> {
+			disconnectNotification?.stop();
+			disconnectNotification = null;
 			chatMessageConnected();
+			gotInitialConnection = true;
 			isConnected = true;
 		}
+		// if initial connection refused, or server/client is offline
 		ws.onclose = () -> {
-			// if initial connection refused
-			// or server/client offline
-			if (isConnected) chatMessageDisconnected();
 			isConnected = false;
-			player.pause();
+			var notificationDelay = gotInitialConnection ? 5000 : 0;
+			if (disabledReconnection) notificationDelay = 0;
+
+			if (disconnectNotification == null) {
+				disconnectNotification = Timer.delay(() -> {
+					if (isConnected) return;
+					chatMessageDisconnected();
+					player.pause();
+				}, notificationDelay);
+			}
+
 			if (disabledReconnection) return;
-			Timer.delay(openWebSocket, 2000);
+			final reconnectionDelay = gotInitialConnection ? 1000 : 2000;
+			Timer.delay(openWebSocket, reconnectionDelay);
 		}
 	}
 
@@ -439,6 +455,7 @@ class Main {
 
 			case BanClient: // server-only
 			case KickClient:
+				document.title = '*${Lang.get("kicked")}*';
 				disabledReconnection = true;
 				ws.close();
 			case Message:
@@ -571,6 +588,10 @@ class Main {
 
 	function onConnected(data:WsEvent):Void {
 		final connected = data.connected;
+
+		settings.uuid = connected.uuid;
+		Settings.write(settings);
+
 		globalIp = connected.globalIp;
 		setConfig(connected.config);
 		if (connected.isUnknownClient) {
@@ -803,21 +824,32 @@ class Main {
 	}
 
 	function chatMessageConnected():Void {
+		final msgBuf = ge("#messagebuffer");
+		if (isLastMessageConnectionStatus()) {
+			msgBuf.removeChild(msgBuf.lastChild);
+		}
 		final div = document.createDivElement();
 		div.className = "server-msg-reconnect";
 		div.textContent = Lang.get("msgConnected");
-		final msgBuf = ge("#messagebuffer");
 		msgBuf.appendChild(div);
 		scrollChatToEnd();
 	}
 
 	function chatMessageDisconnected():Void {
+		final msgBuf = ge("#messagebuffer");
+		if (isLastMessageConnectionStatus()) {
+			msgBuf.removeChild(msgBuf.lastChild);
+		}
 		final div = document.createDivElement();
 		div.className = "server-msg-disconnect";
 		div.textContent = Lang.get("msgDisconnected");
-		final msgBuf = ge("#messagebuffer");
 		msgBuf.appendChild(div);
 		scrollChatToEnd();
+	}
+
+	function isLastMessageConnectionStatus():Bool {
+		final msgBuf = ge("#messagebuffer");
+		return msgBuf.lastElementChild?.className.startsWith("server-msg");
 	}
 
 	public static function serverMessage(text:String, isText = true, withTimestamp = true):Void {
@@ -936,7 +968,7 @@ class Main {
 		} else {
 			showScrollToChatEndBtn();
 		}
-		if (onBlinkTab == null) blinkTabWithTitle("*Chat*");
+		if (onBlinkTab == null) blinkTabWithTitle('*${Lang.get("chat")}*');
 	}
 
 	function showScrollToChatEndBtn() {
