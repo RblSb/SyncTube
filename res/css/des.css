@@ -2,8 +2,6 @@
 
 /* CSS Document */
 
-@import url(https://rsms.me/inter/inter.css);
-
 :root {
   --background-video: #000;
   --background-chat: #111;
@@ -32,7 +30,7 @@ html {
 }
 
 body {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   font-size: .875rem;
   line-height: 1.4;
   color: var(--foreground);
