@@ -484,7 +484,7 @@ StringTools.hex = function(n,digits) {
 var _$Types_VideoItemTools = function() { };
 _$Types_VideoItemTools.__name__ = true;
 _$Types_VideoItemTools.withUrl = function(item,url) {
-	return { url : url, title : item.title, author : item.author, duration : item.duration, subs : item.subs, isTemp : item.isTemp, isIframe : item.isIframe};
+	return { url : url, title : item.title, author : item.author, duration : item.duration, subs : item.subs, voiceOverTrack : item.voiceOverTrack, isTemp : item.isTemp, isIframe : item.isIframe};
 };
 var VideoList = function() {
 	this.items = [];
@@ -764,6 +764,8 @@ client_Buttons.init = function(main) {
 		var isRawSingleVideo = value != "" && main.isRawPlayerLink(value) && main.isSingleVideoLink(value);
 		window.document.querySelector("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
 		window.document.querySelector("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
+		var tmp = value.length > 0 ? "" : "none";
+		window.document.querySelector("#voiceoverblock").style.display = tmp;
 		var panel = window.document.querySelector("#addfromurl");
 		var oldH = panel.style.height;
 		panel.style.height = "";
@@ -1253,6 +1255,7 @@ client_JsApi.fireVideoRemoveEvents = function(item) {
 var client_Main = function() {
 	this.matchSimpleDate = new EReg("^-?([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s?)?$","");
 	this.mask = new EReg("\\${([0-9]+)-([0-9]+)}","g");
+	this.gotFirstPageInteraction = false;
 	this.disabledReconnection = false;
 	this.gotInitialConnection = false;
 	this.isConnected = false;
@@ -1290,6 +1293,7 @@ var client_Main = function() {
 		_gthis.openWebSocket();
 	});
 	client_JsApi.init(this,this.player);
+	window.document.addEventListener("click",$bind(this,this.onFirstInteraction));
 };
 client_Main.__name__ = true;
 client_Main.main = function() {
@@ -1317,7 +1321,19 @@ client_Main.serverMessage = function(text,isText,withTimestamp) {
 	msgBuf.scrollTop = msgBuf.scrollHeight;
 };
 client_Main.prototype = {
-	settingsPatcher: function(data,version) {
+	onFirstInteraction: function() {
+		if(this.gotFirstPageInteraction) {
+			return;
+		}
+		if(!this.player.isVideoLoaded()) {
+			return;
+		}
+		this.gotFirstPageInteraction = true;
+		this.player.unmute();
+		this.player.play();
+		window.document.removeEventListener("click",$bind(this,this.onFirstInteraction));
+	}
+	,settingsPatcher: function(data,version) {
 		switch(version) {
 		case 1:
 			data.hotkeysEnabled = true;
@@ -1540,7 +1556,7 @@ client_Main.prototype = {
 			}
 			data.title = data.title != null ? data.title : Lang.get("rawVideo");
 			data.url = data.url != null ? data.url : url;
-			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, subs : data.subs, isIframe : data.isIframe == true}, atEnd : atEnd}});
+			_gthis.send({ type : "AddVideo", addVideo : { item : { url : data.url, title : data.title, author : _gthis.personal.name, duration : data.duration, isTemp : isTemp, subs : data.subs, voiceOverTrack : data.voiceOverTrack, isIframe : data.isIframe == true}, atEnd : atEnd}});
 			if(callback != null) {
 				callback();
 			}
@@ -1609,7 +1625,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 420, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 433, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1663,9 +1679,11 @@ client_Main.prototype = {
 			if(this.player.getDuration() <= this.player.getTime() + synchThreshold) {
 				return;
 			}
-			if(!data.getTime.paused) {
-				this.player.play();
-			} else {
+			if(this.player.isPaused()) {
+				if(!data.getTime.paused) {
+					this.player.play();
+				}
+			} else if(data.getTime.paused) {
 				this.player.pause();
 			}
 			this.player.setPauseIndicator(!data.getTime.paused);
@@ -2361,6 +2379,13 @@ client_Main.prototype = {
 	,getYoutubePlaylistLimit: function() {
 		return this.config.youtubePlaylistLimit;
 	}
+	,isAutoplayAllowed: function() {
+		var navigator = $global.navigator;
+		if(navigator.getAutoplayPolicy != null) {
+			return navigator.getAutoplayPolicy("mediaelement");
+		}
+		return this.gotFirstPageInteraction;
+	}
 	,isVerbose: function() {
 		return this.config.isVerbose;
 	}
@@ -2370,6 +2395,10 @@ client_Main.prototype = {
 	}
 };
 var client_Player = function(main) {
+	this.voiceOverVolume = 0.3;
+	this.needsVolumeReset = false;
+	this.isAudioTrackLoaded = false;
+	this.voiceOverInput = window.document.querySelector("#voiceoverurl");
 	this.skipSetRate = false;
 	this.skipSetTime = false;
 	this.isLoaded = false;
@@ -2378,7 +2407,8 @@ var client_Player = function(main) {
 	this.videoList = new VideoList();
 	this.main = main;
 	this.youtube = new client_players_Youtube(main,this);
-	this.players = [this.youtube,new client_players_Streamable(main,this)];
+	this.streamable = new client_players_Streamable(main,this);
+	this.players = [this.youtube,this.streamable];
 	this.iframePlayer = new client_players_Iframe(main,this);
 	this.rawPlayer = new client_players_Raw(main,this);
 	this.initItemButtons();
@@ -2426,21 +2456,31 @@ client_Player.prototype = {
 				var _this = this.videoList;
 				client_JsApi.fireVideoRemoveEvents(_this.items[_this.pos]);
 				this.player.removeVideo();
+				this.removeExternalAudioTrack();
 			}
 			this.main.blinkTabWithTitle("*Video*");
 		}
 		this.player = newPlayer;
 	}
-	,getVideoData: function(data,callback) {
+	,getVideoData: function(req,callback) {
+		var _gthis = this;
 		var player = Lambda.find(this.players,function(player) {
-			return player.isSupportedLink(data.url);
+			return player.isSupportedLink(req.url);
 		});
 		if(player == null) {
 			player = this.rawPlayer;
 		}
-		player.getVideoData(data,callback);
+		player.getVideoData(req,function(data) {
+			var voiceOverTrack = StringTools.trim(_gthis.voiceOverInput.value);
+			data.voiceOverTrack = voiceOverTrack;
+			_gthis.voiceOverInput.value = "";
+			callback(data);
+		});
 	}
 	,isRawPlayerLink: function(url) {
+		if(this.streamable.isSupportedLink(url)) {
+			return true;
+		}
 		return !Lambda.exists(this.players,function(player) {
 			return player.isSupportedLink(url);
 		});
@@ -2460,11 +2500,54 @@ client_Player.prototype = {
 		this.isLoaded = false;
 		if(this.main.isVideoEnabled) {
 			this.player.loadVideo(item);
+			this.setExternalAudioTrack(item);
 		} else {
 			this.onCanBePlayed();
 		}
 		client_JsApi.fireVideoChangeEvents(item);
 		window.document.querySelector("#currenttitle").textContent = item.title;
+	}
+	,setExternalAudioTrack: function(item) {
+		var _gthis = this;
+		this.removeExternalAudioTrack();
+		var tmp = item.voiceOverTrack;
+		if(tmp == null) {
+			return;
+		}
+		if(tmp.length == 0) {
+			return;
+		}
+		this.audioTrack = new Audio(tmp);
+		if(!this.main.isAutoplayAllowed()) {
+			this.audioTrack.muted = true;
+		}
+		this.audioTrack.oncanplay = function() {
+			_gthis.audioTrack.oncanplay = null;
+			_gthis.audioTrack.onerror = null;
+			return _gthis.isAudioTrackLoaded = true;
+		};
+		this.audioTrack.onerror = function(e) {
+			haxe_Log.trace(e,{ fileName : "src/client/Player.hx", lineNumber : 174, className : "client.Player", methodName : "setExternalAudioTrack"});
+			_gthis.audioTrack.oncanplay = null;
+			_gthis.audioTrack.onerror = null;
+			_gthis.isAudioTrackLoaded = false;
+			_gthis.audioTrack = null;
+			_gthis.setVolume(1);
+		};
+	}
+	,removeExternalAudioTrack: function() {
+		this.isAudioTrackLoaded = false;
+		this.needsVolumeReset = false;
+		if(this.audioTrack == null) {
+			return;
+		}
+		var tmp = this.audioTrack;
+		if(tmp != null) {
+			tmp.pause();
+		}
+		this.audioTrack.src = null;
+		this.audioTrack = null;
+		this.needsVolumeReset = true;
 	}
 	,setSupportedPlayer: function(url,isIframe) {
 		var currentPlayer = Lambda.find(this.players,function(p) {
@@ -2515,6 +2598,10 @@ client_Player.prototype = {
 		this.isLoaded = true;
 	}
 	,onPlay: function() {
+		var tmp = this.audioTrack;
+		if(tmp != null) {
+			tmp.play();
+		}
 		if((this.main.personal.group & 4) == 0) {
 			return;
 		}
@@ -2527,6 +2614,10 @@ client_Player.prototype = {
 	}
 	,onPause: function() {
 		var _gthis = this;
+		var tmp = this.audioTrack;
+		if(tmp != null) {
+			tmp.pause();
+		}
 		var _this = this.videoList;
 		var tmp = _this.items[_this.pos];
 		if(tmp == null) {
@@ -2540,7 +2631,7 @@ client_Player.prototype = {
 				return;
 			}
 		}
-		if(this.main.hasLeaderOnPauseRequest() && this.videoList.items.length > 0 && this.getTime() > 1 && !this.main.hasLeader()) {
+		if(this.main.hasLeaderOnPauseRequest() && this.videoList.items.length > 0 && this.getTime() > 1 && this.isLoaded && !this.main.hasLeader()) {
 			client_JsApi.once("SetLeader",function(event) {
 				if(event.setLeader.clientName != _gthis.main.personal.name) {
 					return;
@@ -2557,6 +2648,9 @@ client_Player.prototype = {
 		this.main.send({ type : "Pause", pause : { time : this.getTime()}});
 	}
 	,onSetTime: function() {
+		if(this.audioTrack != null) {
+			this.audioTrack.currentTime = this.getTime();
+		}
 		if(this.skipSetTime) {
 			this.skipSetTime = false;
 			return;
@@ -2567,6 +2661,9 @@ client_Player.prototype = {
 		this.main.send({ type : "SetTime", setTime : { time : this.getTime()}});
 	}
 	,onRateChange: function() {
+		if(this.audioTrack != null) {
+			this.audioTrack.playbackRate = this.getPlaybackRate();
+		}
 		if(this.skipSetRate) {
 			this.skipSetRate = false;
 			return;
@@ -2758,6 +2855,9 @@ client_Player.prototype = {
 		return _this.items[_this.pos].duration;
 	}
 	,isVideoLoaded: function() {
+		if(this.player == null) {
+			return false;
+		}
 		return this.player.isVideoLoaded();
 	}
 	,play: function() {
@@ -2771,6 +2871,16 @@ client_Player.prototype = {
 			return;
 		}
 		this.player.play();
+		if(this.needsVolumeReset) {
+			this.setVolume(1);
+		}
+		if(this.audioTrack != null) {
+			this.setVolume(0.3);
+			var tmp = this.audioTrack;
+			if(tmp != null) {
+				tmp.play();
+			}
+		}
 	}
 	,pause: function() {
 		if(!this.main.isSyncActive) {
@@ -2783,6 +2893,10 @@ client_Player.prototype = {
 			return;
 		}
 		this.player.pause();
+		var tmp = this.audioTrack;
+		if(tmp != null) {
+			tmp.pause();
+		}
 	}
 	,getTime: function() {
 		if(this.player == null) {
@@ -2808,6 +2922,9 @@ client_Player.prototype = {
 		}
 		this.skipSetTime = isLocal;
 		this.player.setTime(time);
+		if(this.audioTrack != null) {
+			this.audioTrack.currentTime = time;
+		}
 	}
 	,getPlaybackRate: function() {
 		if(this.player == null) {
@@ -2833,6 +2950,9 @@ client_Player.prototype = {
 		}
 		this.skipSetRate = isLocal;
 		this.player.setPlaybackRate(rate);
+		if(this.audioTrack != null) {
+			this.audioTrack.playbackRate = rate;
+		}
 	}
 	,skipAd: function() {
 		var _gthis = this;
@@ -2865,9 +2985,58 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 484, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 564, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
+	}
+	,isPaused: function() {
+		if(this.player == null) {
+			return true;
+		}
+		if(!this.player.isVideoLoaded()) {
+			return true;
+		}
+		return this.player.isPaused();
+	}
+	,getVolume: function() {
+		if(this.player == null) {
+			return 1;
+		}
+		if(!this.player.isVideoLoaded()) {
+			return 1;
+		}
+		return this.player.getVolume();
+	}
+	,setVolume: function(volume) {
+		if(this.player == null) {
+			return;
+		}
+		if(!this.player.isVideoLoaded()) {
+			return;
+		}
+		this.player.setVolume(volume);
+	}
+	,unmute: function() {
+		if(this.player == null) {
+			return;
+		}
+		if(!this.player.isVideoLoaded()) {
+			return;
+		}
+		this.player.unmute();
+		if(this.audioTrack != null) {
+			this.audioTrack.muted = false;
+		}
+		if(this.audioTrack == null && this.almostEq(this.getVolume(),this.voiceOverVolume,0.01)) {
+			this.setVolume(1);
+		}
+	}
+	,almostEq: function(a,b,diff) {
+		if(a > b - diff) {
+			return a < b + diff;
+		} else {
+			return false;
+		}
 	}
 };
 var client_Settings = function() { };
@@ -3109,6 +3278,9 @@ client_players_Iframe.prototype = {
 	}
 	,pause: function() {
 	}
+	,isPaused: function() {
+		return false;
+	}
 	,getTime: function() {
 		return 0;
 	}
@@ -3118,6 +3290,13 @@ client_players_Iframe.prototype = {
 		return 1;
 	}
 	,setPlaybackRate: function(rate) {
+	}
+	,getVolume: function() {
+		return 1;
+	}
+	,setVolume: function(volume) {
+	}
+	,unmute: function() {
 	}
 };
 var client_players_Raw = function(main,player) {
@@ -3233,6 +3412,9 @@ client_players_Raw.prototype = {
 			};
 			this.video.onpause = ($_=this.player,$bind($_,$_.onPause));
 			this.video.onratechange = ($_=this.player,$bind($_,$_.onRateChange));
+			if(!this.main.isAutoplayAllowed()) {
+				this.video.muted = true;
+			}
 			this.playerEl.appendChild(this.video);
 		}
 		if(isHls) {
@@ -3321,6 +3503,9 @@ client_players_Raw.prototype = {
 	,pause: function() {
 		this.video.pause();
 	}
+	,isPaused: function() {
+		return this.video.paused;
+	}
 	,getTime: function() {
 		return this.video.currentTime;
 	}
@@ -3332,6 +3517,15 @@ client_players_Raw.prototype = {
 	}
 	,setPlaybackRate: function(rate) {
 		this.video.playbackRate = rate;
+	}
+	,getVolume: function() {
+		return this.video.volume;
+	}
+	,setVolume: function(volume) {
+		this.video.volume = volume;
+	}
+	,unmute: function() {
+		this.video.muted = false;
 	}
 };
 var client_players_RawSubs = function() { };
@@ -3677,7 +3871,8 @@ client_players_Youtube.prototype = {
 				var title = item.snippet.title;
 				var duration = _gthis.convertTime(item.contentDetails.duration);
 				if(duration == 0) {
-					callback({ duration : 356400, title : title, url : "<iframe src=\"https://www.youtube.com/embed/" + id + "\" frameborder=\"0\"\n\t\t\t\t\t\t\tallow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\"\n\t\t\t\t\t\t\tallowfullscreen></iframe>", isIframe : true});
+					var mute = _gthis.main.isAutoplayAllowed() ? "" : "&mute=1";
+					callback({ duration : 356400, title : title, url : "<iframe src=\"https://www.youtube.com/embed/" + id + "?autoplay=1" + mute + "\" frameborder=\"0\"\n\t\t\t\t\t\t\tallow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\"\n\t\t\t\t\t\t\tallowfullscreen></iframe>", isIframe : true});
 					continue;
 				}
 				callback({ duration : duration, title : title, url : url});
@@ -3756,7 +3951,7 @@ client_players_Youtube.prototype = {
 			}
 			callback({ duration : _gthis.tempYoutube.getDuration()});
 		}, onError : function(e) {
-			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 186, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 187, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
@@ -3779,7 +3974,10 @@ client_players_Youtube.prototype = {
 		this.video = window.document.createElement("div");
 		this.video.id = "videoplayer";
 		this.playerEl.appendChild(this.video);
-		this.youtube = new YT.Player(this.video.id,{ videoId : this.extractVideoId(item.url), playerVars : { autoplay : 1, playsinline : 1, modestbranding : 1, rel : 0, showinfo : 0}, events : { onReady : function(e) {
+		this.youtube = new YT.Player(this.video.id,{ videoId : this.extractVideoId(item.url), playerVars : { autoplay : 1, playsinline : 1, rel : 0}, events : { onReady : function(e) {
+			if(!_gthis.main.isAutoplayAllowed()) {
+				e.target.mute();
+			}
 			_gthis.isLoaded = true;
 			_gthis.youtube.pauseVideo();
 		}, onStateChange : function(e) {
@@ -3804,7 +4002,7 @@ client_players_Youtube.prototype = {
 		}, onPlaybackRateChange : function(e) {
 			_gthis.player.onRateChange();
 		}, onError : function(e) {
-			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 243, className : "client.players.Youtube", methodName : "loadVideo"});
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 245, className : "client.players.Youtube", methodName : "loadVideo"});
 			var tmp = _gthis.player.getCurrentItem();
 			if(tmp == null) {
 				return;
@@ -3818,8 +4016,8 @@ client_players_Youtube.prototype = {
 			var info = event.getYoutubeVideoInfo.response;
 			var tmp = _gthis.getBestStreamFormat(info);
 			if(tmp == null) {
-				haxe_Log.trace("format not found in response info:",{ fileName : "src/client/players/Youtube.hx", lineNumber : 256, className : "client.players.Youtube", methodName : "rawSourceFallback"});
-				haxe_Log.trace(info,{ fileName : "src/client/players/Youtube.hx", lineNumber : 257, className : "client.players.Youtube", methodName : "rawSourceFallback"});
+				haxe_Log.trace("format not found in response info:",{ fileName : "src/client/players/Youtube.hx", lineNumber : 258, className : "client.players.Youtube", methodName : "rawSourceFallback"});
+				haxe_Log.trace(info,{ fileName : "src/client/players/Youtube.hx", lineNumber : 259, className : "client.players.Youtube", methodName : "rawSourceFallback"});
 				return;
 			}
 			_gthis.player.changeVideoSrc(tmp.url);
@@ -3830,6 +4028,7 @@ client_players_Youtube.prototype = {
 		info.formats = info.formats != null ? info.formats : [];
 		info.adaptiveFormats = info.adaptiveFormats != null ? info.adaptiveFormats : [];
 		var formats = info.adaptiveFormats.concat(info.formats);
+		haxe_Log.trace(formats,{ fileName : "src/client/players/Youtube.hx", lineNumber : 276, className : "client.players.Youtube", methodName : "getBestStreamFormat"});
 		var qPriority = [1080,720,480,360,240];
 		var _g = 0;
 		while(_g < qPriority.length) {
@@ -3872,6 +4071,9 @@ client_players_Youtube.prototype = {
 	,pause: function() {
 		this.youtube.pauseVideo();
 	}
+	,isPaused: function() {
+		return this.youtube.getPlayerState() == 2;
+	}
 	,getTime: function() {
 		return this.youtube.getCurrentTime();
 	}
@@ -3883,6 +4085,18 @@ client_players_Youtube.prototype = {
 	}
 	,setPlaybackRate: function(rate) {
 		this.youtube.setPlaybackRate(rate);
+	}
+	,getVolume: function() {
+		if(this.youtube.isMuted()) {
+			return 0;
+		}
+		return this.youtube.getVolume() / 100;
+	}
+	,setVolume: function(volume) {
+		this.youtube.setVolume(volume * 100 | 0);
+	}
+	,unmute: function() {
+		this.youtube.unMute();
 	}
 };
 var haxe_Exception = function(message,previous,native) {

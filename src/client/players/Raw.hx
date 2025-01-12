@@ -67,7 +67,7 @@ class Raw implements IPlayer {
 			callback({
 				duration: video.duration,
 				title: title,
-				subs: subs
+				subs: subs,
 			});
 		}
 		Utils.prepend(playerEl, video);
@@ -115,6 +115,7 @@ class Raw implements IPlayer {
 			}
 			video.onpause = player.onPause;
 			video.onratechange = player.onRateChange;
+			if (!main.isAutoplayAllowed()) video.muted = true;
 			playerEl.appendChild(video);
 		}
 		if (isHls) initHlsSource(video, url);
@@ -185,6 +186,10 @@ class Raw implements IPlayer {
 		video.pause();
 	}
 
+	public function isPaused():Bool {
+		return video.paused;
+	}
+
 	public function getTime():Float {
 		return video.currentTime;
 	}
@@ -199,5 +204,17 @@ class Raw implements IPlayer {
 
 	public function setPlaybackRate(rate:Float):Void {
 		video.playbackRate = rate;
+	}
+
+	public function getVolume():Float {
+		return video.volume;
+	}
+
+	public function setVolume(volume:Float):Void {
+		video.volume = volume;
+	}
+
+	public function unmute():Void {
+		video.muted = false;
 	}
 }

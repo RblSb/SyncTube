@@ -124,6 +124,7 @@ button {
 button:not(:first-child) {
   margin-left: .5rem;
 }
+
 .server-whisper button {
   margin-left: 0;
   font-style: italic;
@@ -140,6 +141,7 @@ button.active {
   button:hover:not(.active) {
     background-color: var(--background-chat);
   }
+
   .info header button:hover:not(.active) {
     background-color: transparent;
   }
@@ -180,6 +182,7 @@ button span {
   border-color: transparent;
   transition: border-color ease-in-out 800ms;
 }
+
 #leader_btn.hint {
   border-radius: .5rem;
   border: .125rem solid;
@@ -413,7 +416,8 @@ header h4 {
 }
 
 #mediatitle,
-#subsurl {
+#subsurl,
+#voiceoverurl {
   margin-left: 2rem;
   flex-grow: 1;
 }

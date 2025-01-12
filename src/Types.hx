@@ -13,6 +13,7 @@ typedef VideoData = {
 	var ?title:String;
 	var ?url:String;
 	var ?subs:String;
+	var ?voiceOverTrack:String;
 	var ?isIframe:Bool;
 }
 
@@ -106,6 +107,7 @@ typedef VideoItem = {
 	var author:String;
 	var duration:Float;
 	var ?subs:String;
+	var ?voiceOverTrack:String;
 	var isTemp:Bool;
 	var isIframe:Bool;
 }
@@ -118,6 +120,7 @@ private class VideoItemTools {
 			author: item.author,
 			duration: item.duration,
 			subs: item.subs,
+			voiceOverTrack: item.voiceOverTrack,
 			isTemp: item.isTemp,
 			isIframe: item.isIframe
 		};

@@ -86,10 +86,11 @@ class Youtube implements IPlayer {
 				final duration = convertTime(duration);
 				// duration is PT0S for streams
 				if (duration == 0) {
+					final mute = main.isAutoplayAllowed() ? "" : "&mute=1";
 					callback({
 						duration: 99 * 60 * 60,
 						title: title,
-						url: '<iframe src="https://www.youtube.com/embed/$id" frameborder="0"
+						url: '<iframe src="https://www.youtube.com/embed/$id?autoplay=1$mute" frameborder="0"
 							allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
 							allowfullscreen></iframe>',
 						isIframe: true
@@ -211,13 +212,14 @@ class Youtube implements IPlayer {
 			videoId: extractVideoId(item.url),
 			playerVars: {
 				autoplay: 1,
+				// play videos inline instead of fullscreen on iOS
 				playsinline: 1,
-				modestbranding: 1,
+				// related videos only from same channel
 				rel: 0,
-				showinfo: 0
 			},
 			events: {
 				onReady: e -> {
+					if (!main.isAutoplayAllowed()) e.target.mute();
 					isLoaded = true;
 					youtube.pauseVideo();
 				},
@@ -271,6 +273,7 @@ class Youtube implements IPlayer {
 		info.formats ??= [];
 		info.adaptiveFormats ??= [];
 		final formats = info.adaptiveFormats.concat(info.formats);
+		trace(formats);
 		final qPriority = [1080, 720, 480, 360, 240];
 		for (q in qPriority) {
 			final quality = '${q}p';
@@ -304,6 +307,10 @@ class Youtube implements IPlayer {
 		youtube.pauseVideo();
 	}
 
+	public function isPaused():Bool {
+		return youtube.getPlayerState() == PAUSED;
+	}
+
 	public function getTime():Float {
 		return youtube.getCurrentTime();
 	}
@@ -318,5 +325,18 @@ class Youtube implements IPlayer {
 
 	public function setPlaybackRate(rate:Float):Void {
 		youtube.setPlaybackRate(rate);
+	}
+
+	public function getVolume():Float {
+		if (youtube.isMuted()) return 0;
+		return youtube.getVolume() / 100;
+	}
+
+	public function setVolume(volume:Float):Void {
+		youtube.setVolume(Std.int(volume * 100));
+	}
+
+	public function unmute():Void {
+		youtube.unMute();
 	}
 }

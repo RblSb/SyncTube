@@ -34,7 +34,8 @@ class Iframe implements IPlayer {
 
 	function isValidIframe(iframe:Element):Bool {
 		if (iframe.children.length != 1) return false;
-		return (iframe.firstChild.nodeName == "IFRAME" || iframe.firstChild.nodeName == "OBJECT");
+		return (iframe.firstChild.nodeName == "IFRAME"
+			|| iframe.firstChild.nodeName == "OBJECT");
 	}
 
 	public function loadVideo(item:VideoItem):Void {
@@ -66,6 +67,10 @@ class Iframe implements IPlayer {
 
 	public function pause():Void {}
 
+	public function isPaused():Bool {
+		return false;
+	}
+
 	public function getTime():Float {
 		return 0;
 	}
@@ -77,4 +82,12 @@ class Iframe implements IPlayer {
 	}
 
 	public function setPlaybackRate(rate:Float):Void {}
+
+	public function getVolume():Float {
+		return 1;
+	}
+
+	public function setVolume(volume:Float) {}
+
+	public function unmute():Void {}
 }

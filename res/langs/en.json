@@ -82,6 +82,7 @@
 	"mediaUrl": "Media URL",
 	"optionalTitle": "Title (optional)",
 	"subtitlesUrlOptional": "Subtitles URL (optional)",
+	"voiceOverAudioTrackUrlOptional": "Voice-over audio URL (optional)",
 	"addTemplateUrl": "Add template URL",
 	"queueNext": "Queue next",
 	"queueLast": "Queue last",

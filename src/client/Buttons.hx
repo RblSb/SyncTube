@@ -218,6 +218,7 @@ class Buttons {
 				&& main.isSingleVideoLink(value);
 			ge("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
 			ge("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
+			ge("#voiceoverblock").style.display = value.length > 0 ? "" : "none";
 			final panel = ge("#addfromurl");
 			final oldH = panel.style.height; // save for animation
 			panel.style.height = ""; // to calculate height from content

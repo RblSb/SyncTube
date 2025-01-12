@@ -48,6 +48,7 @@ class Main {
 	final player:Player;
 	var onTimeGet:Timer;
 	var onBlinkTab:Null<Timer>;
+	var gotFirstPageInteraction = false;
 
 	static function main():Void {
 		new Main();
@@ -94,6 +95,17 @@ class Main {
 			openWebSocket();
 		});
 		JsApi.init(this, player);
+
+		document.addEventListener("click", onFirstInteraction);
+	}
+
+	function onFirstInteraction():Void {
+		if (gotFirstPageInteraction) return;
+		if (!player.isVideoLoaded()) return;
+		gotFirstPageInteraction = true;
+		player.unmute();
+		player.play();
+		document.removeEventListener("click", onFirstInteraction);
 	}
 
 	function settingsPatcher(data:Any, version:Int):Any {
@@ -319,6 +331,7 @@ class Main {
 						duration: data.duration,
 						isTemp: isTemp,
 						subs: data.subs,
+						voiceOverTrack: data.voiceOverTrack,
 						isIframe: data.isIframe == true
 					},
 					atEnd: atEnd
@@ -526,8 +539,11 @@ class Main {
 				}
 				if (player.isVideoLoaded()) forceSyncNextTick = false;
 				if (player.getDuration() <= player.getTime() + synchThreshold) return;
-				if (!data.getTime.paused) player.play();
-				else player.pause();
+				if (player.isPaused()) {
+					if (!data.getTime.paused) player.play();
+				} else {
+					if (data.getTime.paused) player.pause();
+				}
 				player.setPauseIndicator(!data.getTime.paused);
 				if (Math.abs(time - newTime) < synchThreshold) return;
 				// +0.5s for buffering
@@ -1197,6 +1213,15 @@ class Main {
 
 	public function getYoutubePlaylistLimit():Int {
 		return config.youtubePlaylistLimit;
+	}
+
+	public function isAutoplayAllowed():Bool {
+		final navigator:{
+			getAutoplayPolicy:(type:String) -> Bool
+		} = cast Browser.navigator;
+		if (navigator.getAutoplayPolicy != null) return
+			navigator.getAutoplayPolicy("mediaelement");
+		return gotFirstPageInteraction;
 	}
 
 	public function isVerbose():Bool {

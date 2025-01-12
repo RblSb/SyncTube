@@ -10,7 +10,9 @@ import client.players.Streamable;
 import client.players.Youtube;
 import haxe.Http;
 import haxe.Json;
+import js.html.Audio;
 import js.html.Element;
+import js.html.InputElement;
 
 class Player {
 	final main:Main;
@@ -25,13 +27,21 @@ class Player {
 	var isLoaded = false;
 	var skipSetTime = false;
 	var skipSetRate = false;
+	var streamable:Streamable;
+
+	final voiceOverInput:InputElement = cast ge("#voiceoverurl");
+	var audioTrack:Null<Audio>;
+	var isAudioTrackLoaded = false;
+	var needsVolumeReset = false;
+	final voiceOverVolume = 0.3;
 
 	public function new(main:Main):Void {
 		this.main = main;
 		youtube = new Youtube(main, this);
+		streamable = new Streamable(main, this);
 		players = [
 			youtube,
-			new Streamable(main, this)
+			streamable
 		];
 		iframePlayer = new Iframe(main, this);
 		rawPlayer = new Raw(main, this);
@@ -97,19 +107,26 @@ class Player {
 			if (player != null) {
 				JsApi.fireVideoRemoveEvents(videoList.currentItem);
 				player.removeVideo();
+				removeExternalAudioTrack();
 			}
 			main.blinkTabWithTitle("*Video*");
 		}
 		player = newPlayer;
 	}
 
-	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
-		var player = players.find(player -> player.isSupportedLink(data.url));
+	public function getVideoData(req:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
+		var player = players.find(player -> player.isSupportedLink(req.url));
 		player ??= rawPlayer;
-		player.getVideoData(data, callback);
+		player.getVideoData(req, data -> {
+			final voiceOverTrack = voiceOverInput.value.trim();
+			data.voiceOverTrack = voiceOverTrack;
+			voiceOverInput.value = "";
+			callback(data);
+		});
 	}
 
 	public function isRawPlayerLink(url:String):Bool {
+		if (streamable.isSupportedLink(url)) return true;
 		return !players.exists(player -> player.isSupportedLink(url));
 	}
 
@@ -129,11 +146,48 @@ class Player {
 		isLoaded = false;
 		if (main.isVideoEnabled) {
 			player.loadVideo(item);
+			setExternalAudioTrack(item);
 		} else {
 			onCanBePlayed();
 		}
 		JsApi.fireVideoChangeEvents(item);
 		ge("#currenttitle").textContent = item.title;
+	}
+
+	function setExternalAudioTrack(item:VideoItem):Void {
+		removeExternalAudioTrack();
+		final voiceOverTrack = item.voiceOverTrack ?? return;
+		if (voiceOverTrack.length == 0) return;
+		audioTrack = new Audio(voiceOverTrack);
+		if (!main.isAutoplayAllowed()) {
+			audioTrack.muted = true;
+		}
+		inline function cleanAudioEvents() {
+			audioTrack.oncanplay = null;
+			audioTrack.onerror = null;
+		}
+		audioTrack.oncanplay = () -> {
+			cleanAudioEvents();
+			isAudioTrackLoaded = true;
+		}
+		audioTrack.onerror = e -> {
+			trace(e);
+			cleanAudioEvents();
+			isAudioTrackLoaded = false;
+			audioTrack = null;
+			setVolume(1);
+		}
+	}
+
+	function removeExternalAudioTrack():Void {
+		isAudioTrackLoaded = false;
+		needsVolumeReset = false;
+		if (audioTrack == null) return;
+
+		audioTrack?.pause();
+		audioTrack.src = null;
+		audioTrack = null;
+		needsVolumeReset = true;
 	}
 
 	function setSupportedPlayer(url:String, isIframe:Bool):Void {
@@ -171,6 +225,8 @@ class Player {
 	}
 
 	public function onPlay():Void {
+		audioTrack?.play();
+
 		if (!main.isLeader()) return;
 		main.send({
 			type: Play,
@@ -186,6 +242,8 @@ class Player {
 	}
 
 	public function onPause():Void {
+		audioTrack?.pause();
+
 		final item = videoList.currentItem ?? return;
 		// do not send pause if video is ended
 		if (getTime() >= item.duration - 0.01) return;
@@ -193,8 +251,10 @@ class Player {
 		if (player == rawPlayer && youtube.isSupportedLink(item.url)) {
 			if (getTime() >= item.duration - 1) return;
 		}
-		final hasAutoPause = main.hasLeaderOnPauseRequest() && videoList.length > 0
-			&& getTime() > 1;
+		final hasAutoPause = main.hasLeaderOnPauseRequest()
+			&& videoList.length > 0
+			&& getTime() > 1
+			&& isLoaded;
 		if (hasAutoPause && !main.hasLeader()) {
 			JsApi.once(SetLeader, event -> {
 				final name = event.setLeader.clientName;
@@ -220,6 +280,10 @@ class Player {
 	}
 
 	public function onSetTime():Void {
+		if (audioTrack != null) {
+			audioTrack.currentTime = getTime();
+		}
+
 		if (skipSetTime) {
 			skipSetTime = false;
 			return;
@@ -234,6 +298,9 @@ class Player {
 	}
 
 	public function onRateChange():Void {
+		if (audioTrack != null) {
+			audioTrack.playbackRate = getPlaybackRate();
+		}
 		if (skipSetRate) {
 			skipSetRate = false;
 			return;
@@ -410,6 +477,7 @@ class Player {
 	}
 
 	public function isVideoLoaded():Bool {
+		if (player == null) return false;
 		return player.isVideoLoaded();
 	}
 
@@ -418,6 +486,12 @@ class Player {
 		if (player == null) return;
 		if (!player.isVideoLoaded()) return;
 		player.play();
+		if (needsVolumeReset) setVolume(1);
+
+		if (audioTrack != null) {
+			setVolume(0.3);
+			audioTrack?.play();
+		}
 	}
 
 	public function pause():Void {
@@ -425,6 +499,8 @@ class Player {
 		if (player == null) return;
 		if (!player.isVideoLoaded()) return;
 		player.pause();
+
+		audioTrack?.pause();
 	}
 
 	public function getTime():Float {
@@ -439,6 +515,8 @@ class Player {
 		if (!player.isVideoLoaded()) return;
 		skipSetTime = isLocal;
 		player.setTime(time);
+
+		if (audioTrack != null) audioTrack.currentTime = time;
 	}
 
 	public function getPlaybackRate():Float {
@@ -453,6 +531,8 @@ class Player {
 		if (!player.isVideoLoaded()) return;
 		skipSetRate = isLocal;
 		player.setPlaybackRate(rate);
+
+		if (audioTrack != null) audioTrack.playbackRate = rate;
 	}
 
 	public function skipAd():Void {
@@ -483,5 +563,37 @@ class Player {
 		}
 		http.onError = msg -> trace(msg);
 		http.request();
+	}
+
+	public function isPaused():Bool {
+		if (player == null) return true;
+		if (!player.isVideoLoaded()) return true;
+		return player.isPaused();
+	}
+
+	public function getVolume():Float {
+		if (player == null) return 1;
+		if (!player.isVideoLoaded()) return 1;
+		return player.getVolume();
+	}
+
+	public function setVolume(volume:Float):Void {
+		if (player == null) return;
+		if (!player.isVideoLoaded()) return;
+		player.setVolume(volume);
+	}
+
+	public function unmute():Void {
+		if (player == null) return;
+		if (!player.isVideoLoaded()) return;
+		player.unmute();
+		if (audioTrack != null) audioTrack.muted = false;
+		if (audioTrack == null && almostEq(getVolume(), voiceOverVolume, 0.01)) {
+			setVolume(1);
+		}
+	}
+
+	function almostEq(a:Float, b:Float, diff:Float):Bool {
+		return a > b - diff && a < b + diff;
 	}
 }

@@ -139,6 +139,8 @@ class Main {
 			trace("Global network is disabled in config");
 		} else {
 			if (!isNoState) Utils.getGlobalIp(ip -> {
+				final isIp6 = ip.contains(":");
+				if (isIp6) ip = '[$ip]';
 				globalIp = ip;
 				trace('Global: http://$globalIp:$port');
 			});
