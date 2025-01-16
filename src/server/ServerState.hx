@@ -12,5 +12,6 @@ typedef ServerState = {
 	timer:{
 		time:Float, paused:Bool
 	},
-	?flashbacks:Array<FlashbackItem>
+	?flashbacks:Array<FlashbackItem>,
+	?cachedFiles:Array<String>,
 }

@@ -14,5 +14,6 @@ typedef ClientSettings = {
 	latestLinks:Array<String>,
 	latestSubs:Array<String>,
 	hotkeysEnabled:Bool,
-	showHintList:Bool
+	showHintList:Bool,
+	checkboxes:Array<{id:String, checked:Null<Bool>}>,
 }

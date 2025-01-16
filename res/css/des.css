@@ -192,8 +192,24 @@ button span {
 
 /* Input */
 
-label {
-  font-weight: bold;
+.checkbox-row {
+  text-align: left;
+  padding-left: 1.7rem;
+}
+
+.checkbox-row-item {
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  white-space: nowrap;
+  padding: 0.3rem;
+  padding-right: .3rem;
+}
+
+input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin-right: .3rem;
 }
 
 input,
@@ -432,12 +448,11 @@ header h4 {
   width: 100%;
 }
 
-#addfromurl div,
-#customembed div {
+/* Queue */
+
+.queue-buttons {
   text-align: right;
 }
-
-/* Queue */
 
 .queue_temp {
   background-color: var(--background-chat);

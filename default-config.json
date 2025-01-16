@@ -13,6 +13,7 @@
 	"templateUrl": "https://youtube.com/playlist?list=PL9FiZUDVMu9tc_85frYognMOVFC_-VkSX",
 	"youtubeApiKey": "AIzaSyDTk1OPRI9cDkAK_BKsBcv10DQCHse-QaA",
 	"youtubePlaylistLimit": 50,
+	"cacheStorageLimitGiB": 3.0,
 	"permissions": {
 		"banned": [],
 		"guest": ["writeChat", "addVideo", "removeVideo", "changeOrder", "toggleItemType", "requestLeader", "rewind"],

@@ -5,6 +5,7 @@ import Types.Config;
 import Types.FlashbackItem;
 import Types.Message;
 import Types.Permission;
+import Types.PlayerType;
 import Types.UserList;
 import Types.VideoItem;
 import Types.WsEvent;
@@ -48,12 +49,14 @@ class Main {
 	var wss:WSServer;
 	final localIp:String;
 	var globalIp:String;
+	final playersCacheSupport:Array<PlayerType> = [];
 	var port:Int;
 	final userList:UserList;
 	final clients:Array<Client> = [];
 	final freeIds:Array<Int> = [];
 	final wsEventParser = new JsonParser<WsEvent>();
 	final consoleInput:ConsoleInput;
+	final cache:Cache;
 	final videoList = new VideoList();
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
@@ -99,9 +102,12 @@ class Main {
 		logger = new Logger(logsDir, 10, verbose);
 		consoleInput = new ConsoleInput(this);
 		consoleInput.initConsoleInput();
+		cache = new Cache(this, '$rootDir/user/res/cache');
+		if (cache.isYtReady) playersCacheSupport.push(YoutubeType);
 		initIntergationHandlers();
 		loadState();
 		config = loadUserConfig();
+		cache.storageLimit = cast config.cacheStorageLimitGiB * 1024 * 1024 * 1024;
 		userList = loadUsers();
 		config.isVerbose = verbose;
 		config.salt = generateConfigSalt();
@@ -276,7 +282,8 @@ class Main {
 				time: videoTimer.getTime(),
 				paused: videoTimer.isPaused()
 			},
-			flashbacks: flashbacks
+			flashbacks: flashbacks,
+			cachedFiles: cache.cachedFiles
 		}
 	}
 
@@ -285,6 +292,9 @@ class Main {
 		if (!FileSystem.exists(statePath)) return;
 		trace("Loading state...");
 		final state:ServerState = Json.parse(File.getContent(statePath));
+		state.flashbacks ??= [];
+		state.cachedFiles ??= [];
+
 		videoList.setItems(state.videoList);
 		videoList.isOpen = state.isPlaylistOpen;
 		videoList.setPos(state.itemPos);
@@ -293,7 +303,10 @@ class Main {
 		for (message in state.messages) messages.push(message);
 
 		flashbacks.resize(0);
-		for (flashback in state.flashbacks ?? []) flashbacks.push(flashback);
+		for (flashback in state.flashbacks) flashbacks.push(flashback);
+
+		cache.cachedFiles.resize(0);
+		for (name in state.cachedFiles) cache.cachedFiles.push(name);
 
 		videoTimer.start();
 		videoTimer.setTime(state.timer.time);
@@ -479,7 +492,8 @@ class Main {
 						videoList: videoList.getItems(),
 						isPlaylistOpen: videoList.isOpen,
 						itemPos: videoList.pos,
-						globalIp: globalIp
+						globalIp: globalIp,
+						playersCacheSupport: playersCacheSupport,
 					}
 				});
 				sendClientListExcept(client);
@@ -623,17 +637,6 @@ class Main {
 				broadcast(data);
 
 			case ServerMessage:
-			case GetYoutubeVideoInfo:
-				final url = data.getYoutubeVideoInfo.url;
-				YoutubeFallback.getInfo(url, info -> {
-					send(client, {
-						type: data.type,
-						getYoutubeVideoInfo: {
-							url: url,
-							response: info
-						}
-					});
-				});
 			case AddVideo:
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, AddVideoPerm)) return;
@@ -660,11 +663,23 @@ class Main {
 					serverMessage(client, "videoAlreadyExistsError");
 					return;
 				}
-				data.addVideo.item = item;
-				videoList.addItem(item, data.addVideo.atEnd);
-				broadcast(data);
-				// Initial timer start if VideoLoaded is not happen
-				if (videoList.length == 1) restartWaitTimer();
+
+				inline function addVideo():Void {
+					data.addVideo.item = item;
+					videoList.addItem(item, data.addVideo.atEnd);
+					broadcast(data);
+					// Initial timer start if VideoLoaded is not happen
+					if (videoList.length == 1) restartWaitTimer();
+				}
+				if (!item.doCache) {
+					addVideo();
+				} else {
+					cache.cacheYoutubeVideo(client, item.url, (name) -> {
+						item = item.withUrl('/cache/$name');
+						if (item.duration > 1) item.duration -= 1;
+						addVideo();
+					});
+				}
 
 			case VideoLoaded:
 				// Called if client loads next video and can play it
@@ -939,7 +954,7 @@ class Main {
 		});
 	}
 
-	function serverMessage(client:Client, textId:String):Void {
+	public function serverMessage(client:Client, textId:String):Void {
 		send(client, {
 			type: ServerMessage,
 			serverMessage: {

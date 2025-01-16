@@ -99,24 +99,30 @@
           <div id="voiceoverblock" class="display-flex" style="display: none;">
             <input id="voiceoverurl" type="text" placeholder="${voiceOverAudioTrackUrlOptional}">
           </div>
-          <div>
-            <label>
-              <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
+          <div class="checkbox-row">
+            <label class="checkbox-row-item">
+              <input id="add-temp" class="add-temp" type="checkbox" checked>${addAsTemporary}
             </label>
+            <label class="checkbox-row-item">
+              <input id="cache-on-server" type="checkbox">${cacheOnServer}
+            </label>
+          </div>
+          <div class="queue-buttons">
             <button id="queue_next">${queueNext}</button>
             <button id="queue_end">${queueLast}</button>
           </div>
         </div>
       </div>
+      <!-- Add iframe -->
       <div class="collapsible collapse" id="customembed" aria-expanded="false">
         <div class="collapse-list">
           <input id="customembed-title" type="text" placeholder="${optionalTitle}">
           <textarea id="customembed-content" rows="5"
-            placeholder="${pasteEmbedCodeAndClick} '${queueNext}' ${or} '${queueLast}'. &#10;${acceptableEmbedCodesAre} &lt;iframe&gt; ${or} &lt;object&gt;. &#10;${customEmbedsCannotBeSynchronized}."></textarea>
-          <div>
-            <label>
-              <input class="add-temp" type="checkbox" checked="checked">${addAsTemporary}
-            </label>
+            placeholder="${pasteEmbedCodeAndClick}. &#10;${acceptableEmbedCodesAre} &lt;iframe&gt; ${or} &lt;object&gt;. &#10;${customEmbedsCannotBeSynchronized}."></textarea>
+          <label class="checkbox-row-item">
+            <input id="add-temp-embed" class="add-temp" type="checkbox" checked>${addAsTemporary}
+          </label>
+          <div class="queue-buttons">
             <button id="ce_queue_next">${queueNext}</button>
             <button id="ce_queue_end">${queueLast}</button>
           </div>

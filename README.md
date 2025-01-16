@@ -23,7 +23,7 @@ Default channel example: https://synctube.onrender.com/
 
 ### Setup
 - Open `4200` port in your router settings (port is customizable)
-- `npm install ws` in this project folder ([NodeJS 14+](https://nodejs.org) required)
+- `npm ci` in this project folder ([NodeJS 14+](https://nodejs.org) required)
 - Run `node build/server.js`
 - Open showed "Local" link for yourself and send "Global" link to friends
 
@@ -41,6 +41,14 @@ or
 > ```
 
 - (Docker container hides real local/global ips, so you need to checkout it manually)
+
+
+### Optional dependencies
+If you want to enable `Cache on server` feature for Youtube player, you can also run:
+```shell
+npm i @distube/ytdl-core@latest
+```
+And install `ffmpeg` on your server system. Default cache size is 3.0 GiB.
 
 ### Configuration
 It's just works, but you can also check [user/ folder](/user/README.md) for server settings and additional customization.

@@ -96,7 +96,8 @@ class TestServer extends Test {
 							author: "",
 							duration: 30,
 							isTemp: true,
-							isIframe: false
+							playerType: RawType,
+							doCache: false
 						},
 						atEnd: true
 					}
@@ -146,7 +147,8 @@ class TestServer extends Test {
 								author: "",
 								duration: 30,
 								isTemp: true,
-								isIframe: false
+								playerType: RawType,
+								doCache: false
 							},
 							atEnd: true
 						}

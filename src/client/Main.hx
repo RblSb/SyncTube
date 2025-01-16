@@ -3,6 +3,7 @@ package client;
 import Client.ClientData;
 import Types.Config;
 import Types.Permission;
+import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.WsEvent;
@@ -25,15 +26,16 @@ import js.html.WebSocket;
 using ClientTools;
 
 class Main {
-	static inline var SETTINGS_VERSION = 4;
+	static inline var SETTINGS_VERSION = 5;
 
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
 	public var forceSyncNextTick = false;
-	public var isVideoEnabled = true;
+	public var isVideoEnabled(default, null) = true;
 	public final host:String;
 	public var globalIp(default, null) = "";
-	public var isPlaylistOpen = true;
+	public var isPlaylistOpen(default, null) = true;
+	public var playersCacheSupport(default, null):Array<PlayerType> = [];
 
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
@@ -74,7 +76,8 @@ class Main {
 			latestLinks: [],
 			latestSubs: [],
 			hotkeysEnabled: true,
-			showHintList: true
+			showHintList: true,
+			checkboxes: [],
 		}
 		Settings.init(defaults, settingsPatcher);
 		settings = Settings.read();
@@ -104,7 +107,7 @@ class Main {
 		if (!player.isVideoLoaded()) return;
 		gotFirstPageInteraction = true;
 		player.unmute();
-		player.play();
+		if (!hasLeader()) player.play();
 		document.removeEventListener("click", onFirstInteraction);
 	}
 
@@ -119,6 +122,9 @@ class Main {
 			case 3:
 				final data:ClientSettings = data;
 				data.showHintList = true;
+			case 4:
+				final data:ClientSettings = data;
+				data.checkboxes = [];
 			case SETTINGS_VERSION, _:
 				throw 'skipped version $version';
 		}
@@ -236,19 +242,19 @@ class Main {
 		return personal.hasPermission(permission, config.permissions);
 	}
 
-	final mask = ~/\${([0-9]+)-([0-9]+)}/g;
+	public final urlMask = ~/\${([0-9]+)-([0-9]+)}/g;
 
 	function handleUrlMasks(links:Array<String>):Void {
 		for (link in links) {
-			if (!mask.match(link)) continue;
-			final start = Std.parseInt(mask.matched(1));
-			var end = Std.parseInt(mask.matched(2));
+			if (!urlMask.match(link)) continue;
+			final start = Std.parseInt(urlMask.matched(1));
+			var end = Std.parseInt(urlMask.matched(2));
 			if (Math.abs(start - end) > 100) continue;
 			final step = end > start ? -1 : 1;
 			final i = links.indexOf(link);
 			links.remove(link);
 			while (end != start + step) {
-				links.insert(i, mask.replace(link, '$end'));
+				links.insert(i, urlMask.replace(link, '$end'));
 				end += step;
 			}
 		}
@@ -257,8 +263,11 @@ class Main {
 	function addVideoUrl(atEnd:Bool):Void {
 		final mediaUrl:InputElement = cast ge("#mediaurl");
 		final subsUrl:InputElement = cast ge("#subsurl");
-		final checkbox:InputElement = cast ge("#addfromurl").querySelector(".add-temp");
-		final isTemp = checkbox.checked;
+		final checkboxTemp:InputElement = cast ge("#addfromurl .add-temp");
+		final isTemp = checkboxTemp.checked;
+		final checkboxCache:InputElement = cast ge("#cache-on-server");
+		final doCache = checkboxCache.checked
+			&& checkboxCache.parentElement.style.display != "none";
 		final url = mediaUrl.value;
 		final subs = subsUrl.value;
 		if (url.length == 0) return;
@@ -273,17 +282,15 @@ class Main {
 		handleUrlMasks(links);
 		// if videos added as next, we need to load them in reverse order
 		if (!atEnd) sortItemsForQueueNext(links);
-		addVideoArray(links, atEnd, isTemp);
+		addVideoArray(links, atEnd, isTemp, doCache);
 	}
 
-	public function isRawPlayerLink(url:String):Bool {
-		return player.isRawPlayerLink(url);
+	public function getLinkPlayerType(url:String):PlayerType {
+		return player.getLinkPlayerType(url);
 	}
 
-	public function isSingleVideoLink(url:String):Bool {
-		if (~/, ?(https?)/g.match(url)) return false;
-		if (mask.match(url)) return false;
-		return true;
+	public function isSingleVideoUrl(url:String):Bool {
+		return player.isSingleVideoUrl(url);
 	}
 
 	public function sortItemsForQueueNext<T>(items:Array<T>):Void {
@@ -295,13 +302,14 @@ class Main {
 		if (first != null) items.unshift(first);
 	}
 
-	function addVideoArray(links:Array<String>, atEnd:Bool, isTemp:Bool):Void {
+	function addVideoArray(links:Array<String>, atEnd:Bool, isTemp:Bool, doCache:Bool):Void {
 		if (links.length == 0) return;
 		final link = links.shift();
-		addVideo(link, atEnd, isTemp, () -> addVideoArray(links, atEnd, isTemp));
+		addVideo(link, atEnd, isTemp, doCache, () ->
+			addVideoArray(links, atEnd, isTemp, doCache));
 	}
 
-	public function addVideo(url:String, atEnd:Bool, isTemp:Bool, ?callback:() -> Void):Void {
+	public function addVideo(url:String, atEnd:Bool, isTemp:Bool, doCache:Bool, ?callback:() -> Void):Void {
 		final protocol = Browser.location.protocol;
 		if (url.startsWith("/")) {
 			final host = Browser.location.hostname;
@@ -330,9 +338,10 @@ class Main {
 						author: personal.name,
 						duration: data.duration,
 						isTemp: isTemp,
+						doCache: doCache,
 						subs: data.subs,
 						voiceOverTrack: data.voiceOverTrack,
-						isIframe: data.isIframe == true
+						playerType: data.playerType
 					},
 					atEnd: atEnd
 				}
@@ -349,7 +358,7 @@ class Main {
 		final mediaTitle:InputElement = cast ge("#customembed-title");
 		final title = mediaTitle.value;
 		mediaTitle.value = "";
-		final checkbox:InputElement = cast ge("#customembed").querySelector(".add-temp");
+		final checkbox:InputElement = cast ge("#customembed .add-temp");
 		final isTemp = checkbox.checked;
 		final obj:VideoDataRequest = {
 			url: iframe,
@@ -372,7 +381,8 @@ class Main {
 						author: personal.name,
 						duration: data.duration,
 						isTemp: isTemp,
-						isIframe: true
+						doCache: false,
+						playerType: IframeType
 					},
 					atEnd: atEnd
 				}
@@ -504,12 +514,14 @@ class Main {
 
 			case Pause:
 				player.setPauseIndicator(false);
+				updateUserList();
 				if (isLeader()) return;
 				player.pause();
 				player.setTime(data.pause.time);
 
 			case Play:
 				player.setPauseIndicator(true);
+				updateUserList();
 				if (isLeader()) return;
 				final synchThreshold = settings.synchThreshold;
 				final newTime = data.play.time;
@@ -596,9 +608,6 @@ class Main {
 
 			case Dump:
 				Utils.saveFile("dump.json", ApplicationJson, data.dump.data);
-
-			case GetYoutubeVideoInfo:
-				// handled by event listeners like `JsApi.once`
 		}
 	}
 
@@ -609,6 +618,7 @@ class Main {
 		Settings.write(settings);
 
 		globalIp = connected.globalIp;
+		playersCacheSupport = connected.playersCacheSupport;
 		setConfig(connected.config);
 		if (connected.isUnknownClient) {
 			updateClients(connected.clients);
@@ -906,7 +916,8 @@ class Main {
 		final list = new StringBuf();
 		for (client in clients) {
 			list.add('<div class="userlist_item">');
-			if (client.isLeader) list.add('<ion-icon name="play"></ion-icon>');
+			final iconName = player.isPaused() ? "pause" : "play";
+			if (client.isLeader) list.add('<ion-icon name="$iconName"></ion-icon>');
 			var klass = client.isBanned ? "userlist_banned" : "";
 			if (client.isAdmin) klass += " userlist_owner";
 			list.add('<span class="$klass">${client.name}</span></div>');
@@ -1232,7 +1243,8 @@ class Main {
 		return ~/([.*+?^${}()|[\]\\])/g.replace(regex, "\\$1");
 	}
 
-	public static inline function ge(id:String):Element {
-		return document.querySelector(id);
+	@:generic
+	public static inline function ge<T:Element>(id:String):T {
+		return cast document.querySelector(id);
 	}
 }

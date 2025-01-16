@@ -1,5 +1,6 @@
 package client.players;
 
+import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.VideoItem;
@@ -18,13 +19,17 @@ class Iframe implements IPlayer {
 		this.player = player;
 	}
 
+	public function getPlayerType():PlayerType {
+		return IframeType;
+	}
+
 	public function isSupportedLink(url:String):Bool {
 		return true;
 	}
 
 	public function getVideoData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
 		final iframe = document.createDivElement();
-		iframe.innerHTML = data.url;
+		iframe.innerHTML = data.url.trim();
 		if (isValidIframe(iframe)) {
 			callback({duration: 99 * 60 * 60});
 		} else {

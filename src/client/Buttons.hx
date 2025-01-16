@@ -22,6 +22,12 @@ class Buttons {
 		setSplitSize(settings.chatSize);
 		initChatInput(main);
 
+		for (item in settings.checkboxes) {
+			if (item.checked == null) continue;
+			final checkbox:InputElement = ge('#${item.id}') ?? continue;
+			checkbox.checked = item.checked;
+		}
+
 		final passIcon = ge("#guestpass_icon");
 		passIcon.onclick = e -> {
 			final icon = passIcon.firstElementChild;
@@ -213,12 +219,15 @@ class Buttons {
 
 		final mediaUrl:InputElement = cast ge("#mediaurl");
 		mediaUrl.oninput = () -> {
-			final value = mediaUrl.value;
-			final isRawSingleVideo = value != "" && main.isRawPlayerLink(value)
-				&& main.isSingleVideoLink(value);
-			ge("#mediatitleblock").style.display = isRawSingleVideo ? "" : "none";
-			ge("#subsurlblock").style.display = isRawSingleVideo ? "" : "none";
-			ge("#voiceoverblock").style.display = value.length > 0 ? "" : "none";
+			final url = mediaUrl.value;
+			final playerType = main.getLinkPlayerType(url);
+			final isSingle = main.isSingleVideoUrl(url);
+			final isSingleRawVideo = url != "" && playerType == RawType && isSingle;
+			ge("#mediatitleblock").style.display = isSingleRawVideo ? "" : "none";
+			ge("#subsurlblock").style.display = isSingleRawVideo ? "" : "none";
+			ge("#voiceoverblock").style.display = (url.length > 0 && isSingle) ? "" : "none";
+			final showCache = isSingle && main.playersCacheSupport.contains(playerType);
+			ge("#cache-on-server").parentElement.style.display = showCache ? "" : "none";
 			final panel = ge("#addfromurl");
 			final oldH = panel.style.height; // save for animation
 			panel.style.height = ""; // to calculate height from content
@@ -482,6 +491,19 @@ class Buttons {
 			if (Utils.isTouch()) chatline.blur();
 			return true;
 		});
+		final checkboxes:Array<InputElement> = [
+			ge("#add-temp"),
+			ge("#cache-on-server"),
+		];
+		for (checkbox in checkboxes) {
+			checkbox.addEventListener("change", () -> {
+				final checked = checkbox.checked;
+				final item = settings.checkboxes.find(item -> item.id == checkbox.id);
+				settings.checkboxes.remove(item);
+				settings.checkboxes.push({id: checkbox.id, checked: checked});
+				Settings.write(settings);
+			});
+		}
 	}
 
 	static inline function getVisualViewport():Null<VisualViewport> {

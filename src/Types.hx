@@ -1,7 +1,12 @@
 package;
 
 import Client.ClientData;
-import utils.YoutubeUtils.YouTubeVideoInfo;
+
+enum abstract PlayerType(String) {
+	var RawType;
+	var YoutubeType;
+	var IframeType;
+}
 
 typedef VideoDataRequest = {
 	final url:String;
@@ -14,7 +19,7 @@ typedef VideoData = {
 	var ?url:String;
 	var ?subs:String;
 	var ?voiceOverTrack:String;
-	var ?isIframe:Bool;
+	var ?playerType:PlayerType;
 }
 
 typedef Config = {
@@ -32,6 +37,7 @@ typedef Config = {
 	templateUrl:String,
 	youtubeApiKey:String,
 	youtubePlaylistLimit:Int,
+	cacheStorageLimitGiB:Float,
 	permissions:Permissions,
 	emotes:Array<Emote>,
 	filters:Array<Filter>,
@@ -109,7 +115,8 @@ typedef VideoItem = {
 	var ?subs:String;
 	var ?voiceOverTrack:String;
 	var isTemp:Bool;
-	var isIframe:Bool;
+	var doCache:Bool;
+	var playerType:PlayerType;
 }
 
 private class VideoItemTools {
@@ -122,7 +129,8 @@ private class VideoItemTools {
 			subs: item.subs,
 			voiceOverTrack: item.voiceOverTrack,
 			isTemp: item.isTemp,
-			isIframe: item.isIframe
+			doCache: item.doCache,
+			playerType: item.playerType
 		};
 	}
 }
@@ -145,7 +153,8 @@ typedef WsEvent = {
 		videoList:Array<VideoItem>,
 		isPlaylistOpen:Bool,
 		itemPos:Int,
-		globalIp:String
+		globalIp:String,
+		playersCacheSupport:Array<PlayerType>,
 	},
 	?login:{
 		clientName:String,
@@ -226,10 +235,6 @@ typedef WsEvent = {
 	?dump:{
 		data:String
 	},
-	?getYoutubeVideoInfo:{
-		url:String,
-		?response:YouTubeVideoInfo
-	}
 }
 
 enum abstract WsEventType(String) {
@@ -267,5 +272,4 @@ enum abstract WsEventType(String) {
 	var UpdatePlaylist;
 	var TogglePlaylistLock;
 	var Dump;
-	var GetYoutubeVideoInfo;
 }

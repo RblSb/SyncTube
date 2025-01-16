@@ -1,5 +1,6 @@
 package client.players;
 
+import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.VideoItem;
@@ -28,6 +29,10 @@ class Raw implements IPlayer {
 	public function new(main:Main, player:Player) {
 		this.main = main;
 		this.player = player;
+	}
+
+	public function getPlayerType():PlayerType {
+		return RawType;
 	}
 
 	public function isSupportedLink(url:String):Bool {

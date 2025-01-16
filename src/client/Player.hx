@@ -1,5 +1,6 @@
 package client;
 
+import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.VideoItem;
@@ -41,7 +42,7 @@ class Player {
 		streamable = new Streamable(main, this);
 		players = [
 			youtube,
-			streamable
+			streamable,
 		];
 		iframePlayer = new Iframe(main, this);
 		rawPlayer = new Raw(main, this);
@@ -118,26 +119,40 @@ class Player {
 		var player = players.find(player -> player.isSupportedLink(req.url));
 		player ??= rawPlayer;
 		player.getVideoData(req, data -> {
+			data.playerType ??= player.getPlayerType();
 			final voiceOverTrack = voiceOverInput.value.trim();
-			data.voiceOverTrack = voiceOverTrack;
 			voiceOverInput.value = "";
+			data.voiceOverTrack ??= voiceOverTrack;
 			callback(data);
 		});
 	}
 
-	public function isRawPlayerLink(url:String):Bool {
-		if (streamable.isSupportedLink(url)) return true;
-		return !players.exists(player -> player.isSupportedLink(url));
+	public function getLinkPlayerType(url:String):PlayerType {
+		final player = players.find(player -> player.isSupportedLink(url));
+		if (player == null) return rawPlayer.getPlayerType();
+		return player.getPlayerType();
+	}
+
+	public function isSingleVideoUrl(url:String):Bool {
+		if (youtube.isSupportedLink(url)) {
+			if (youtube.isPlaylistUrl(url)) return false;
+		}
+		if (~/, ?(https?)/g.match(url)) return false;
+		if (main.urlMask.match(url)) return false;
+		return true;
 	}
 
 	public function getIframeData(data:VideoDataRequest, callback:(data:VideoData) -> Void):Void {
-		iframePlayer.getVideoData(data, callback);
+		iframePlayer.getVideoData(data, data -> {
+			data.playerType = IframeType;
+			callback(data);
+		});
 	}
 
 	public function setVideo(i:Int):Void {
 		if (!main.isSyncActive) return;
 		final item = videoList.getItem(i);
-		setSupportedPlayer(item.url, item.isIframe);
+		setSupportedPlayer(item.url, item.playerType);
 
 		removeActiveLabel(videoList.pos);
 		videoList.setPos(i);
@@ -190,17 +205,17 @@ class Player {
 		needsVolumeReset = true;
 	}
 
-	function setSupportedPlayer(url:String, isIframe:Bool):Void {
+	function setSupportedPlayer(url:String, playerType:PlayerType):Void {
 		final currentPlayer = players.find(p -> p.isSupportedLink(url));
 		if (currentPlayer != null) setPlayer(currentPlayer);
-		else if (isIframe) setPlayer(iframePlayer);
+		else if (playerType == IframeType) setPlayer(iframePlayer);
 		else setPlayer(rawPlayer);
 	}
 
 	public function changeVideoSrc(url:String):Void {
 		if (!main.isVideoEnabled) return;
 		final item:VideoItem = videoList.currentItem ?? return;
-		setSupportedPlayer(url, item.isIframe);
+		setSupportedPlayer(url, item.playerType);
 		player.loadVideo(item.withUrl(url));
 	}
 
@@ -247,10 +262,6 @@ class Player {
 		final item = videoList.currentItem ?? return;
 		// do not send pause if video is ended
 		if (getTime() >= item.duration - 0.01) return;
-		// youtube raw fallback has around one second difference from rounded youtube duration
-		if (player == rawPlayer && youtube.isSupportedLink(item.url)) {
-			if (getTime() >= item.duration - 1) return;
-		}
 		final hasAutoPause = main.hasLeaderOnPauseRequest()
 			&& videoList.length > 0
 			&& getTime() > 1
@@ -316,7 +327,7 @@ class Player {
 
 	public function addVideoItem(item:VideoItem, atEnd:Bool):Void {
 		final url = item.url.htmlEscape(true);
-		final duration = item.isIframe ? "" : duration(item.duration);
+		final duration = item.playerType == IframeType ? "" : duration(item.duration);
 		final itemEl = Utils.nodeFromString(
 			'<li class="queue_entry info" title="${Lang.get("addedBy")}: ${item.author}">
 				<header>
@@ -449,7 +460,7 @@ class Player {
 	function totalDuration():String {
 		var time = 0.0;
 		for (item in videoList.getItems()) {
-			if (item.isIframe) continue;
+			if (item.playerType == IframeType) continue;
 			time += item.duration;
 		}
 		return duration(time);

@@ -41,7 +41,11 @@ typedef YoutubeVideoFormat = {
 	?indexRange:{start:Int, end:Int},
 	?audioQuality:String, // AUDIO_QUALITY_LOW
 	?audioSampleRate:Int,
-	?audioChannels:Int
+	?audioChannels:Int,
+
+	?container:String,
+	?videoCodec:String,
+	?audioCodec:String,
 }
 
 typedef YouTubeVideoInfo = {

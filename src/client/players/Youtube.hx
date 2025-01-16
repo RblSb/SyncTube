@@ -1,5 +1,6 @@
 package client.players;
 
+import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.VideoItem;
@@ -23,12 +24,15 @@ class Youtube implements IPlayer {
 	var apiKey:String;
 	var video:Element;
 	var youtube:YoutubePlayer;
-	var tempYoutube:YoutubePlayer;
 	var isLoaded = false;
 
 	public function new(main:Main, player:Player) {
 		this.main = main;
 		this.player = player;
+	}
+
+	public function getPlayerType():PlayerType {
+		return YoutubeType;
 	}
 
 	public function isSupportedLink(url:String):Bool {
@@ -41,6 +45,10 @@ class Youtube implements IPlayer {
 
 	public function extractPlaylistId(url:String) {
 		return YoutubeUtils.extractPlaylistId(url);
+	}
+
+	public function isPlaylistUrl(url:String):Bool {
+		return extractVideoId(url) == "" && extractPlaylistId(url) != "";
 	}
 
 	final matchHours = ~/([0-9]+)H/;
@@ -93,7 +101,7 @@ class Youtube implements IPlayer {
 						url: '<iframe src="https://www.youtube.com/embed/$id?autoplay=1$mute" frameborder="0"
 							allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
 							allowfullscreen></iframe>',
-						isIframe: true
+						playerType: IframeType
 					});
 					continue;
 				}
@@ -168,6 +176,7 @@ class Youtube implements IPlayer {
 		final video = document.createDivElement();
 		video.id = "temp-videoplayer";
 		Utils.prepend(playerEl, video);
+		var tempYoutube:YoutubePlayer = null;
 		tempYoutube = new YoutubePlayer(video.id, {
 			videoId: extractVideoId(url),
 			playerVars: {
@@ -181,12 +190,14 @@ class Youtube implements IPlayer {
 					callback({
 						duration: tempYoutube.getDuration()
 					});
+					tempYoutube.destroy();
 				},
 				onError: e -> {
 					// TODO message error codes
 					trace('Error ${e.data}');
 					if (playerEl.contains(video)) playerEl.removeChild(video);
 					callback({duration: 0});
+					tempYoutube.destroy();
 				}
 			}
 		});
@@ -243,47 +254,11 @@ class Youtube implements IPlayer {
 				onError: e -> {
 					// TODO message error codes
 					trace('Error ${e.data}');
-					final item = player.getCurrentItem() ?? return;
-					rawSourceFallback(item.url);
+					// final item = player.getCurrentItem() ?? return;
+					// rawSourceFallback(item.url);
 				}
 			}
 		});
-	}
-
-	function rawSourceFallback(url:String):Void {
-		JsApi.once(GetYoutubeVideoInfo, event -> {
-			final data = event.getYoutubeVideoInfo;
-			final info = data.response;
-			final format = getBestStreamFormat(info) ?? {
-				trace("format not found in response info:");
-				trace(info);
-				return;
-			};
-			player.changeVideoSrc(format.url);
-		});
-		main.send({
-			type: GetYoutubeVideoInfo,
-			getYoutubeVideoInfo: {
-				url: url
-			}
-		});
-	}
-
-	function getBestStreamFormat(info:YouTubeVideoInfo):Null<YoutubeVideoFormat> {
-		info.formats ??= [];
-		info.adaptiveFormats ??= [];
-		final formats = info.adaptiveFormats.concat(info.formats);
-		trace(formats);
-		final qPriority = [1080, 720, 480, 360, 240];
-		for (q in qPriority) {
-			final quality = '${q}p';
-			for (format in formats) {
-				if (format.audioQuality == null) continue; // no sound
-				if (format.width == null) continue; // no video
-				if (format.qualityLabel == quality) return format;
-			}
-		}
-		return null;
 	}
 
 	public function removeVideo():Void {
