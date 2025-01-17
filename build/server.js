@@ -1399,7 +1399,7 @@ JsonParser_$45.prototype = $extend(json2object_reader_BaseParser.prototype,{
 		this.value = null;
 	}
 	,loadJsonString: function(s,pos,variable) {
-		this.value = this.loadString(s,pos,variable,["RawType","YoutubeType","IframeType"],"RawType");
+		this.value = this.loadString(s,pos,variable,["RawType","YoutubeType","VkType","IframeType"],"RawType");
 	}
 	,__class__: JsonParser_$45
 });

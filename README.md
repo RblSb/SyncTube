@@ -18,6 +18,7 @@ Default channel example: https://synctube.onrender.com/
 ### Supported players
 - Youtube (videos, shorts, streams and playlists)
 - [Streamable](https://streamable.com)
+- [VK](https://vk.com/video)
 - Raw mp4 videos and m3u8 playlists (or any other media format supported in browser)
 - Iframes (without sync)
 

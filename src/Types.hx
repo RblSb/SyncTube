@@ -5,6 +5,7 @@ import Client.ClientData;
 enum abstract PlayerType(String) {
 	var RawType;
 	var YoutubeType;
+	var VkType;
 	var IframeType;
 }
 

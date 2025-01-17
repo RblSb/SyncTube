@@ -2453,7 +2453,7 @@ var client_Player = function(main) {
 	this.main = main;
 	this.youtube = new client_players_Youtube(main,this);
 	this.streamable = new client_players_Streamable(main,this);
-	this.players = [this.youtube,this.streamable];
+	this.players = [this.youtube,new client_players_Vk(main,this),this.streamable];
 	this.iframePlayer = new client_players_Iframe(main,this);
 	this.rawPlayer = new client_players_Raw(main,this);
 	this.initItemButtons();
@@ -2587,7 +2587,7 @@ client_Player.prototype = {
 			return _gthis.isAudioTrackLoaded = true;
 		};
 		this.audioTrack.onerror = function(e) {
-			haxe_Log.trace(e,{ fileName : "src/client/Player.hx", lineNumber : 189, className : "client.Player", methodName : "setExternalAudioTrack"});
+			haxe_Log.trace(e,{ fileName : "src/client/Player.hx", lineNumber : 191, className : "client.Player", methodName : "setExternalAudioTrack"});
 			_gthis.audioTrack.oncanplay = null;
 			_gthis.audioTrack.onerror = null;
 			_gthis.isAudioTrackLoaded = false;
@@ -3859,6 +3859,172 @@ client_players_Streamable.prototype = $extend(client_players_Raw.prototype,{
 		http.request();
 	}
 });
+var client_players_Vk = function(main,player) {
+	this.matchIds = new EReg("video(-?[0-9]+)_([0-9]+)","g");
+	this.matchVk = new EReg("(vk.com/video|vkvideo)","g");
+	this.isApiLoaded = false;
+	this.isLoaded = false;
+	this.playerEl = window.document.querySelector("#ytapiplayer");
+	this.main = main;
+	this.player = player;
+};
+client_players_Vk.__name__ = true;
+client_players_Vk.prototype = {
+	getPlayerType: function() {
+		return "VkType";
+	}
+	,isSupportedLink: function(url) {
+		if(this.matchVk.match(url)) {
+			return this.getVideoIds(url) != null;
+		} else {
+			return false;
+		}
+	}
+	,getVideoIds: function(url) {
+		if(!this.matchIds.match(url)) {
+			haxe_Log.trace("Cannot extract /video-oid_id values from url:",{ fileName : "src/client/players/Vk.hx", lineNumber : 68, className : "client.players.Vk", methodName : "getVideoIds"});
+			return null;
+		}
+		return { oid : this.matchIds.matched(1), id : this.matchIds.matched(2)};
+	}
+	,loadApi: function(callback) {
+		var _gthis = this;
+		client_JsApi.addScriptToHead("https://vk.com/js/api/videoplayer.js",function() {
+			_gthis.isApiLoaded = true;
+			callback();
+		});
+	}
+	,createVkPlayer: function(iframe) {
+		return VK.VideoPlayer(iframe);
+	}
+	,getVideoData: function(data,callback) {
+		var _gthis = this;
+		if(!this.isApiLoaded) {
+			this.loadApi(function() {
+				_gthis.getVideoData(data,callback);
+			});
+			return;
+		}
+		var url = data.url;
+		var video = window.document.createElement("div");
+		video.id = "temp-videoplayer";
+		var ids = this.getVideoIds(url);
+		if(ids == null) {
+			callback({ duration : 0});
+			return;
+		}
+		video.innerHTML = StringTools.trim("\n\t\t\t<iframe src=\"https://vk.com/video_ext.php?oid=" + ids.oid + "&id=" + ids.id + "&hd=1&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>\n\t\t");
+		client_Utils.prepend(this.playerEl,video);
+		var tempVkPlayer = this.createVkPlayer(video.firstChild);
+		tempVkPlayer.on("inited",function() {
+			callback({ duration : tempVkPlayer.getDuration(), title : "VK media", url : url});
+			tempVkPlayer.destroy();
+			if(_gthis.playerEl.contains(video)) {
+				_gthis.playerEl.removeChild(video);
+			}
+		});
+	}
+	,loadVideo: function(item) {
+		var _gthis = this;
+		if(!this.isApiLoaded) {
+			this.loadApi(function() {
+				_gthis.loadVideo(item);
+			});
+			return;
+		}
+		this.removeVideo();
+		var tmp = this.getVideoIds(item.url);
+		if(tmp == null) {
+			return;
+		}
+		this.video = window.document.createElement("div");
+		this.video.id = "videoplayer";
+		this.video.innerHTML = StringTools.trim("\n\t\t\t<iframe src=\"https://vk.com/video_ext.php?oid=" + tmp.oid + "&id=" + tmp.id + "&hd=4&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>\n\t\t");
+		this.playerEl.appendChild(this.video);
+		this.vkPlayer = this.createVkPlayer(this.video.firstChild);
+		this.vkPlayer.on("inited",function() {
+			if(!_gthis.main.isAutoplayAllowed()) {
+				_gthis.vkPlayer.mute();
+			}
+			_gthis.isLoaded = true;
+			_gthis.vkPlayer.pause();
+			_gthis.setTime(0);
+			_gthis.player.onCanBePlayed();
+		});
+		this.vkPlayer.on("started",function() {
+			_gthis.player.onPlay();
+		});
+		this.vkPlayer.on("resumed",function() {
+			_gthis.player.onPlay();
+		});
+		this.vkPlayer.on("paused",function() {
+			_gthis.player.onPause();
+		});
+		this.vkPlayer.on("error",function(e) {
+			haxe_Log.trace("Error " + e,{ fileName : "src/client/players/Vk.hx", lineNumber : 166, className : "client.players.Vk", methodName : "loadVideo"});
+		});
+		var prevTime = 0.0;
+		this.vkPlayer.on("timeupdate",function(e) {
+			var diff = Math.abs(prevTime - e.time);
+			prevTime = e.time;
+			if(diff > 1) {
+				_gthis.player.onSetTime();
+			}
+		});
+	}
+	,removeVideo: function() {
+		if(this.video == null) {
+			return;
+		}
+		this.isLoaded = false;
+		this.vkPlayer.destroy();
+		this.vkPlayer = null;
+		if(this.playerEl.contains(this.video)) {
+			this.playerEl.removeChild(this.video);
+		}
+		this.video = null;
+	}
+	,isVideoLoaded: function() {
+		return this.isLoaded;
+	}
+	,play: function() {
+		this.vkPlayer.play();
+	}
+	,pause: function() {
+		this.vkPlayer.pause();
+	}
+	,isPaused: function() {
+		var state = this.vkPlayer.getState();
+		if(state != "unstarted") {
+			return state == "paused";
+		} else {
+			return true;
+		}
+	}
+	,getTime: function() {
+		return this.vkPlayer.getCurrentTime();
+	}
+	,setTime: function(time) {
+		this.vkPlayer.seek(time);
+	}
+	,getPlaybackRate: function() {
+		return 1;
+	}
+	,setPlaybackRate: function(rate) {
+	}
+	,getVolume: function() {
+		if(this.vkPlayer.isMuted()) {
+			return 0;
+		}
+		return this.vkPlayer.getVolume();
+	}
+	,setVolume: function(volume) {
+		this.vkPlayer.setVolume(volume);
+	}
+	,unmute: function() {
+		this.vkPlayer.unmute();
+	}
+};
 var client_players_Youtube = function(main,player) {
 	this.matchSeconds = new EReg("([0-9]+)S","");
 	this.matchMinutes = new EReg("([0-9]+)M","");

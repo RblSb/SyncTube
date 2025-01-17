@@ -8,6 +8,7 @@ import client.Main.ge;
 import client.players.Iframe;
 import client.players.Raw;
 import client.players.Streamable;
+import client.players.Vk;
 import client.players.Youtube;
 import haxe.Http;
 import haxe.Json;
@@ -42,6 +43,7 @@ class Player {
 		streamable = new Streamable(main, this);
 		players = [
 			youtube,
+			new Vk(main, this),
 			streamable,
 		];
 		iframePlayer = new Iframe(main, this);
