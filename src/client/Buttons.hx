@@ -116,7 +116,7 @@ class Buttons {
 				icon.setAttribute("name", "chevron-down");
 				style.display = "block";
 				final list = wrap.firstElementChild;
-				wrap.style.height = outerHeight(list) + "px";
+				wrap.style.height = "15vh";
 				wrap.style.marginBottom = "1rem";
 			} else {
 				icon.setAttribute("name", "chevron-forward");
@@ -132,7 +132,7 @@ class Buttons {
 		else {
 			final wrap = ge("#userlist-wrap");
 			final list = wrap.firstElementChild;
-			wrap.style.height = outerHeight(list) + "px";
+			wrap.style.height = "15vh";
 		}
 		// enable animation after page loads
 		Timer.delay(() -> {

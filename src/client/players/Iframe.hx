@@ -46,7 +46,6 @@ class Iframe implements IPlayer {
 	public function loadVideo(item:VideoItem):Void {
 		removeVideo();
 		video = document.createDivElement();
-		video.id = "videoplayer";
 		video.innerHTML = item.url; // actually data
 		if (!isValidIframe(video)) {
 			video = null;
@@ -55,6 +54,7 @@ class Iframe implements IPlayer {
 		if (video.firstChild.nodeName == "IFRAME") {
 			video.setAttribute("sandbox", "allow-scripts");
 		}
+		video.firstElementChild.id = "videoplayer";
 		playerEl.appendChild(video);
 	}
 

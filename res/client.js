@@ -670,9 +670,7 @@ client_Buttons.init = function(main) {
 		if(isHidden) {
 			icon.setAttribute("name","chevron-down");
 			style.display = "block";
-			var list = wrap.firstElementChild;
-			var tmp = client_Buttons.outerHeight(list);
-			wrap.style.height = tmp + "px";
+			wrap.style.height = "15vh";
 			wrap.style.marginBottom = "1rem";
 		} else {
 			icon.setAttribute("name","chevron-forward");
@@ -687,10 +685,7 @@ client_Buttons.init = function(main) {
 	if(client_Buttons.settings.isUserListHidden) {
 		userlistToggle.onclick();
 	} else {
-		var wrap = window.document.querySelector("#userlist-wrap");
-		var list = wrap.firstElementChild;
-		var tmp = client_Buttons.outerHeight(list);
-		wrap.style.height = tmp + "px";
+		window.document.querySelector("#userlist-wrap").style.height = "15vh";
 	}
 	haxe_Timer.delay(function() {
 		window.document.querySelector("#userlist-wrap").style.transition = "200ms";
@@ -3311,7 +3306,6 @@ client_players_Iframe.prototype = {
 	,loadVideo: function(item) {
 		this.removeVideo();
 		this.video = window.document.createElement("div");
-		this.video.id = "videoplayer";
 		this.video.innerHTML = item.url;
 		if(!this.isValidIframe(this.video)) {
 			this.video = null;
@@ -3320,6 +3314,7 @@ client_players_Iframe.prototype = {
 		if(this.video.firstChild.nodeName == "IFRAME") {
 			this.video.setAttribute("sandbox","allow-scripts");
 		}
+		this.video.firstElementChild.id = "videoplayer";
 		this.playerEl.appendChild(this.video);
 	}
 	,removeVideo: function() {
@@ -3405,6 +3400,7 @@ client_players_Raw.prototype = {
 		var subs = StringTools.trim(this.subsInput.value);
 		this.subsInput.value = "";
 		var video = window.document.createElement("video");
+		video.id = "temp-videoplayer";
 		video.src = url;
 		video.onerror = function(e) {
 			if(_gthis.playerEl.contains(video)) {
@@ -3906,21 +3902,19 @@ client_players_Vk.prototype = {
 			return;
 		}
 		var url = data.url;
-		var video = window.document.createElement("div");
-		video.id = "temp-videoplayer";
 		var ids = this.getVideoIds(url);
 		if(ids == null) {
 			callback({ duration : 0});
 			return;
 		}
-		video.innerHTML = StringTools.trim("\n\t\t\t<iframe src=\"https://vk.com/video_ext.php?oid=" + ids.oid + "&id=" + ids.id + "&hd=1&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>\n\t\t");
-		client_Utils.prepend(this.playerEl,video);
-		var tempVkPlayer = this.createVkPlayer(video.firstChild);
+		var tempVideo = client_Utils.nodeFromString(StringTools.trim("<iframe id=\"temp-videoplayer\" src=\"https://vk.com/video_ext.php?oid=" + ids.oid + "&id=" + ids.id + "&hd=1&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>"));
+		client_Utils.prepend(this.playerEl,tempVideo);
+		var tempVkPlayer = this.createVkPlayer(tempVideo);
 		tempVkPlayer.on("inited",function() {
 			callback({ duration : tempVkPlayer.getDuration(), title : "VK media", url : url});
 			tempVkPlayer.destroy();
-			if(_gthis.playerEl.contains(video)) {
-				_gthis.playerEl.removeChild(video);
+			if(_gthis.playerEl.contains(tempVideo)) {
+				_gthis.playerEl.removeChild(tempVideo);
 			}
 		});
 	}
@@ -3937,11 +3931,9 @@ client_players_Vk.prototype = {
 		if(tmp == null) {
 			return;
 		}
-		this.video = window.document.createElement("div");
-		this.video.id = "videoplayer";
-		this.video.innerHTML = StringTools.trim("\n\t\t\t<iframe src=\"https://vk.com/video_ext.php?oid=" + tmp.oid + "&id=" + tmp.id + "&hd=4&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>\n\t\t");
+		this.video = client_Utils.nodeFromString(StringTools.trim("<iframe id=\"videoplayer\" src=\"https://vk.com/video_ext.php?oid=" + tmp.oid + "&id=" + tmp.id + "&hd=4&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>"));
 		this.playerEl.appendChild(this.video);
-		this.vkPlayer = this.createVkPlayer(this.video.firstChild);
+		this.vkPlayer = this.createVkPlayer(this.video);
 		this.vkPlayer.on("inited",function() {
 			if(!_gthis.main.isAutoplayAllowed()) {
 				_gthis.vkPlayer.mute();
@@ -3961,7 +3953,7 @@ client_players_Vk.prototype = {
 			_gthis.player.onPause();
 		});
 		this.vkPlayer.on("error",function(e) {
-			haxe_Log.trace("Error " + e,{ fileName : "src/client/players/Vk.hx", lineNumber : 166, className : "client.players.Vk", methodName : "loadVideo"});
+			haxe_Log.trace("Error " + e,{ fileName : "src/client/players/Vk.hx", lineNumber : 162, className : "client.players.Vk", methodName : "loadVideo"});
 		});
 		var prevTime = 0.0;
 		this.vkPlayer.on("timeupdate",function(e) {

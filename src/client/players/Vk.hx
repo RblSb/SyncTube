@@ -94,8 +94,6 @@ class Vk implements IPlayer {
 		}
 		final url = data.url;
 
-		final video = document.createDivElement();
-		video.id = "temp-videoplayer";
 		final ids = getVideoIds(url);
 		if (ids == null) {
 			callback({duration: 0});
@@ -103,14 +101,14 @@ class Vk implements IPlayer {
 		}
 		final oid = ids.oid;
 		final id = ids.id;
-		video.innerHTML = '
-			<iframe src="https://vk.com/video_ext.php?oid=$oid&id=$id&hd=1&js_api=1"
+		final tempVideo = Utils.nodeFromString(
+			'<iframe id="temp-videoplayer" src="https://vk.com/video_ext.php?oid=$oid&id=$id&hd=1&js_api=1"
 				allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
 				frameborder="0" allowfullscreen>
-			</iframe>
-		'.trim();
-		Utils.prepend(playerEl, video);
-		final tempVkPlayer = createVkPlayer(video.firstChild);
+			</iframe>'.trim()
+		);
+		Utils.prepend(playerEl, tempVideo);
+		final tempVkPlayer = createVkPlayer(tempVideo);
 		tempVkPlayer.on("inited", () -> {
 			callback({
 				duration: tempVkPlayer.getDuration(),
@@ -118,7 +116,7 @@ class Vk implements IPlayer {
 				url: url
 			});
 			tempVkPlayer.destroy();
-			if (playerEl.contains(video)) playerEl.removeChild(video);
+			if (playerEl.contains(tempVideo)) playerEl.removeChild(tempVideo);
 		});
 	}
 
@@ -133,18 +131,16 @@ class Vk implements IPlayer {
 		removeVideo();
 
 		final ids = getVideoIds(item.url) ?? return;
-		video = document.createDivElement();
-		video.id = "videoplayer";
 		final oid = ids.oid;
 		final id = ids.id;
-		video.innerHTML = '
-			<iframe src="https://vk.com/video_ext.php?oid=$oid&id=$id&hd=4&js_api=1"
+		video = Utils.nodeFromString(
+			'<iframe id="videoplayer" src="https://vk.com/video_ext.php?oid=$oid&id=$id&hd=4&js_api=1"
 				allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
 				frameborder="0" allowfullscreen>
-			</iframe>
-		'.trim();
+			</iframe>'.trim()
+		);
 		playerEl.appendChild(video);
-		vkPlayer = createVkPlayer(video.firstChild);
+		vkPlayer = createVkPlayer(video);
 		vkPlayer.on("inited", () -> {
 			if (!main.isAutoplayAllowed()) vkPlayer.mute();
 			isLoaded = true;

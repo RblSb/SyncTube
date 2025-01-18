@@ -62,6 +62,7 @@ class Raw implements IPlayer {
 		final subs = subsInput.value.trim();
 		subsInput.value = "";
 		final video = document.createVideoElement();
+		video.id = "temp-videoplayer";
 		video.src = url;
 		video.onerror = e -> {
 			if (playerEl.contains(video)) playerEl.removeChild(video);
