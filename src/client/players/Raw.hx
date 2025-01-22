@@ -140,7 +140,7 @@ class Raw implements IPlayer {
 		final subsUri = try {
 			new URL(subsUrl);
 		} catch (e) {
-			Main.serverMessage('Failed to add subs: bad url ($subsUrl)');
+			Main.instance.serverMessage('Failed to add subs: bad url ($subsUrl)');
 			return;
 		}
 		// make local url as relative path to skip proxy

@@ -4,13 +4,13 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>SyncTube</title>
   <link rel="icon" type="image/png" href="img/favicon.png" />
   <link id="usertheme" href="css/des.css" rel="stylesheet">
   <link id="customcss" href="css/custom.css" rel="stylesheet">
-  <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"></script>
-  <script nomodule="" src="https://cdn.jsdelivr.net/npm/ionicons@5.0.0/dist/ionicons/ionicons.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule="" src="https://cdn.jsdelivr.net/npm/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
 </head>
 
 <body style="grid-template-columns: 1fr 4px 300px;">
@@ -193,10 +193,10 @@
       </div>
     </ul>
     <!-- Messages -->
-    <div id="messagebuffer"></div>
+    <div id="messagebuffer" style="flex-direction: column-reverse;"></div>
     <div id="chat-inputs-wrapper">
       <button id="scroll-to-chat-end" style="display: none; opacity: 0;" class="active">
-        <ion-icon name="arrow-down" role="img" class="md hydrated" aria-label="arrow down"></ion-icon>
+        <ion-icon name="arrow-down" role="img" class="md hydrated"></ion-icon>
       </button>
       <!-- Message input -->
       <div id="chatbox">
@@ -205,7 +205,7 @@
           <ion-icon name="happy"></ion-icon>
         </button>
       </div>
-      <div id="smiles-wrap" class="collapsible">
+      <div id="smiles-wrap" class="collapsible" style="display: none;">
         <div id="smiles-list"></div>
       </div>
       <!-- Guest login -->
@@ -225,7 +225,7 @@
     </div>
   </aside>
 
-  <script src="https://cdn.jsdelivr.net/npm/split-grid@1.0.9/dist/split-grid.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/split-grid@1.0.11/dist/split-grid.min.js"></script>
   <script src="client.js"></script>
   <script src="js/custom.js"></script>
 </body>

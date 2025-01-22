@@ -20,7 +20,7 @@ class Buttons {
 		if (settings.isSwapped) swapPlayerAndChat();
 		initSplit();
 		setSplitSize(settings.chatSize);
-		initChatInput(main);
+		initChatInputs(main);
 
 		for (item in settings.checkboxes) {
 			if (item.checked == null) continue;
@@ -49,7 +49,7 @@ class Buttons {
 			if (list.children.length == 0) return;
 			final isActive = smilesBtn.classList.toggle("active");
 			if (isActive) {
-				wrap.style.display = "block";
+				wrap.style.display = "";
 				wrap.style.height = outerHeight(list) + "px";
 			} else {
 				wrap.style.height = "0";
@@ -65,22 +65,15 @@ class Buttons {
 		}
 
 		final scrollToChatEndBtn = ge("#scroll-to-chat-end");
-		function scrollToChatEndBtnAnim():Void {
-			if (scrollToChatEndBtn.style.opacity == "0") return;
-			scrollToChatEndBtn.style.opacity = "0";
-			scrollToChatEndBtn.addEventListener("transitionend", e -> {
-				scrollToChatEndBtn.style.display = "none";
-			}, {once: true});
-		}
 		scrollToChatEndBtn.onclick = e -> {
 			main.scrollChatToEnd();
-			scrollToChatEndBtnAnim();
+			main.hideScrollToChatEndBtn();
 		}
 		// hide scroll button when chat is scrolled to the end
 		final msgBuf = ge("#messagebuffer");
 		msgBuf.onscroll = e -> {
-			if (msgBuf.offsetHeight + msgBuf.scrollTop < msgBuf.scrollHeight - 1) return;
-			scrollToChatEndBtnAnim();
+			if (!main.isInChatEnd(1)) return;
+			main.hideScrollToChatEndBtn();
 		}
 
 		ge("#clearchatbtn").onclick = e -> {
@@ -114,7 +107,7 @@ class Buttons {
 			final style = ge("#userlist").style;
 			if (isHidden) {
 				icon.setAttribute("name", "chevron-down");
-				style.display = "block";
+				style.display = "";
 				final list = wrap.firstElementChild;
 				wrap.style.height = "15vh";
 				wrap.style.marginBottom = "1rem";
@@ -161,6 +154,7 @@ class Buttons {
 		final fullscreenBtn = ge("#fullscreenbtn");
 		fullscreenBtn.onclick = e -> {
 			if ((Utils.isTouch() || main.isVerbose()) && !Utils.hasFullscreen()) {
+				window.scrollTo(0, 0);
 				Utils.requestFullscreen(document.documentElement);
 			} else {
 				Utils.requestFullscreen(ge("#ytapiplayer"));
@@ -254,9 +248,9 @@ class Buttons {
 
 		final exitBtn = ge("#exitBtn");
 		exitBtn.onclick = e -> {
+			showOptions.onclick();
 			if (main.isUser()) main.send({type: Logout});
 			else ge("#guestname").focus();
-			toggleGroup(showOptions);
 		}
 
 		final swapLayoutBtn = ge("#swapLayoutBtn");
@@ -429,7 +423,7 @@ class Buttons {
 		ge("#hotkeysBtn").innerText = '$text: $state';
 	}
 
-	static function initChatInput(main:Main):Void {
+	static function initChatInputs(main:Main):Void {
 		final guestName:InputElement = cast ge("#guestname");
 		guestName.onkeydown = e -> {
 			if (e.keyCode == KeyCode.Return) {
@@ -447,37 +441,24 @@ class Buttons {
 			}
 		}
 
-		if (Utils.isIOS()) {
-			document.ontouchmove = e -> {
-				e.preventDefault();
-			}
-			document.body.style.height = "-webkit-fill-available";
-			ge("#chat").style.height = "-webkit-fill-available";
-		}
 		final chatline:InputElement = cast ge("#chatline");
 		chatline.onfocus = e -> {
 			if (Utils.isIOS()) {
-				final startY = window.scrollY;
+				// final startY = window.scrollY;
+				final startY = 0;
 				Timer.delay(() -> {
 					window.scrollBy(0, -(window.scrollY - startY));
 					ge("#video").scrollTop = 0;
 					main.scrollChatToEnd();
-					if (getVisualViewport() == null) { // ios < 13
-						ge("#chat").style.height = '${window.innerHeight}px';
-					}
 				}, 100);
-			} else if (Utils.isTouch()) main.scrollChatToEnd();
-		}
-		if (Utils.isIOS() && getVisualViewport() != null) {
-			final viewport = getVisualViewport();
-			viewport.addEventListener("resize", e -> {
-				ge("#chat").style.height = '${window.innerHeight}px';
-			});
-		}
-		chatline.onblur = e -> {
-			if (Utils.isIOS() && getVisualViewport() == null) { // ios < 13
-				ge("#chat").style.height = "-webkit-fill-available";
+			} else if (Utils.isTouch()) {
+				main.scrollChatToEnd();
 			}
+		}
+		final viewport = getVisualViewport();
+		if (viewport != null) {
+			viewport.addEventListener("resize", e -> onViewportResize());
+			onViewportResize();
 		}
 		new InputWithHistory(chatline, 50, value -> {
 			if (main.handleCommands(value)) return true;
@@ -504,6 +485,15 @@ class Buttons {
 				Settings.write(settings);
 			});
 		}
+	}
+
+	public static function onViewportResize():Void {
+		final viewport = getVisualViewport() ?? return;
+		final isPortrait = window.innerHeight > window.innerWidth;
+		final playerH = ge("#ytapiplayer").offsetHeight;
+		var h = viewport.height - playerH;
+		if (!isPortrait) h = viewport.height;
+		ge("#chat").style.height = '${h}px';
 	}
 
 	static inline function getVisualViewport():Null<VisualViewport> {

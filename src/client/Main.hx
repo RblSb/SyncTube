@@ -26,6 +26,7 @@ import js.html.WebSocket;
 using ClientTools;
 
 class Main {
+	public static var instance(default, null):Main;
 	static inline var SETTINGS_VERSION = 5;
 
 	public final settings:ClientSettings;
@@ -51,9 +52,10 @@ class Main {
 	var onTimeGet:Timer;
 	var onBlinkTab:Null<Timer>;
 	var gotFirstPageInteraction = false;
+	var msgBuf = ge("#messagebuffer");
 
 	static function main():Void {
-		new Main();
+		instance = new Main();
 	}
 
 	function new() {
@@ -723,7 +725,7 @@ class Main {
 			button.disabled = true;
 		}
 		final adminMenu = ge("#adminMenu");
-		if (isAdmin()) adminMenu.style.display = "block";
+		if (isAdmin()) adminMenu.style.display = "";
 		else adminMenu.style.display = "none";
 	}
 
@@ -815,7 +817,7 @@ class Main {
 	}
 
 	function showGuestLoginPanel():Void {
-		ge("#guestlogin").style.display = "flex";
+		ge("#guestlogin").style.display = "";
 		ge("#guestpassword").style.display = "none";
 		ge("#chatbox").style.display = "none";
 		ge("#exitBtn").textContent = Lang.get("login");
@@ -824,14 +826,14 @@ class Main {
 	function hideGuestLoginPanel():Void {
 		ge("#guestlogin").style.display = "none";
 		ge("#guestpassword").style.display = "none";
-		ge("#chatbox").style.display = "flex";
+		ge("#chatbox").style.display = "";
 		ge("#exitBtn").textContent = Lang.get("exit");
 	}
 
 	function showGuestPasswordPanel():Void {
 		ge("#guestlogin").style.display = "none";
 		ge("#chatbox").style.display = "none";
-		ge("#guestpassword").style.display = "flex";
+		ge("#guestpassword").style.display = "";
 		(cast ge("#guestpass") : InputElement).type = "password";
 		ge("#guestpass_icon").setAttribute("name", "eye");
 	}
@@ -850,35 +852,32 @@ class Main {
 	}
 
 	function chatMessageConnected():Void {
-		final msgBuf = ge("#messagebuffer");
 		if (isLastMessageConnectionStatus()) {
 			msgBuf.removeChild(msgBuf.lastChild);
 		}
 		final div = document.createDivElement();
 		div.className = "server-msg-reconnect";
 		div.textContent = Lang.get("msgConnected");
-		msgBuf.appendChild(div);
+		addMessageDiv(div);
 		scrollChatToEnd();
 	}
 
 	function chatMessageDisconnected():Void {
-		final msgBuf = ge("#messagebuffer");
 		if (isLastMessageConnectionStatus()) {
 			msgBuf.removeChild(msgBuf.lastChild);
 		}
 		final div = document.createDivElement();
 		div.className = "server-msg-disconnect";
 		div.textContent = Lang.get("msgDisconnected");
-		msgBuf.appendChild(div);
+		addMessageDiv(div);
 		scrollChatToEnd();
 	}
 
 	function isLastMessageConnectionStatus():Bool {
-		final msgBuf = ge("#messagebuffer");
 		return msgBuf.lastElementChild?.className.startsWith("server-msg");
 	}
 
-	public static function serverMessage(text:String, isText = true, withTimestamp = true):Void {
+	public function serverMessage(text:String, isText = true, withTimestamp = true):Void {
 		final div = document.createDivElement();
 		final time = Date.now().toString().split(" ")[1];
 		div.className = "server-whisper";
@@ -889,12 +888,11 @@ class Main {
 		final textDiv = div.querySelector(".server-whisper");
 		if (isText) textDiv.textContent = text;
 		else textDiv.innerHTML = text;
-		final msgBuf = ge("#messagebuffer");
-		msgBuf.appendChild(div);
-		msgBuf.scrollTop = msgBuf.scrollHeight;
+		addMessageDiv(div);
+		scrollChatToEnd();
 	}
 
-	public static function serverHtmlMessage(el:Element):Void {
+	public function serverHtmlMessage(el:Element):Void {
 		final div = document.createDivElement();
 		final time = Date.now().toString().split(" ")[1];
 		div.className = "server-whisper";
@@ -903,9 +901,8 @@ class Main {
 			<span class="timestamp">$time</span>
 		</div>';
 		div.querySelector(".server-whisper").appendChild(el);
-		final msgBuf = ge("#messagebuffer");
-		msgBuf.appendChild(div);
-		msgBuf.scrollTop = msgBuf.scrollHeight;
+		addMessageDiv(div);
+		scrollChatToEnd();
 	}
 
 	function updateUserList():Void {
@@ -931,7 +928,7 @@ class Main {
 	}
 
 	function clearChat():Void {
-		ge("#messagebuffer").textContent = "";
+		msgBuf.textContent = "";
 	}
 
 	function getLocalDateFromUtc(utcDate:String):String {
@@ -941,7 +938,6 @@ class Main {
 	}
 
 	function addMessage(name:String, text:String, ?date:String):Void {
-		final msgBuf = ge("#messagebuffer");
 		final userDiv = document.createDivElement();
 		userDiv.className = 'chat-msg-$name';
 
@@ -968,10 +964,9 @@ class Main {
 			text = filter.regex.replace(text, filter.replace);
 		}
 		textDiv.innerHTML = text;
-		final isInChatEnd = msgBuf.scrollTop
-			+ msgBuf.clientHeight >= msgBuf.scrollHeight - 50;
+		final inChatEnd = isInChatEnd();
 
-		if (isInChatEnd) { // scroll chat to end after images loaded
+		if (inChatEnd) { // scroll chat to end after images loaded
 			for (img in textDiv.getElementsByTagName("img")) {
 				img.onload = onChatImageLoaded;
 			}
@@ -984,13 +979,14 @@ class Main {
 		headDiv.appendChild(nameDiv);
 		headDiv.appendChild(tstamp);
 		userDiv.appendChild(textDiv);
-		msgBuf.appendChild(userDiv);
-		if (isInChatEnd) {
+		addMessageDiv(userDiv);
+
+		if (inChatEnd) {
 			while (msgBuf.children.length > 200) {
 				msgBuf.removeChild(msgBuf.firstChild);
 			}
 		}
-		if (isInChatEnd || name == personal.name) {
+		if (inChatEnd || name == personal.name) {
 			scrollChatToEnd();
 		} else {
 			showScrollToChatEndBtn();
@@ -998,10 +994,24 @@ class Main {
 		if (onBlinkTab == null) blinkTabWithTitle('*${Lang.get("chat")}*');
 	}
 
-	function showScrollToChatEndBtn() {
+	function addMessageDiv(userDiv:Element):Void {
+		if (isMessageBufferReversed()) msgBuf.prepend(userDiv);
+		else msgBuf.appendChild(userDiv);
+	}
+
+	public function showScrollToChatEndBtn():Void {
 		final btn = ge("#scroll-to-chat-end");
-		btn.style.display = "block";
+		btn.style.display = "";
 		Timer.delay(() -> btn.style.opacity = "1", 0);
+	}
+
+	public function hideScrollToChatEndBtn():Void {
+		final btn = ge("#scroll-to-chat-end");
+		if (btn.style.opacity == "0") return;
+		btn.style.opacity = "0";
+		btn.addEventListener("transitionend", e -> {
+			btn.style.display = "none";
+		}, {once: true});
 	}
 
 	function onChatImageLoaded(e:Event):Void {
@@ -1028,9 +1038,27 @@ class Main {
 		el.onloadedmetadata = null;
 	}
 
+	public function isMessageBufferReversed():Bool {
+		return msgBuf.style.flexDirection == "column-reverse";
+	}
+
+	public function isInChatEnd(ignoreOffset = 50):Bool {
+		final isReverse = isMessageBufferReversed();
+		var scrollTop = msgBuf.scrollTop;
+		// zero to negative in column-reverse
+		if (isReverse) scrollTop = -scrollTop;
+		if (isReverse) return scrollTop <= ignoreOffset;
+		return scrollTop + msgBuf.clientHeight >= msgBuf.scrollHeight - ignoreOffset;
+	}
+
 	public function scrollChatToEnd():Void {
-		final msgBuf = ge("#messagebuffer");
-		msgBuf.scrollTop = msgBuf.scrollHeight;
+		final isReverse = isMessageBufferReversed();
+		if (isReverse) {
+			if (Utils.isMacSafari) msgBuf.scrollTop = -1;
+			msgBuf.scrollTop = 0;
+		} else {
+			msgBuf.scrollTop = msgBuf.scrollHeight;
+		}
 	}
 
 	/* Returns `true` if text should not be sent to chat */

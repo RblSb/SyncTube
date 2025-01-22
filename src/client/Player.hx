@@ -24,7 +24,7 @@ class Player {
 	final rawPlayer:IPlayer;
 	final videoList = new VideoList();
 	final videoItemsEl = ge("#queue");
-	final playerEl:Element = ge("#ytapiplayer");
+	final playerEl = ge("#ytapiplayer");
 	var player:Null<IPlayer>;
 	var isLoaded = false;
 	var skipSetTime = false;
@@ -49,6 +49,20 @@ class Player {
 		iframePlayer = new Iframe(main, this);
 		rawPlayer = new Raw(main, this);
 		initItemButtons();
+
+		final resizeObserver = Utils.createResizeObserver(entries -> {
+			if (isLoaded) return;
+			Buttons.onViewportResize();
+		});
+		if (resizeObserver != null) {
+			resizeObserver.observe(playerEl);
+		} else {
+			final timer = new haxe.Timer(50);
+			timer.run = () -> {
+				if (isLoaded) return;
+				Buttons.onViewportResize();
+			}
+		}
 	}
 
 	function initItemButtons():Void {
@@ -239,6 +253,7 @@ class Player {
 	public function onCanBePlayed():Void {
 		if (!isLoaded) main.send({type: VideoLoaded});
 		isLoaded = true;
+		Buttons.onViewportResize();
 	}
 
 	public function onPlay():Void {

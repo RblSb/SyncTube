@@ -31,14 +31,37 @@ html {
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  font-size: .875rem;
+  font-size: 1rem;
   line-height: 1.4;
   color: var(--foreground);
-  background-color: var(--background-chat);
+  background: var(--background-video);
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-areas: "video gutter chat";
+  overflow-y: hidden;
+  width: 100%;
+  height: 100vh;
+}
+
+body.swap {
+  grid-template-areas: "chat gutter video";
+}
+
+
+@media only screen and (orientation: portrait) {
+  body {
+    font-size: .875rem;
+    grid-template-areas: none;
+    overflow-y: auto;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.swap {
+    grid-template-areas: none;
+  }
 }
 
 h1,
@@ -305,7 +328,18 @@ button.danger-bg:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+@media only screen and (orientation: portrait) {
+  .info {
+    flex-wrap: wrap;
+  }
+}
+
+#currenttitle {
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .info header {
@@ -358,6 +392,44 @@ header h4 {
   background: var(--background-video);
 }
 
+@media only screen and (orientation: landscape) {
+  #video {
+    grid-area: video;
+    width: 100%;
+    height: 100%;
+    /* Breaks subs after viewport overflow on FF+Linux (SyncTube#28) */
+    /* overflow: auto; */
+    overflow: scroll;
+    background: var(--background-video);
+  }
+}
+
+@media only screen and (orientation: portrait) {
+  #video {
+    display: contents;
+  }
+
+  #player {
+    display: contents;
+  }
+
+  #ytapiplayer {
+    background: var(--background-video);
+  }
+
+  .info {
+    order: 2;
+  }
+
+  #playlist {
+    order: 3;
+  }
+
+  #footer {
+    order: 4;
+  }
+}
+
 /* Embed responsive */
 
 .embed-responsive:empty {
@@ -391,11 +463,11 @@ iframe#videoplayer {
   }
 
   .embed-responsive {
-    max-height: 50vh;
+    max-height: 30vh;
   }
 
   #videoplayer {
-    max-height: 50vh;
+    max-height: 30vh;
   }
 }
 
@@ -455,7 +527,7 @@ iframe#videoplayer {
 
 #customembed>*>input,
 #customembed>*>textarea {
-  display: block;
+  display: flex;
   width: 100%;
 }
 
@@ -509,11 +581,26 @@ footer#footer {
   display: none;
 }
 
+@media only screen and (orientation: landscape) {
+  .gutter {
+    grid-area: gutter;
+    display: flex;
+    cursor: col-resize;
+    background-color: var(--border);
+    transition: background-color ease-in-out .15s;
+  }
+
+  .gutter:hover {
+    background-color: var(--accent);
+  }
+}
+
 /*
  * Start chat
  */
 
 #chat {
+  background: var(--background-chat);
   position: relative;
   display: flex;
   order: 0;
@@ -521,6 +608,13 @@ footer#footer {
   flex-wrap: nowrap;
   padding: 1rem;
   height: 40vh;
+}
+
+@media only screen and (orientation: landscape) {
+  #chat {
+    grid-area: chat;
+    height: 100vh;
+  }
 }
 
 #chat header {
@@ -550,6 +644,8 @@ footer#footer {
 }
 
 #userlist {
+  display: flex;
+  flex-direction: column;
   padding: 1rem;
 }
 
@@ -611,6 +707,8 @@ footer#footer {
 }
 
 #optionsList div {
+  display: flex;
+  flex-direction: column;
   margin-bottom: .5rem;
 }
 
@@ -636,6 +734,8 @@ footer#footer {
 /* Message buffer */
 
 #messagebuffer {
+  display: flex;
+  flex-direction: column;
   flex-grow: 2;
   flex-shrink: 8;
   overflow: auto;
@@ -655,7 +755,7 @@ footer#footer {
 }
 
 .username {
-  display: block;
+  display: flex;
 }
 
 .timestamp {
@@ -715,7 +815,7 @@ footer#footer {
 /* Emotes */
 
 #smiles-wrap {
-  display: none;
+  display: flex;
   height: 0;
   width: 100%;
   background: rgba(0, 0, 0, 0.7);
@@ -726,6 +826,7 @@ footer#footer {
 
 #smiles-list {
   display: grid;
+  width: 100%;
   height: 12rem;
   padding: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
@@ -763,7 +864,7 @@ footer#footer {
 
 #guestlogin label,
 #guestpassword label {
-  display: block;
+  display: flex;
   margin-bottom: 1em;
 }
 
@@ -812,71 +913,6 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
-}
-
-/*
- * Media queries
- */
-
-@media only screen and (orientation: landscape) {
-  body {
-    display: grid;
-    grid-template-areas: "video gutter chat";
-    overflow-y: hidden;
-    font-size: 1rem;
-    width: 100%;
-    height: 100vh;
-  }
-
-  body.swap {
-    grid-template-areas: "chat gutter video";
-  }
-
-  .info {
-    flex-wrap: nowrap;
-  }
-
-  #video {
-    grid-area: video;
-    width: 100%;
-    height: 100%;
-    /* Breaks subs after viewport overflow on FF+Linux (SyncTube#28) */
-    /* overflow: auto; */
-    overflow: scroll;
-    background: var(--background-video);
-  }
-
-  #header {
-    display: flex;
-    flex: 1;
-    flex-wrap: nowrap;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    font-size: 1.953rem;
-  }
-
-  #currenttitle {
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-
-  .gutter {
-    grid-area: gutter;
-    display: block;
-    cursor: col-resize;
-    background-color: var(--border);
-    transition: background-color ease-in-out .15s;
-  }
-
-  .gutter:hover {
-    background-color: var(--accent);
-  }
-
-  #chat {
-    grid-area: chat;
-    height: 100vh;
-  }
 }
 
 /* Mobile page fullscreen */

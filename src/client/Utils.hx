@@ -26,6 +26,16 @@ class Utils {
 			|| (~/^Mac/.match(navigator.platform) && navigator.maxTouchPoints > 4);
 	}
 
+	public static var isMacSafari = _isMacSafari();
+
+	static function _isMacSafari():Bool {
+		final isMac = navigator.userAgent.contains("Macintosh");
+		final isSafari = navigator.userAgent.contains("Safari")
+			&& !navigator.userAgent.contains("Chrom")
+			&& !navigator.userAgent.contains("Edg");
+		return isMac && isSafari;
+	}
+
 	public static function isAndroid():Bool {
 		final ua = navigator.userAgent.toLowerCase();
 		return ua.indexOf("android") > -1;
@@ -66,8 +76,6 @@ class Utils {
 		final el2:Dynamic = el;
 		if (el.requestFullscreen != null) {
 			el.requestFullscreen();
-		} else if (el2.mozRequestFullScreen != null) {
-			el2.mozRequestFullScreen();
 		} else if (el2.webkitRequestFullscreen != null) {
 			el2.webkitRequestFullscreen(untyped Element.ALLOW_KEYBOARD_INPUT);
 		} else return false;
@@ -77,7 +85,6 @@ class Utils {
 	public static function cancelFullscreen(el:Element):Void {
 		final doc:Dynamic = document;
 		if (doc.cancelFullScreen != null) doc.cancelFullScreen();
-		else if (doc.mozCancelFullScreen != null) doc.mozCancelFullScreen();
 		else if (doc.webkitCancelFullScreen != null) doc.webkitCancelFullScreen();
 	}
 
@@ -158,5 +165,14 @@ class Utils {
 		a.click();
 		document.body.removeChild(a);
 		URL.revokeObjectURL(url);
+	}
+
+	public static function createResizeObserver(callback:(entries:Array<Dynamic>) -> Void):Null<{
+		observe:(el:Element) -> Void
+	}> {
+		return null;
+		final window = js.Browser.window;
+		final observer = (window : Dynamic).ResizeObserver ?? return null;
+		return js.Syntax.code("new ResizeObserver({0})", callback);
 	}
 }
