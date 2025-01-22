@@ -55,7 +55,7 @@ class Cache {
 			return;
 		}
 		final outName = videoId + ".mp4";
-		if (cachedFiles.contains(outName)) {
+		if (cachedFiles.contains(outName) && FileSystem.exists('$cacheDir/$outName')) {
 			callback(outName);
 			return;
 		}
@@ -102,11 +102,14 @@ class Cache {
 				count++;
 				log(client, '$type track downloaded ($count/2)');
 				if (count < 2) return;
-				final args = '-y -i input-video -i input-audio -c copy -map 0:v -map 1:a $outName'.split(" ");
+				final args = '-y -i input-video -i input-audio -c copy -map 0:v -map 1:a ./$outName'.split(" ");
 				final process = ChildProcess.spawn("ffmpeg", args, {
 					cwd: cacheDir,
 					stdio: "ignore"
 				});
+				// process.stderr.on('data', (data) -> {
+				// 	trace('FFmpeg stderr: ${data}');
+				// });
 				process.on("close", (code:Int) -> {
 					if (code != 0) {
 						log(client, 'Error: ffmpeg closed with code $code');
@@ -117,7 +120,9 @@ class Cache {
 					if (FileSystem.exists(inVideo)) FileSystem.deleteFile(inVideo);
 					if (FileSystem.exists(inAudio)) FileSystem.deleteFile(inAudio);
 
-					cachedFiles.push(outName);
+					if (!cachedFiles.contains(outName)) {
+						cachedFiles.unshift(outName);
+					}
 					removeOlderCache();
 
 					callback(outName);
@@ -136,7 +141,7 @@ class Cache {
 
 	function removeOlderCache():Void {
 		while (getUsedSpace() > storageLimit) {
-			final name = cachedFiles.shift();
+			final name = cachedFiles.pop();
 			final path = '$cacheDir/$name';
 			if (FileSystem.exists(path)) FileSystem.deleteFile(path);
 		}
@@ -144,8 +149,12 @@ class Cache {
 
 	function getUsedSpace():Int {
 		var total = 0;
-		for (name in cachedFiles) {
+		for (name in cachedFiles.reversed()) {
 			final path = '$cacheDir/$name';
+			if (!FileSystem.exists(path)) {
+				cachedFiles.remove(name);
+				continue;
+			}
 			total += FileSystem.stat(path).size;
 		}
 		return total;

@@ -3635,7 +3635,7 @@ server_Cache.prototype = {
 			return;
 		}
 		var outName = videoId + ".mp4";
-		if(this.cachedFiles.indexOf(outName) != -1) {
+		if(this.cachedFiles.indexOf(outName) != -1 && sys_FileSystem.exists("" + this.cacheDir + "/" + outName)) {
 			callback(outName);
 			return;
 		}
@@ -3694,7 +3694,7 @@ server_Cache.prototype = {
 				if(count < 2) {
 					return;
 				}
-				var args = ("-y -i input-video -i input-audio -c copy -map 0:v -map 1:a " + outName).split(" ");
+				var args = ("-y -i input-video -i input-audio -c copy -map 0:v -map 1:a ./" + outName).split(" ");
 				var $process = js_node_ChildProcess.spawn("ffmpeg",args,{ cwd : _gthis.cacheDir, stdio : "ignore"});
 				$process.on("close",function(code) {
 					if(code != 0) {
@@ -3709,7 +3709,9 @@ server_Cache.prototype = {
 					if(sys_FileSystem.exists(inAudio)) {
 						js_node_Fs.unlinkSync(inAudio);
 					}
-					_gthis.cachedFiles.push(outName);
+					if(_gthis.cachedFiles.indexOf(outName) == -1) {
+						_gthis.cachedFiles.unshift(outName);
+					}
 					_gthis.removeOlderCache();
 					callback(outName);
 				});
@@ -3726,7 +3728,7 @@ server_Cache.prototype = {
 	}
 	,removeOlderCache: function() {
 		while(this.getUsedSpace() > this.storageLimit) {
-			var name = this.cachedFiles.shift();
+			var name = this.cachedFiles.pop();
 			var path = "" + this.cacheDir + "/" + name;
 			if(sys_FileSystem.exists(path)) {
 				js_node_Fs.unlinkSync(path);
@@ -3735,9 +3737,17 @@ server_Cache.prototype = {
 	}
 	,getUsedSpace: function() {
 		var total = 0;
-		var _g = 0;
-		var _g1 = this.cachedFiles;
-		while(_g < _g1.length) total += js_node_Fs.statSync("" + this.cacheDir + "/" + _g1[_g++]).size;
+		var arr = this.cachedFiles;
+		var _g_i = arr.length - 1;
+		while(_g_i > -1) {
+			var name = arr[_g_i--];
+			var path = "" + this.cacheDir + "/" + name;
+			if(!sys_FileSystem.exists(path)) {
+				HxOverrides.remove(this.cachedFiles,name);
+				continue;
+			}
+			total += js_node_Fs.statSync(path).size;
+		}
 		return total;
 	}
 	,getBestYoutubeVideoFormat: function(formats) {
