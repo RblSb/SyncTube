@@ -47,6 +47,13 @@ class Utils {
 		return wrapper.firstElementChild;
 	}
 
+	public static function outerHeight(el:Element):Float {
+		final style = window.getComputedStyle(el);
+		return (el.getBoundingClientRect().height
+			+ Std.parseFloat(style.marginTop)
+			+ Std.parseFloat(style.marginBottom));
+	}
+
 	public static function prepend(parent:Element, child:Element):Void {
 		if (parent.firstChild == null) parent.appendChild(child);
 		else parent.insertBefore(child, parent.firstChild);

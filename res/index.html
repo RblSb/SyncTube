@@ -151,6 +151,7 @@
       <button id="userlisttoggle" title="${toggleUserList}">
         <ion-icon name="chevron-down"></ion-icon>
         <span id="usercount">${connection}...</span>
+        <ion-icon id="pause-indicator-portrait" name="play" style="display: none;"></ion-icon>
       </button>
       <span>
         <button id="leader_btn" class="unselectable" title="${leaderDesc}">${leader}</button>
@@ -195,6 +196,7 @@
     <!-- Messages -->
     <div id="messagebuffer" style="flex-direction: column-reverse;"></div>
     <div id="chat-inputs-wrapper">
+      <div id="dynamic-chin" class="collapsed" style="display: none;"></div>
       <button id="scroll-to-chat-end" style="display: none; opacity: 0;" class="active">
         <ion-icon name="arrow-down" role="img" class="md hydrated"></ion-icon>
       </button>

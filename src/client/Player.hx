@@ -239,15 +239,19 @@ class Player {
 		JsApi.fireVideoRemoveEvents(videoList.currentItem);
 		player.removeVideo();
 		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
-		setPauseIndicator(true);
+		setPauseIndicator(false);
 	}
 
-	public function setPauseIndicator(flag:Bool):Void {
+	public function setPauseIndicator(isPause:Bool):Void {
 		if (!main.isSyncActive) return;
-		final state = flag ? "play" : "pause";
+		final state = isPause ? "pause" : "play";
 		final el = ge("#pause-indicator");
-		if (el.getAttribute("name") == state) return;
 		el.setAttribute("name", state);
+
+		final el2 = ge("#pause-indicator-portrait");
+		el2.setAttribute("name", "pause");
+		var isVisible = isPause || main.hasLeader();
+		el2.style.display = isVisible ? "" : "none";
 	}
 
 	public function onCanBePlayed():Void {
@@ -259,7 +263,11 @@ class Player {
 	public function onPlay():Void {
 		audioTrack?.play();
 
-		if (!main.isLeader()) return;
+		if (!main.isLeader()) {
+			// paused and no leader - instant pause
+			if (main.lastState.paused) pause();
+			return;
+		}
 		main.send({
 			type: Play,
 			play: {
@@ -279,10 +287,13 @@ class Player {
 		final item = videoList.currentItem ?? return;
 		// do not send pause if video is ended
 		if (getTime() >= item.duration - 0.01) return;
-		final hasAutoPause = main.hasLeaderOnPauseRequest()
+		var hasAutoPause = main.hasLeaderOnPauseRequest()
 			&& videoList.length > 0
 			&& getTime() > 1
 			&& isLoaded;
+		// do not set leader on pause if user tried to play server-paused video
+		if (main.showingServerPause) hasAutoPause = false;
+		// set leader and pause
 		if (hasAutoPause && !main.hasLeader()) {
 			JsApi.once(SetLeader, event -> {
 				final name = event.setLeader.clientName;
@@ -298,7 +309,12 @@ class Player {
 			main.toggleLeader();
 			return;
 		}
-		if (!main.isLeader()) return;
+		if (!main.isLeader()) {
+			// no pause and no permission - instant play
+			if (!main.lastState.paused) play();
+			return;
+		}
+		// we are leader, so just send pause
 		main.send({
 			type: Pause,
 			pause: {

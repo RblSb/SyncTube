@@ -61,8 +61,8 @@ class Cache {
 		}
 		final ytdl:Dynamic = untyped require("@distube/ytdl-core");
 		log(client, 'Caching $url to $outName...');
-		final opts = {playerClients: ["IOS", "WEB_CREATOR"]};
-		final promise:Promise<YouTubeVideoInfo> = ytdl.getInfo(url, opts);
+		// final opts = {playerClients: ["IOS", "WEB_CREATOR"]};
+		final promise:Promise<YouTubeVideoInfo> = ytdl.getInfo(url);
 		promise.then(info -> {
 			// trace(info.formats.filter(item -> item.audioCodec != null));
 			trace('Get info with ${info.formats.length} formats');
@@ -85,14 +85,14 @@ class Cache {
 
 			final dlVideo:Readable<Dynamic> = ytdl(url, {
 				format: videoFormat,
-				playerClients: opts.playerClients
+				// playerClients: opts.playerClients
 			});
 			dlVideo.pipe(Fs.createWriteStream('$cacheDir/input-video'));
 			dlVideo.on("error", err -> log(client, "Error during video download: " + err));
 
 			final dlAudio:Readable<Dynamic> = ytdl(url, {
 				format: audioFormat,
-				playerClients: opts.playerClients
+				// playerClients: opts.playerClients
 			});
 			dlAudio.pipe(Fs.createWriteStream('$cacheDir/input-audio'));
 			dlAudio.on("error", err -> log(client, "Error during audio download: " + err));

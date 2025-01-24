@@ -256,7 +256,7 @@ Lang.init = function(folderPath,callback) {
 	while(_g1 < _this.length) {
 		var v = _this[_g1];
 		++_g1;
-		if(v == Lang.lang || v == "en") {
+		if(v == Lang.lang || v == Lang.ids[0]) {
 			_g.push(v);
 		}
 	}
@@ -291,7 +291,7 @@ Lang.init = function(folderPath,callback) {
 };
 Lang.get = function(key) {
 	if(Lang.langs.h[Lang.lang] == null) {
-		Lang.lang = "en";
+		Lang.lang = Lang.ids[0];
 	}
 	var text = Lang.langs.h[Lang.lang].h[key];
 	if(text != null) {
@@ -597,13 +597,18 @@ client_Buttons.init = function(main) {
 		var isActive = smilesBtn.classList.toggle("active");
 		if(isActive) {
 			wrap.style.display = "";
-			var tmp = client_Buttons.outerHeight(list);
+			var tmp = client_Utils.outerHeight(list);
 			wrap.style.height = tmp + "px";
 		} else {
 			wrap.style.height = "0";
-			wrap.addEventListener("transitionend",function(e) {
-				return wrap.style.display = "none";
-			},{ once : true});
+			var onTransitionEnd = null;
+			onTransitionEnd = function(e) {
+				if(e.propertyName != "height") {
+					return;
+				}
+				wrap.style.display = "none";
+				wrap.removeEventListener("transitionend",onTransitionEnd);
+			};
 		}
 		if(list.firstElementChild.dataset.src == null) {
 			return;
@@ -773,7 +778,7 @@ client_Buttons.init = function(main) {
 		var panel = window.document.querySelector("#addfromurl");
 		var oldH = panel.style.height;
 		panel.style.height = "";
-		var newH = client_Buttons.outerHeight(panel) + "px";
+		var newH = client_Utils.outerHeight(panel) + "px";
 		panel.style.height = oldH;
 		return haxe_Timer.delay(function() {
 			panel.style.height = newH;
@@ -837,14 +842,12 @@ client_Buttons.toggleGroup = function(el) {
 		if(target.style.height == "") {
 			target.style.height = "0";
 		}
-		var tmp = client_Buttons.outerHeight(list);
-		target.style.height = tmp + "px";
+		haxe_Timer.delay(function() {
+			var tmp = client_Utils.outerHeight(list);
+			target.style.height = tmp + "px";
+		},0);
 	}
 	return el.classList.toggle("active");
-};
-client_Buttons.outerHeight = function(el) {
-	var style = window.getComputedStyle(el);
-	return el.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
 };
 client_Buttons.swapPlayerAndChat = function() {
 	client_Buttons.settings.isSwapped = window.document.querySelector("body").classList.toggle("swap");
@@ -1238,37 +1241,37 @@ client_JsApi.hasSubtitleSupport = $hx_exports["client"]["JsApi"]["hasSubtitleSup
 	}
 	return client_JsApi.subtitleFormats.indexOf(format) != -1;
 };
-client_JsApi.once = $hx_exports["client"]["JsApi"]["once"] = function(type,func) {
-	client_JsApi.onceListeners.push({ type : type, func : func});
+client_JsApi.once = $hx_exports["client"]["JsApi"]["once"] = function(type,callback) {
+	client_JsApi.onceListeners.unshift({ type : type, callback : callback});
 };
 client_JsApi.fireOnceEvent = function(event) {
-	var i = 0;
-	while(i < client_JsApi.onceListeners.length) {
-		var listener = client_JsApi.onceListeners[i];
-		if(listener.type == event.type) {
-			listener.func(event);
-			HxOverrides.remove(client_JsApi.onceListeners,listener);
+	var _g_arr = client_JsApi.onceListeners;
+	var _g_i = _g_arr.length - 1;
+	while(_g_i > -1) {
+		var listener = _g_arr[_g_i--];
+		if(listener.type != event.type) {
 			continue;
 		}
-		++i;
+		listener.callback(event);
+		HxOverrides.remove(client_JsApi.onceListeners,listener);
 	}
 };
-client_JsApi.notifyOnVideoChange = $hx_exports["client"]["JsApi"]["notifyOnVideoChange"] = function(func) {
-	client_JsApi.videoChange.push(func);
+client_JsApi.notifyOnVideoChange = $hx_exports["client"]["JsApi"]["notifyOnVideoChange"] = function(callback) {
+	client_JsApi.videoChange.push(callback);
 };
-client_JsApi.removeFromVideoChange = $hx_exports["client"]["JsApi"]["removeFromVideoChange"] = function(func) {
-	HxOverrides.remove(client_JsApi.videoChange,func);
+client_JsApi.removeFromVideoChange = $hx_exports["client"]["JsApi"]["removeFromVideoChange"] = function(callback) {
+	HxOverrides.remove(client_JsApi.videoChange,callback);
 };
 client_JsApi.fireVideoChangeEvents = function(item) {
 	var _g = 0;
 	var _g1 = client_JsApi.videoChange;
 	while(_g < _g1.length) _g1[_g++](item);
 };
-client_JsApi.notifyOnVideoRemove = $hx_exports["client"]["JsApi"]["notifyOnVideoRemove"] = function(func) {
-	client_JsApi.videoRemove.push(func);
+client_JsApi.notifyOnVideoRemove = $hx_exports["client"]["JsApi"]["notifyOnVideoRemove"] = function(callback) {
+	client_JsApi.videoRemove.push(callback);
 };
-client_JsApi.removeFromVideoRemove = $hx_exports["client"]["JsApi"]["removeFromVideoRemove"] = function(func) {
-	HxOverrides.remove(client_JsApi.videoRemove,func);
+client_JsApi.removeFromVideoRemove = $hx_exports["client"]["JsApi"]["removeFromVideoRemove"] = function(callback) {
+	HxOverrides.remove(client_JsApi.videoRemove,callback);
 };
 client_JsApi.fireVideoRemoveEvents = function(item) {
 	var _g = 0;
@@ -1287,6 +1290,8 @@ var client_Main = function() {
 	this.filters = [];
 	this.pageTitle = window.document.title;
 	this.clients = [];
+	this.lastState = { time : 0, rate : 1.0, paused : false, pausedByServer : false};
+	this.showingServerPause = false;
 	this.playersCacheSupport = [];
 	this.isPlaylistOpen = true;
 	this.globalIp = "";
@@ -1334,7 +1339,7 @@ client_Main.prototype = {
 		}
 		this.gotFirstPageInteraction = true;
 		this.player.unmute();
-		if(!this.hasLeader()) {
+		if(!this.hasLeader() && !this.showingServerPause) {
 			this.player.play();
 		}
 		window.document.removeEventListener("click",$bind(this,this.onFirstInteraction));
@@ -1630,7 +1635,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 445, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 454, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1664,7 +1669,21 @@ client_Main.prototype = {
 			break;
 		case "GetTime":
 			data.getTime.paused = data.getTime.paused != null && data.getTime.paused;
+			data.getTime.pausedByServer = data.getTime.pausedByServer != null && data.getTime.pausedByServer;
 			data.getTime.rate = data.getTime.rate != null ? data.getTime.rate : 1;
+			var isPauseChanged = this.lastState.paused != data.getTime.paused;
+			this.lastState.time = data.getTime.time;
+			this.lastState.paused = data.getTime.paused;
+			this.lastState.pausedByServer = data.getTime.pausedByServer;
+			this.lastState.rate = data.getTime.rate;
+			if(isPauseChanged) {
+				this.updateUserList();
+			}
+			if(data.getTime.pausedByServer) {
+				this.showServerUnpause();
+			} else if(this.showingServerPause) {
+				this.hideDynamicChin();
+			}
 			if(this.player.getPlaybackRate() != data.getTime.rate) {
 				this.player.setPlaybackRate(data.getTime.rate);
 			}
@@ -1691,7 +1710,7 @@ client_Main.prototype = {
 			} else if(data.getTime.paused) {
 				this.player.pause();
 			}
-			this.player.setPauseIndicator(!data.getTime.paused);
+			this.player.setPauseIndicator(data.getTime.paused);
 			if(Math.abs(time - newTime) < synchThreshold) {
 				return;
 			}
@@ -1732,7 +1751,8 @@ client_Main.prototype = {
 			this.showGuestPasswordPanel();
 			break;
 		case "Pause":
-			this.player.setPauseIndicator(false);
+			this.lastState.paused = true;
+			this.player.setPauseIndicator(this.lastState.paused);
 			this.updateUserList();
 			if((this.personal.group & 4) != 0) {
 				return;
@@ -1741,7 +1761,8 @@ client_Main.prototype = {
 			this.player.setTime(data.pause.time);
 			break;
 		case "Play":
-			this.player.setPauseIndicator(true);
+			this.lastState.paused = false;
+			this.player.setPauseIndicator(this.lastState.paused);
 			this.updateUserList();
 			if((this.personal.group & 4) != 0) {
 				return;
@@ -2130,9 +2151,8 @@ client_Main.prototype = {
 			var client = _g1[_g];
 			++_g;
 			list_b += "<div class=\"userlist_item\">";
-			var iconName = this.player.isPaused() ? "pause" : "play";
 			if((client.group & 4) != 0) {
-				list_b += Std.string("<ion-icon name=\"" + iconName + "\"></ion-icon>");
+				list_b += Std.string("<ion-icon name=\"" + (this.lastState.paused ? "pause" : "play") + "\"></ion-icon>");
 			}
 			var klass = (client.group & 1) != 0 ? "userlist_banned" : "";
 			if((client.group & 8) != 0) {
@@ -2230,6 +2250,68 @@ client_Main.prototype = {
 		btn.addEventListener("transitionend",function(e) {
 			return btn.style.display = "none";
 		},{ once : true});
+	}
+	,showServerUnpause: function() {
+		var _gthis = this;
+		if(this.showingServerPause) {
+			return;
+		}
+		this.showingServerPause = true;
+		var chin = window.document.querySelector("#dynamic-chin");
+		chin.innerHTML = "";
+		var div = window.document.createElement("div");
+		div.className = "server-whisper";
+		div.textContent = Lang.get("leaderDisconnectedServerOnPause");
+		chin.appendChild(div);
+		var btn = window.document.createElement("button");
+		btn.id = "unpause-server";
+		btn.textContent = Lang.get("unpause");
+		chin.appendChild(btn);
+		btn.onclick = function() {
+			_gthis.hideDynamicChin();
+			_gthis.send({ type : "SetLeader", setLeader : { clientName : _gthis.personal.name}});
+			client_JsApi.once("SetLeader",function(event) {
+				_gthis.send({ type : "SetLeader", setLeader : { clientName : ""}});
+			});
+		};
+		chin.style.display = "";
+		chin.style.transition = "none";
+		chin.classList.remove("collapsed");
+		var h = chin.clientHeight;
+		chin.classList.add("collapsed");
+		haxe_Timer.delay(function() {
+			chin.style.transition = "";
+			chin.classList.remove("collapsed");
+			chin.style.height = "" + h + "px";
+		},0);
+		var onTransitionEnd = null;
+		onTransitionEnd = function(e) {
+			if(e.propertyName != "height") {
+				return;
+			}
+			chin.style.height = "";
+			chin.removeEventListener("transitionend",onTransitionEnd);
+		};
+		chin.addEventListener("transitionend",onTransitionEnd);
+	}
+	,hideDynamicChin: function() {
+		this.showingServerPause = false;
+		var chin = window.document.querySelector("#dynamic-chin");
+		var h = chin.clientHeight;
+		chin.style.height = "" + h + "px";
+		haxe_Timer.delay(function() {
+			chin.style.height = "";
+			chin.classList.add("collapsed");
+		},0);
+		var onTransitionEnd = null;
+		onTransitionEnd = function(e) {
+			if(e.propertyName != "height") {
+				return;
+			}
+			chin.style.display = "none";
+			chin.removeEventListener("transitionend",onTransitionEnd);
+		};
+		chin.addEventListener("transitionend",onTransitionEnd);
 	}
 	,onChatImageLoaded: function(e) {
 		this.scrollChatToEnd();
@@ -2674,18 +2756,17 @@ client_Player.prototype = {
 		client_JsApi.fireVideoRemoveEvents(_this.items[_this.pos]);
 		this.player.removeVideo();
 		window.document.querySelector("#currenttitle").textContent = Lang.get("nothingPlaying");
-		this.setPauseIndicator(true);
+		this.setPauseIndicator(false);
 	}
-	,setPauseIndicator: function(flag) {
+	,setPauseIndicator: function(isPause) {
 		if(!this.main.isSyncActive) {
 			return;
 		}
-		var state = flag ? "play" : "pause";
-		var el = window.document.querySelector("#pause-indicator");
-		if(el.getAttribute("name") == state) {
-			return;
-		}
-		el.setAttribute("name",state);
+		window.document.querySelector("#pause-indicator").setAttribute("name",isPause ? "pause" : "play");
+		var el2 = window.document.querySelector("#pause-indicator-portrait");
+		el2.setAttribute("name","pause");
+		var tmp = isPause || this.main.hasLeader() ? "" : "none";
+		el2.style.display = tmp;
 	}
 	,onCanBePlayed: function() {
 		if(!this.isLoaded) {
@@ -2700,6 +2781,9 @@ client_Player.prototype = {
 			tmp.play();
 		}
 		if((this.main.personal.group & 4) == 0) {
+			if(this.main.lastState.paused) {
+				this.pause();
+			}
 			return;
 		}
 		this.main.send({ type : "Play", play : { time : this.getTime()}});
@@ -2723,7 +2807,11 @@ client_Player.prototype = {
 		if(this.getTime() >= tmp.duration - 0.01) {
 			return;
 		}
-		if(this.main.hasLeaderOnPauseRequest() && this.videoList.items.length > 0 && this.getTime() > 1 && this.isLoaded && !this.main.hasLeader()) {
+		var hasAutoPause = this.main.hasLeaderOnPauseRequest() && this.videoList.items.length > 0 && this.getTime() > 1 && this.isLoaded;
+		if(this.main.showingServerPause) {
+			hasAutoPause = false;
+		}
+		if(hasAutoPause && !this.main.hasLeader()) {
 			client_JsApi.once("SetLeader",function(event) {
 				if(event.setLeader.clientName != _gthis.main.personal.name) {
 					return;
@@ -2735,6 +2823,9 @@ client_Player.prototype = {
 			return;
 		}
 		if((this.main.personal.group & 4) == 0) {
+			if(!this.main.lastState.paused) {
+				this.play();
+			}
 			return;
 		}
 		this.main.send({ type : "Pause", pause : { time : this.getTime()}});
@@ -3077,7 +3168,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 592, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 608, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -3214,6 +3305,10 @@ client_Utils.nodeFromString = function(div) {
 	var wrapper = window.document.createElement("div");
 	wrapper.innerHTML = div;
 	return wrapper.firstElementChild;
+};
+client_Utils.outerHeight = function(el) {
+	var style = window.getComputedStyle(el);
+	return el.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
 };
 client_Utils.prepend = function(parent,child) {
 	if(parent.firstChild == null) {

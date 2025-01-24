@@ -142,6 +142,13 @@ typedef FlashbackItem = {
 	time:Float
 }
 
+typedef GetTimeEvent = {
+	time:Float,
+	?paused:Bool,
+	?pausedByServer:Bool,
+	?rate:Float
+}
+
 typedef WsEvent = {
 	type:WsEventType,
 	?connected:{
@@ -201,11 +208,7 @@ typedef WsEvent = {
 	?play:{
 		time:Float
 	},
-	?getTime:{
-		time:Float,
-		?paused:Bool,
-		?rate:Float
-	},
+	?getTime:GetTimeEvent,
 	?setTime:{
 		time:Float
 	},

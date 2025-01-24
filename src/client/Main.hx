@@ -2,6 +2,7 @@ package client;
 
 import Client.ClientData;
 import Types.Config;
+import Types.GetTimeEvent;
 import Types.Permission;
 import Types.PlayerType;
 import Types.VideoData;
@@ -19,6 +20,7 @@ import js.html.Event;
 import js.html.InputElement;
 import js.html.KeyboardEvent;
 import js.html.MouseEvent;
+import js.html.TransitionEvent;
 import js.html.URL;
 import js.html.VideoElement;
 import js.html.WebSocket;
@@ -37,6 +39,13 @@ class Main {
 	public var globalIp(default, null) = "";
 	public var isPlaylistOpen(default, null) = true;
 	public var playersCacheSupport(default, null):Array<PlayerType> = [];
+	public var showingServerPause(default, null) = false;
+	public final lastState:GetTimeEvent = {
+		time: 0,
+		rate: 1.0,
+		paused: false,
+		pausedByServer: false
+	};
 
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
@@ -109,7 +118,7 @@ class Main {
 		if (!player.isVideoLoaded()) return;
 		gotFirstPageInteraction = true;
 		player.unmute();
-		if (!hasLeader()) player.play();
+		if (!hasLeader() && !showingServerPause) player.play();
 		document.removeEventListener("click", onFirstInteraction);
 	}
 
@@ -515,14 +524,16 @@ class Main {
 				if (player.isListEmpty()) player.pause();
 
 			case Pause:
-				player.setPauseIndicator(false);
+				lastState.paused = true;
+				player.setPauseIndicator(lastState.paused);
 				updateUserList();
 				if (isLeader()) return;
 				player.pause();
 				player.setTime(data.pause.time);
 
 			case Play:
-				player.setPauseIndicator(true);
+				lastState.paused = false;
+				player.setPauseIndicator(lastState.paused);
 				updateUserList();
 				if (isLeader()) return;
 				final synchThreshold = settings.synchThreshold;
@@ -535,7 +546,23 @@ class Main {
 
 			case GetTime:
 				data.getTime.paused ??= false;
+				data.getTime.pausedByServer ??= false;
 				data.getTime.rate ??= 1;
+
+				final isPauseChanged = lastState.paused != data.getTime.paused;
+				lastState.time = data.getTime.time;
+				lastState.paused = data.getTime.paused;
+				lastState.pausedByServer = data.getTime.pausedByServer;
+				lastState.rate = data.getTime.rate;
+
+				if (isPauseChanged) updateUserList();
+
+				final pausedByServer = data.getTime.pausedByServer;
+				if (pausedByServer) {
+					showServerUnpause();
+				} else if (showingServerPause) {
+					hideDynamicChin();
+				}
 
 				if (player.getPlaybackRate() != data.getTime.rate) {
 					player.setPlaybackRate(data.getTime.rate);
@@ -558,7 +585,7 @@ class Main {
 				} else {
 					if (data.getTime.paused) player.pause();
 				}
-				player.setPauseIndicator(!data.getTime.paused);
+				player.setPauseIndicator(data.getTime.paused);
 				if (Math.abs(time - newTime) < synchThreshold) return;
 				// +0.5s for buffering
 				if (!data.getTime.paused) player.setTime(newTime + 0.5);
@@ -913,7 +940,7 @@ class Main {
 		final list = new StringBuf();
 		for (client in clients) {
 			list.add('<div class="userlist_item">');
-			final iconName = player.isPaused() ? "pause" : "play";
+			final iconName = lastState.paused ? "pause" : "play";
 			if (client.isLeader) list.add('<ion-icon name="$iconName"></ion-icon>');
 			var klass = client.isBanned ? "userlist_banned" : "";
 			if (client.isAdmin) klass += " userlist_owner";
@@ -1012,6 +1039,73 @@ class Main {
 		btn.addEventListener("transitionend", e -> {
 			btn.style.display = "none";
 		}, {once: true});
+	}
+
+	public function showServerUnpause():Void {
+		if (showingServerPause) return;
+		showingServerPause = true;
+		final chin = ge("#dynamic-chin");
+		chin.innerHTML = "";
+
+		final div = document.createDivElement();
+		div.className = "server-whisper";
+		div.textContent = Lang.get("leaderDisconnectedServerOnPause");
+		chin.appendChild(div);
+		final btn = document.createButtonElement();
+		btn.id = "unpause-server";
+		btn.textContent = Lang.get("unpause");
+		chin.appendChild(btn);
+		btn.onclick = () -> {
+			hideDynamicChin();
+			send({
+				type: SetLeader,
+				setLeader: {
+					clientName: personal.name
+				}
+			});
+			JsApi.once(SetLeader, event -> {
+				send({
+					type: SetLeader,
+					setLeader: {
+						clientName: ""
+					}
+				});
+			});
+		}
+
+		chin.style.display = "";
+		chin.style.transition = "none";
+		chin.classList.remove("collapsed");
+		final h = chin.clientHeight;
+		chin.classList.add("collapsed");
+		Timer.delay(() -> {
+			chin.style.transition = "";
+			chin.classList.remove("collapsed");
+			chin.style.height = '${h}px';
+		}, 0);
+		function onTransitionEnd(e:TransitionEvent):Void {
+			if (e.propertyName != "height") return;
+			chin.style.height = "";
+			chin.removeEventListener("transitionend", onTransitionEnd);
+		}
+		chin.addEventListener("transitionend", onTransitionEnd);
+	}
+
+	public function hideDynamicChin():Void {
+		showingServerPause = false;
+		final chin = ge("#dynamic-chin");
+		final h = chin.clientHeight;
+		chin.style.height = '${h}px';
+		Timer.delay(() -> {
+			chin.style.height = "";
+			chin.classList.add("collapsed");
+		}, 0);
+		function onTransitionEnd(e:TransitionEvent):Void {
+			if (e.propertyName != "height") return;
+			chin.style.display = "none";
+			chin.removeEventListener("transitionend", onTransitionEnd);
+		}
+		chin.addEventListener("transitionend", onTransitionEnd);
 	}
 
 	function onChatImageLoaded(e:Event):Void {

@@ -64,6 +64,8 @@
 	"kicked": "Kicked",
 	"clearChat": "Clear Chat",
 	"chatlinePlaceholder": "Send a message...",
+	"leaderDisconnectedServerOnPause": "Leader was disconnected, server on pause.",
+	"unpause": "Unpause",
 	"addVideoFromUrl": "Add video from URL",
 	"embedCustomFrame": "Embed a custom frame",
 	"clearPlaylist": "Clear playlist",

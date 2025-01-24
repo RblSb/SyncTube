@@ -64,6 +64,8 @@
 	"kicked": "Выпнут",
 	"clearChat": "Очистить чат",
 	"chatlinePlaceholder": "Введите сообщение...",
+	"leaderDisconnectedServerOnPause": "Лидер вышел, сервер на паузе.",
+	"unpause": "Возобновить",
 	"addVideoFromUrl": "Добавить видео по ссылке",
 	"embedCustomFrame": "Добавить iframe",
 	"clearPlaylist": "Очистить плейлист",

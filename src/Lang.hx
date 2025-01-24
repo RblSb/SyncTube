@@ -30,7 +30,7 @@ class Lang {
 	public static function init(folderPath:String, ?callback:() -> Void):Void {
 		#if (js && !nodejs)
 		// Filter unused languages
-		ids = ids.filter(id -> id == lang || id == "en");
+		ids = ids.filter(id -> id == lang || id == ids[0]);
 		#end
 		langs.clear();
 		var count = 0;
@@ -51,13 +51,13 @@ class Lang {
 
 	#if (sys || nodejs)
 	public static function get(lang:String, ?key:String):String {
-		if (langs[lang] == null) lang = "en";
+		if (langs[lang] == null) lang = ids[0];
 		final text = langs[lang][key];
 		return text ?? key;
 	}
 	#else
 	public static function get(key:String):String {
-		if (langs[lang] == null) lang = "en";
+		if (langs[lang] == null) lang = ids[0];
 		final text = langs[lang][key];
 		return text ?? key;
 	}

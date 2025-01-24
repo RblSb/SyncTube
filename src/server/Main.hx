@@ -70,6 +70,7 @@ class Main {
 		to stopped server time.
 	**/
 	var emptyRoomCallbackTimer:Null<Timer>;
+	var isServerPause = false;
 
 	static function main():Void {
 		new Main({
@@ -476,7 +477,9 @@ class Main {
 				if (!internal) return;
 				emptyRoomCallbackTimer?.stop();
 				if (clients.length == 1 && videoList.length > 0) {
-					if (videoTimer.isPaused()) videoTimer.play();
+					if (!isServerPause) {
+						if (videoTimer.isPaused()) videoTimer.play();
+					}
 				}
 
 				checkBan(client);
@@ -505,7 +508,11 @@ class Main {
 				clients.remove(client);
 				sendClientList();
 				if (client.isLeader) {
-					if (videoTimer.isPaused()) videoTimer.play();
+					// if (videoTimer.isPaused()) videoTimer.play();
+					if (videoList.length > 0) {
+						videoTimer.pause();
+						isServerPause = true;
+					}
 				}
 				if (clients.length == 0) {
 					emptyRoomCallbackTimer?.stop();
@@ -729,6 +736,7 @@ class Main {
 					saveFlashbackTime(videoList.currentItem);
 				}
 				videoTimer.setTime(data.play.time);
+				isServerPause = false;
 				videoTimer.play();
 				broadcast({
 					type: data.type,
@@ -759,6 +767,7 @@ class Main {
 					}
 				};
 				if (videoTimer.isPaused()) obj.getTime.paused = true;
+				if (isServerPause) obj.getTime.pausedByServer = true;
 				if (videoTimer.getRate() != 1) {
 					if (!clients.hasLeader()) videoTimer.setRate(1);
 					else obj.getTime.rate = videoTimer.getRate();
@@ -816,6 +825,7 @@ class Main {
 				} else if (!client.isLeader && clientName != "") {
 					if (!checkPermission(client, SetLeaderPerm)) return;
 				}
+				isServerPause = false;
 				clients.setLeader(clientName);
 				broadcast({
 					type: SetLeader,
@@ -1061,6 +1071,7 @@ class Main {
 		waitVideoStart?.stop();
 		loadedClientsCount = 0;
 		broadcast({type: VideoLoaded});
+		isServerPause = false;
 		videoTimer.start();
 	}
 

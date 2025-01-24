@@ -8,6 +8,7 @@ import js.html.Element;
 import js.html.ImageElement;
 import js.html.InputElement;
 import js.html.KeyboardEvent;
+import js.html.TransitionEvent;
 import js.html.VisualViewport;
 
 class Buttons {
@@ -50,12 +51,14 @@ class Buttons {
 			final isActive = smilesBtn.classList.toggle("active");
 			if (isActive) {
 				wrap.style.display = "";
-				wrap.style.height = outerHeight(list) + "px";
+				wrap.style.height = Utils.outerHeight(list) + "px";
 			} else {
 				wrap.style.height = "0";
-				wrap.addEventListener("transitionend", e -> {
+				function onTransitionEnd(e:TransitionEvent):Void {
+					if (e.propertyName != "height") return;
 					wrap.style.display = "none";
-				}, {once: true});
+					wrap.removeEventListener("transitionend", onTransitionEnd);
+				}
 			}
 			if (list.firstElementChild.dataset.src == null) return;
 			for (child in list.children) {
@@ -225,7 +228,7 @@ class Buttons {
 			final panel = ge("#addfromurl");
 			final oldH = panel.style.height; // save for animation
 			panel.style.height = ""; // to calculate height from content
-			final newH = outerHeight(panel) + "px";
+			final newH = Utils.outerHeight(panel) + "px";
 			panel.style.height = oldH;
 			Timer.delay(() -> panel.style.height = newH, 0);
 		}
@@ -279,16 +282,11 @@ class Buttons {
 		} else {
 			final list = target.firstElementChild;
 			if (target.style.height == "") target.style.height = "0";
-			target.style.height = outerHeight(list) + "px";
+			Timer.delay(() -> {
+				target.style.height = Utils.outerHeight(list) + "px";
+			}, 0);
 		}
 		return el.classList.toggle("active");
-	}
-
-	static function outerHeight(el:Element):Float {
-		final style = window.getComputedStyle(el);
-		return (el.getBoundingClientRect().height
-			+ Std.parseFloat(style.marginTop)
-			+ Std.parseFloat(style.marginBottom));
 	}
 
 	static function swapPlayerAndChat():Void {
