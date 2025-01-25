@@ -54,11 +54,6 @@ class Utils {
 			+ Std.parseFloat(style.marginBottom));
 	}
 
-	public static function prepend(parent:Element, child:Element):Void {
-		if (parent.firstChild == null) parent.appendChild(child);
-		else parent.insertBefore(child, parent.firstChild);
-	}
-
 	public static function insertAtIndex(parent:Element, child:Element, i:Int) {
 		if (i >= parent.children.length) parent.appendChild(child);
 		else parent.insertBefore(child, parent.children[i]);

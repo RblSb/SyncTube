@@ -40,12 +40,16 @@ class Main {
 	public var isPlaylistOpen(default, null) = true;
 	public var playersCacheSupport(default, null):Array<PlayerType> = [];
 	public var showingServerPause(default, null) = false;
+	/** How much time passed from last GetTime **/
+	public var timeFromLastState(default, null) = 0.0;
 	public final lastState:GetTimeEvent = {
 		time: 0,
 		rate: 1.0,
 		paused: false,
 		pausedByServer: false
 	};
+
+	var lastStateTimeStamp = 0.0;
 
 	final clients:Array<Client> = [];
 	var pageTitle = document.title;
@@ -510,6 +514,10 @@ class Main {
 				if (player.itemsLength() == 1) player.setVideo(0);
 
 			case VideoLoaded:
+				lastState.paused = false;
+				lastState.pausedByServer = false;
+				lastState.time = 0;
+				updateLastStateTime();
 				player.setTime(0);
 				player.play();
 				// try to sync leader after with GetTime events
@@ -524,7 +532,9 @@ class Main {
 				if (player.isListEmpty()) player.pause();
 
 			case Pause:
+				lastState.time = data.pause.time;
 				lastState.paused = true;
+				updateLastStateTime();
 				player.setPauseIndicator(lastState.paused);
 				updateUserList();
 				if (isLeader()) return;
@@ -532,7 +542,9 @@ class Main {
 				player.setTime(data.pause.time);
 
 			case Play:
+				lastState.time = data.play.time;
 				lastState.paused = false;
+				updateLastStateTime();
 				player.setPauseIndicator(lastState.paused);
 				updateUserList();
 				if (isLeader()) return;
@@ -554,6 +566,7 @@ class Main {
 				lastState.paused = data.getTime.paused;
 				lastState.pausedByServer = data.getTime.pausedByServer;
 				lastState.rate = data.getTime.rate;
+				updateLastStateTime();
 
 				if (isPauseChanged) updateUserList();
 
@@ -592,6 +605,8 @@ class Main {
 				else player.setTime(newTime);
 
 			case SetTime:
+				lastState.time = data.setTime.time;
+				updateLastStateTime();
 				final synchThreshold = settings.synchThreshold;
 				final newTime = data.setTime.time;
 				final time = player.getTime();
@@ -603,6 +618,8 @@ class Main {
 				player.setPlaybackRate(data.setRate.rate);
 
 			case Rewind:
+				lastState.time = data.rewind.time;
+				updateLastStateTime();
 				player.setTime(data.rewind.time + 0.5);
 
 			case Flashback: // server-only
@@ -638,6 +655,14 @@ class Main {
 			case Dump:
 				Utils.saveFile("dump.json", ApplicationJson, data.dump.data);
 		}
+	}
+
+	function updateLastStateTime():Void {
+		if (lastStateTimeStamp == 0) {
+			lastStateTimeStamp = Timer.stamp();
+		}
+		timeFromLastState = Timer.stamp() - lastStateTimeStamp;
+		lastStateTimeStamp = Timer.stamp();
 	}
 
 	function onConnected(data:WsEvent):Void {
@@ -713,10 +738,7 @@ class Main {
 		}
 		ge("#requestLeaderHintButton").onclick = (e:MouseEvent) -> {
 			window.scrollTo(0, 0);
-			if (Utils.isTouch()) {
-				ge("#leader_btn").classList.add("hint");
-				Timer.delay(() -> ge("#leader_btn").classList.remove("hint"), 1000);
-			}
+			if (Utils.isTouch()) blinkLeaderButton();
 		}
 		ge("#requestLeaderHintButton").onpointerenter = e -> {
 			if (Utils.isTouch()) return;
@@ -742,6 +764,11 @@ class Main {
 			settings.showHintList = false;
 			Settings.write(settings);
 		}
+	}
+
+	public function blinkLeaderButton():Void {
+		ge("#leader_btn").classList.add("hint");
+		Timer.delay(() -> ge("#leader_btn").classList.remove("hint"), 500);
 	}
 
 	function onUserGroupChanged():Void {
@@ -790,7 +817,10 @@ class Main {
 
 	function setConfig(config:Config):Void {
 		this.config = config;
-		if (Utils.isTouch()) config.requestLeaderOnPause = false;
+		if (Utils.isTouch()) {
+			config.requestLeaderOnPause = false;
+			config.unpauseWithoutLeader = false;
+		}
 		pageTitle = config.channelName;
 		final login:InputElement = cast ge("#guestname");
 		login.maxLength = config.maxLoginLength;
@@ -1063,14 +1093,7 @@ class Main {
 					clientName: personal.name
 				}
 			});
-			JsApi.once(SetLeader, event -> {
-				send({
-					type: SetLeader,
-					setLeader: {
-						clientName: ""
-					}
-				});
-			});
+			JsApi.once(SetLeader, event -> removeLeader());
 		}
 
 		chin.style.display = "";
@@ -1318,6 +1341,15 @@ class Main {
 		});
 	}
 
+	public function removeLeader():Void {
+		send({
+			type: SetLeader,
+			setLeader: {
+				clientName: ""
+			}
+		});
+	}
+
 	public function toggleLeaderAndPause():Void {
 		if (!isLeader()) {
 			JsApi.once(SetLeader, event -> {
@@ -1334,6 +1366,10 @@ class Main {
 
 	public function hasLeaderOnPauseRequest():Bool {
 		return config.requestLeaderOnPause;
+	}
+
+	public function hasUnpauseWithoutLeader():Bool {
+		return config.unpauseWithoutLeader;
 	}
 
 	public function getTemplateUrl():String {

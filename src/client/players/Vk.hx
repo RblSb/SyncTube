@@ -107,7 +107,7 @@ class Vk implements IPlayer {
 				frameborder="0" allowfullscreen>
 			</iframe>'.trim()
 		);
-		Utils.prepend(playerEl, tempVideo);
+		playerEl.prepend(tempVideo);
 		final tempVkPlayer = createVkPlayer(tempVideo);
 		tempVkPlayer.on("inited", () -> {
 			callback({

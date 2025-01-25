@@ -1290,7 +1290,9 @@ var client_Main = function() {
 	this.filters = [];
 	this.pageTitle = window.document.title;
 	this.clients = [];
+	this.lastStateTimeStamp = 0.0;
 	this.lastState = { time : 0, rate : 1.0, paused : false, pausedByServer : false};
+	this.timeFromLastState = 0.0;
 	this.showingServerPause = false;
 	this.playersCacheSupport = [];
 	this.isPlaylistOpen = true;
@@ -1635,7 +1637,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 454, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 458, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireOnceEvent(data);
 		switch(data.type) {
@@ -1676,6 +1678,7 @@ client_Main.prototype = {
 			this.lastState.paused = data.getTime.paused;
 			this.lastState.pausedByServer = data.getTime.pausedByServer;
 			this.lastState.rate = data.getTime.rate;
+			this.updateLastStateTime();
 			if(isPauseChanged) {
 				this.updateUserList();
 			}
@@ -1751,7 +1754,9 @@ client_Main.prototype = {
 			this.showGuestPasswordPanel();
 			break;
 		case "Pause":
+			this.lastState.time = data.pause.time;
 			this.lastState.paused = true;
+			this.updateLastStateTime();
 			this.player.setPauseIndicator(this.lastState.paused);
 			this.updateUserList();
 			if((this.personal.group & 4) != 0) {
@@ -1761,7 +1766,9 @@ client_Main.prototype = {
 			this.player.setTime(data.pause.time);
 			break;
 		case "Play":
+			this.lastState.time = data.play.time;
 			this.lastState.paused = false;
+			this.updateLastStateTime();
 			this.player.setPauseIndicator(this.lastState.paused);
 			this.updateUserList();
 			if((this.personal.group & 4) != 0) {
@@ -1784,6 +1791,8 @@ client_Main.prototype = {
 			}
 			break;
 		case "Rewind":
+			this.lastState.time = data.rewind.time;
+			this.updateLastStateTime();
 			this.player.setTime(data.rewind.time + 0.5);
 			break;
 		case "ServerMessage":
@@ -1808,6 +1817,8 @@ client_Main.prototype = {
 			this.player.setPlaybackRate(data.setRate.rate);
 			break;
 		case "SetTime":
+			this.lastState.time = data.setTime.time;
+			this.updateLastStateTime();
 			var synchThreshold = this.settings.synchThreshold;
 			var newTime = data.setTime.time;
 			if(Math.abs(this.player.getTime() - newTime) < synchThreshold) {
@@ -1841,6 +1852,10 @@ client_Main.prototype = {
 			this.player.setItems(data.updatePlaylist.videoList);
 			break;
 		case "VideoLoaded":
+			this.lastState.paused = false;
+			this.lastState.pausedByServer = false;
+			this.lastState.time = 0;
+			this.updateLastStateTime();
 			this.player.setTime(0);
 			this.player.play();
 			if((this.personal.group & 4) != 0 && !this.player.isVideoLoaded()) {
@@ -1848,6 +1863,13 @@ client_Main.prototype = {
 			}
 			break;
 		}
+	}
+	,updateLastStateTime: function() {
+		if(this.lastStateTimeStamp == 0) {
+			this.lastStateTimeStamp = HxOverrides.now() / 1000;
+		}
+		this.timeFromLastState = HxOverrides.now() / 1000 - this.lastStateTimeStamp;
+		this.lastStateTimeStamp = HxOverrides.now() / 1000;
 	}
 	,onConnected: function(data) {
 		var connected = data.connected;
@@ -1924,10 +1946,7 @@ client_Main.prototype = {
 		window.document.querySelector("#requestLeaderHintButton").onclick = function(e) {
 			window.scrollTo(0,0);
 			if(client_Utils.isTouch()) {
-				window.document.querySelector("#leader_btn").classList.add("hint");
-				haxe_Timer.delay(function() {
-					window.document.querySelector("#leader_btn").classList.remove("hint");
-				},1000);
+				_gthis.blinkLeaderButton();
 			}
 		};
 		window.document.querySelector("#requestLeaderHintButton").onpointerenter = function(e) {
@@ -1961,6 +1980,12 @@ client_Main.prototype = {
 			_gthis.settings.showHintList = false;
 			client_Settings.write(_gthis.settings);
 		};
+	}
+	,blinkLeaderButton: function() {
+		window.document.querySelector("#leader_btn").classList.add("hint");
+		haxe_Timer.delay(function() {
+			window.document.querySelector("#leader_btn").classList.remove("hint");
+		},500);
 	}
 	,onUserGroupChanged: function() {
 		var button = window.document.querySelector("#queue_next");
@@ -2006,6 +2031,7 @@ client_Main.prototype = {
 		this.config = config;
 		if(client_Utils.isTouch()) {
 			config.requestLeaderOnPause = false;
+			config.unpauseWithoutLeader = false;
 		}
 		this.pageTitle = config.channelName;
 		window.document.querySelector("#guestname").maxLength = config.maxLoginLength;
@@ -2271,7 +2297,7 @@ client_Main.prototype = {
 			_gthis.hideDynamicChin();
 			_gthis.send({ type : "SetLeader", setLeader : { clientName : _gthis.personal.name}});
 			client_JsApi.once("SetLeader",function(event) {
-				_gthis.send({ type : "SetLeader", setLeader : { clientName : ""}});
+				_gthis.removeLeader();
 			});
 		};
 		chin.style.display = "";
@@ -2499,6 +2525,9 @@ client_Main.prototype = {
 		this.setLeaderButton((this.personal.group & 4) == 0);
 		this.send({ type : "SetLeader", setLeader : { clientName : (this.personal.group & 4) != 0 ? "" : this.personal.name}});
 	}
+	,removeLeader: function() {
+		this.send({ type : "SetLeader", setLeader : { clientName : ""}});
+	}
 	,toggleLeaderAndPause: function() {
 		var _gthis = this;
 		if((this.personal.group & 4) == 0) {
@@ -2515,6 +2544,9 @@ client_Main.prototype = {
 	}
 	,hasLeaderOnPauseRequest: function() {
 		return this.config.requestLeaderOnPause;
+	}
+	,hasUnpauseWithoutLeader: function() {
+		return this.config.unpauseWithoutLeader;
 	}
 	,getTemplateUrl: function() {
 		return this.config.templateUrl;
@@ -2541,6 +2573,7 @@ client_Main.prototype = {
 	}
 };
 var client_Player = function(main) {
+	this.inUserInteraction = false;
 	this.voiceOverVolume = 0.3;
 	this.needsVolumeReset = false;
 	this.isAudioTrackLoaded = false;
@@ -2575,6 +2608,12 @@ var client_Player = function(main) {
 			client_Buttons.onViewportResize();
 		};
 	}
+	this.playerEl.addEventListener("click",function(e) {
+		_gthis.inUserInteraction = true;
+		return haxe_Timer.delay(function() {
+			_gthis.inUserInteraction = false;
+		},350);
+	},{ });
 };
 client_Player.__name__ = true;
 client_Player.prototype = {
@@ -2705,7 +2744,7 @@ client_Player.prototype = {
 			return _gthis.isAudioTrackLoaded = true;
 		};
 		this.audioTrack.onerror = function(e) {
-			haxe_Log.trace(e,{ fileName : "src/client/Player.hx", lineNumber : 205, className : "client.Player", methodName : "setExternalAudioTrack"});
+			haxe_Log.trace(e,{ fileName : "src/client/Player.hx", lineNumber : 215, className : "client.Player", methodName : "setExternalAudioTrack"});
 			_gthis.audioTrack.oncanplay = null;
 			_gthis.audioTrack.onerror = null;
 			_gthis.isAudioTrackLoaded = false;
@@ -2762,9 +2801,10 @@ client_Player.prototype = {
 		if(!this.main.isSyncActive) {
 			return;
 		}
-		window.document.querySelector("#pause-indicator").setAttribute("name",isPause ? "pause" : "play");
+		var state = isPause ? "pause" : "play";
+		window.document.querySelector("#pause-indicator").setAttribute("name",state);
 		var el2 = window.document.querySelector("#pause-indicator-portrait");
-		el2.setAttribute("name","pause");
+		el2.setAttribute("name",state);
 		var tmp = isPause || this.main.hasLeader() ? "" : "none";
 		el2.style.display = tmp;
 	}
@@ -2780,14 +2820,24 @@ client_Player.prototype = {
 		if(tmp != null) {
 			tmp.play();
 		}
+		if(!this.isLoaded) {
+			return;
+		}
+		if(this.videoList.items.length == 0) {
+			return;
+		}
+		var hasAutoPause = this.main.hasLeaderOnPauseRequest();
 		if((this.main.personal.group & 4) == 0) {
-			if(this.main.lastState.paused) {
+			if(hasAutoPause && this.inUserInteraction || this.main.hasUnpauseWithoutLeader()) {
+				this.main.removeLeader();
+			} else if(this.main.lastState.paused) {
 				this.pause();
+				this.main.blinkLeaderButton();
 			}
 			return;
 		}
 		this.main.send({ type : "Play", play : { time : this.getTime()}});
-		if(this.main.hasLeaderOnPauseRequest() && this.videoList.items.length > 0) {
+		if(hasAutoPause) {
 			if(this.main.hasPermission("requestLeader")) {
 				this.main.toggleLeader();
 			}
@@ -2798,6 +2848,9 @@ client_Player.prototype = {
 		var tmp = this.audioTrack;
 		if(tmp != null) {
 			tmp.pause();
+		}
+		if(!this.isLoaded) {
+			return;
 		}
 		var _this = this.videoList;
 		var tmp = _this.items[_this.pos];
@@ -2825,6 +2878,7 @@ client_Player.prototype = {
 		if((this.main.personal.group & 4) == 0) {
 			if(!this.main.lastState.paused) {
 				this.play();
+				this.main.blinkLeaderButton();
 			}
 			return;
 		}
@@ -2838,7 +2892,17 @@ client_Player.prototype = {
 			this.skipSetTime = false;
 			return;
 		}
+		if(this.videoList.items.length == 0) {
+			return;
+		}
 		if((this.main.personal.group & 4) == 0) {
+			if(this.main.hasLeader() || this.main.lastState.pausedByServer) {
+				this.isPaused();
+				var time = this.main.lastState.time;
+				this.getTime();
+				this.setTime(time);
+				this.main.blinkLeaderButton();
+			}
 			return;
 		}
 		this.main.send({ type : "SetTime", setTime : { time : this.getTime()}});
@@ -2851,7 +2915,11 @@ client_Player.prototype = {
 			this.skipSetRate = false;
 			return;
 		}
+		if(this.videoList.items.length == 0) {
+			return;
+		}
 		if((this.main.personal.group & 4) == 0) {
+			this.main.blinkLeaderButton();
 			return;
 		}
 		this.main.send({ type : "SetRate", setRate : { rate : this.getPlaybackRate()}});
@@ -3168,7 +3236,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 608, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 652, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -3309,13 +3377,6 @@ client_Utils.nodeFromString = function(div) {
 client_Utils.outerHeight = function(el) {
 	var style = window.getComputedStyle(el);
 	return el.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-};
-client_Utils.prepend = function(parent,child) {
-	if(parent.firstChild == null) {
-		parent.appendChild(child);
-	} else {
-		parent.insertBefore(child,parent.firstChild);
-	}
 };
 client_Utils.insertAtIndex = function(parent,child,i) {
 	if(i >= parent.children.length) {
@@ -3561,7 +3622,7 @@ client_players_Raw.prototype = {
 			}
 			callback({ duration : video.duration, title : title, subs : subs});
 		};
-		client_Utils.prepend(this.playerEl,video);
+		this.playerEl.prepend(video);
 		if(isHls) {
 			this.initHlsSource(video,url);
 		}
@@ -4055,7 +4116,7 @@ client_players_Vk.prototype = {
 			return;
 		}
 		var tempVideo = client_Utils.nodeFromString(StringTools.trim("<iframe id=\"temp-videoplayer\" src=\"https://vk.com/video_ext.php?oid=" + ids.oid + "&id=" + ids.id + "&hd=1&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>"));
-		client_Utils.prepend(this.playerEl,tempVideo);
+		this.playerEl.prepend(tempVideo);
 		var tempVkPlayer = this.createVkPlayer(tempVideo);
 		tempVkPlayer.on("inited",function() {
 			callback({ duration : tempVkPlayer.getDuration(), title : "VK media", url : url});
@@ -4320,7 +4381,7 @@ client_players_Youtube.prototype = {
 		}
 		var video = window.document.createElement("div");
 		video.id = "temp-videoplayer";
-		client_Utils.prepend(this.playerEl,video);
+		this.playerEl.prepend(video);
 		var tempYoutube = null;
 		tempYoutube = new YT.Player(video.id,{ videoId : this.extractVideoId(url), playerVars : { modestbranding : 1, rel : 0, showinfo : 0}, events : { onReady : function(e) {
 			if(_gthis.playerEl.contains(video)) {
@@ -4358,11 +4419,13 @@ client_players_Youtube.prototype = {
 				e.target.mute();
 			}
 			_gthis.isLoaded = true;
-			_gthis.youtube.pauseVideo();
+			if(_gthis.main.lastState.paused) {
+				_gthis.youtube.pauseVideo();
+			}
+			_gthis.player.onCanBePlayed();
 		}, onStateChange : function(e) {
 			switch(e.data) {
 			case -1:
-				_gthis.player.onCanBePlayed();
 				break;
 			case 0:
 				break;

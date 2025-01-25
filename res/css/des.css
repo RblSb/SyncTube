@@ -203,7 +203,7 @@ button span {
 #leader_btn {
   border: .125rem solid;
   border-color: transparent;
-  transition: border-color ease-in-out 800ms;
+  transition: border-color ease-in-out 500ms;
 }
 
 #leader_btn.hint {

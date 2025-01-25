@@ -175,7 +175,7 @@ class Youtube implements IPlayer {
 		}
 		final video = document.createDivElement();
 		video.id = "temp-videoplayer";
-		Utils.prepend(playerEl, video);
+		playerEl.prepend(video);
 		var tempYoutube:YoutubePlayer = null;
 		tempYoutube = new YoutubePlayer(video.id, {
 			videoId: extractVideoId(url),
@@ -232,12 +232,12 @@ class Youtube implements IPlayer {
 				onReady: e -> {
 					if (!main.isAutoplayAllowed()) e.target.mute();
 					isLoaded = true;
-					youtube.pauseVideo();
+					if (main.lastState.paused) youtube.pauseVideo();
+					player.onCanBePlayed();
 				},
 				onStateChange: e -> {
 					switch (e.data) {
 						case UNSTARTED:
-							player.onCanBePlayed();
 						case ENDED:
 						case PLAYING:
 							player.onPlay();

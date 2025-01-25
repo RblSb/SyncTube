@@ -76,7 +76,7 @@ class Raw implements IPlayer {
 				subs: subs,
 			});
 		}
-		Utils.prepend(playerEl, video);
+		playerEl.prepend(video);
 		if (isHls) initHlsSource(video, url);
 	}
 
