@@ -423,7 +423,7 @@ header h4 {
     background: var(--background-video);
   }
 
-  .info {
+  .video-info {
     order: 2;
   }
 
@@ -480,6 +480,8 @@ iframe#videoplayer {
 /* Playlist */
 
 #playlist {
+  display: flex;
+  flex-direction: column;
   border-top: .063rem solid;
   border-color: var(--border);
 }
@@ -527,8 +529,25 @@ iframe#videoplayer {
   flex-grow: 1;
 }
 
-#mediaurl {
+.mediaurl-wrap {
+  display: flex;
   flex-grow: 2;
+  position: relative;
+}
+
+#mediaurl {
+  display: flex;
+  flex: 1;
+  padding-right: 2rem;
+}
+
+#mediaurl-upload {
+  display: flex;
+  position: absolute;
+  right: 0.1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
 }
 
 #customembed>*>input,
@@ -682,6 +701,7 @@ footer#footer {
 }
 
 #userlisttoggle {
+  padding: 0;
   overflow: hidden;
   white-space: nowrap;
   text-align: left;

@@ -97,7 +97,7 @@ class Raw implements IPlayer {
 
 	public function loadVideo(item:VideoItem):Void {
 		final url = main.tryLocalIp(item.url);
-		final isHls = item.url.contains("m3u8") || item.title.endsWith("m3u8");
+		final isHls = url.contains("m3u8") || item.title.endsWith("m3u8");
 		if (isHls && !isHlsLoaded) {
 			loadHlsPlugin(() -> loadVideo(item));
 			return;

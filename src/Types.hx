@@ -14,6 +14,12 @@ typedef VideoDataRequest = {
 	final atEnd:Bool;
 }
 
+typedef UploadResponse = {
+	info:String,
+	?url:String,
+	?errorId:String,
+}
+
 typedef VideoData = {
 	final duration:Float;
 	var ?title:String;
@@ -107,6 +113,12 @@ typedef Message = {
 	time:String
 }
 
+enum abstract ProgressType(String) {
+	var Caching;
+	var Downloading;
+	var Uploading;
+}
+
 @:using(Types.VideoItemTools)
 typedef VideoItem = {
 	/** Immutable, used as identifier for skipping / removing items **/
@@ -183,6 +195,11 @@ typedef WsEvent = {
 	?serverMessage:{
 		textId:String
 	},
+	?progress:{
+		type:ProgressType,
+		ratio:Float,
+		?data:String
+	},
 	?updateClients:{
 		clients:Array<ClientData>,
 	},
@@ -251,9 +268,8 @@ enum abstract WsEventType(String) {
 	var Logout;
 	var Message;
 	var ServerMessage;
+	var Progress;
 	var UpdateClients;
-	// var AddClient;
-	// var RemoveClient;
 	var BanClient;
 	var KickClient;
 	var AddVideo;

@@ -46,6 +46,8 @@ typedef YoutubeVideoFormat = {
 	?container:String,
 	?videoCodec:String,
 	?audioCodec:String,
+	?hasVideo:Bool,
+	?hasAudio:Bool,
 }
 
 typedef YouTubeVideoInfo = {

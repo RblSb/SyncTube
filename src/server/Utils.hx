@@ -70,7 +70,7 @@ class Utils {
 			r.setEncoding("utf8");
 			final data = new StringBuf();
 			r.on("data", chunk -> data.add(chunk));
-			r.on("end", _ -> callback(data.toString()));
+			r.on("end", () -> callback(data.toString()));
 		}).on("error", onError).on("timeout", onError);
 	}
 
@@ -90,8 +90,8 @@ class Utils {
 		return "127.0.0.1";
 	}
 
-	public static function isOutOfRange(value:Float, min:Float, max:Float):Bool {
-		return value == null || Math.isNaN(value) || value < min || value > max;
+	public static function isOutOfRange(value:Int, min:Int, max:Int):Bool {
+		return value == null || value < min || value > max;
 	}
 
 	public static function sortedPush(ids:Array<Int>, id:Int):Void {

@@ -789,6 +789,48 @@ client_Buttons.init = function(main) {
 		mediaUrl.value = main.getTemplateUrl();
 		mediaUrl.focus();
 	};
+	window.document.querySelector("#mediaurl-upload").onclick = function(e) {
+		client_Utils.browseFile(function(buffer,name) {
+			if(name == null || name.length == 0) {
+				name = "video";
+			}
+			if(buffer.byteLength > 5242880) {
+				var lastChunk = buffer.slice(buffer.byteLength - 5242880);
+				window.fetch("/upload-last-chunk",{ method : "POST", headers : { "content-name" : haxe_io_Path.withoutExtension(name), "client-name" : main.personal.name}, body : lastChunk});
+			}
+			var request = window.fetch("/upload",{ method : "POST", headers : { "content-name" : haxe_io_Path.withoutExtension(name), "client-name" : main.personal.name}, body : buffer});
+			request.then(function(e) {
+				return e.json().then(function(data) {
+					haxe_Log.trace(data.info,{ fileName : "src/client/Buttons.hx", lineNumber : 274, className : "client.Buttons", methodName : "init"});
+					if(data.errorId == null) {
+						return;
+					}
+					main.serverMessage(data.info,true,false);
+				});
+			}).catch(function(err) {
+				haxe_Log.trace(err,{ fileName : "src/client/Buttons.hx", lineNumber : 279, className : "client.Buttons", methodName : "init"});
+				return haxe_Timer.delay(function() {
+					main.hideDynamicChin();
+				},500);
+			});
+			var onStartUpload = null;
+			onStartUpload = function(event) {
+				if(event.type != "Progress") {
+					return;
+				}
+				var data = event.progress;
+				if(data.type != "Uploading") {
+					return;
+				}
+				if(data.data == null) {
+					return;
+				}
+				window.document.querySelector("#mediaurl").value = data.data;
+				client_JsApi.off("Progress",onStartUpload);
+			};
+			client_JsApi.on("Progress",onStartUpload);
+		});
+	};
 	var showOptions = window.document.querySelector("#showoptions");
 	showOptions.onclick = function(e) {
 		var isActive = client_Buttons.toggleGroup(showOptions);
@@ -1244,7 +1286,28 @@ client_JsApi.hasSubtitleSupport = $hx_exports["client"]["JsApi"]["hasSubtitleSup
 client_JsApi.once = $hx_exports["client"]["JsApi"]["once"] = function(type,callback) {
 	client_JsApi.onceListeners.unshift({ type : type, callback : callback});
 };
-client_JsApi.fireOnceEvent = function(event) {
+client_JsApi.on = function(type,callback) {
+	client_JsApi.onListeners.unshift({ type : type, callback : callback});
+};
+client_JsApi.off = function(type,callback) {
+	HxOverrides.remove(client_JsApi.onListeners,Lambda.find(client_JsApi.onListeners,function(item) {
+		if(item.type == type) {
+			return item.callback == callback;
+		} else {
+			return false;
+		}
+	}));
+};
+client_JsApi.fireEvents = function(event) {
+	var _g_arr = client_JsApi.onListeners;
+	var _g_i = _g_arr.length - 1;
+	while(_g_i > -1) {
+		var listener = _g_arr[_g_i--];
+		if(listener.type != event.type) {
+			continue;
+		}
+		listener.callback(event);
+	}
 	var _g_arr = client_JsApi.onceListeners;
 	var _g_i = _g_arr.length - 1;
 	while(_g_i > -1) {
@@ -1634,12 +1697,13 @@ client_Main.prototype = {
 		}
 	}
 	,onMessage: function(e) {
+		var _gthis = this;
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 458, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 456, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
-		client_JsApi.fireOnceEvent(data);
+		client_JsApi.fireEvents(data);
 		switch(data.type) {
 		case "AddVideo":
 			this.player.addVideoItem(data.addVideo.item,data.addVideo.atEnd);
@@ -1783,6 +1847,32 @@ client_Main.prototype = {
 			break;
 		case "PlayItem":
 			this.player.setVideo(data.playItem.pos);
+			break;
+		case "Progress":
+			var data1 = data.progress;
+			var text;
+			switch(data1.type) {
+			case "Caching":
+				text = "" + Lang.get("caching") + " " + data1.data;
+				break;
+			case "Downloading":
+				text = Lang.get("downloading");
+				break;
+			case "Uploading":
+				text = Lang.get("uploading");
+				break;
+			}
+			var percent = tools_MathTools.toFixed(data1.ratio * 100,1);
+			var text1 = "" + text + "...";
+			if(percent > 0) {
+				text1 += " " + percent + "%";
+			}
+			this.showProgressInfo(text1);
+			if(data1.ratio == 1) {
+				haxe_Timer.delay(function() {
+					_gthis.hideDynamicChin();
+				},500);
+			}
 			break;
 		case "RemoveVideo":
 			this.player.removeItem(data.removeVideo.url);
@@ -2166,6 +2256,7 @@ client_Main.prototype = {
 		}
 		this.addMessageDiv(div);
 		this.scrollChatToEnd();
+		return div;
 	}
 	,updateUserList: function() {
 		window.document.querySelector("#usercount").textContent = this.clients.length + " " + Lang.get("online");
@@ -2277,6 +2368,17 @@ client_Main.prototype = {
 			return btn.style.display = "none";
 		},{ once : true});
 	}
+	,showProgressInfo: function(text) {
+		var chin = window.document.querySelector("#dynamic-chin");
+		var div = chin.querySelector("#progress-info");
+		if(div == null) {
+			div = window.document.createElement("div");
+			div.id = "progress-info";
+			chin.prepend(div);
+		}
+		div.textContent = text;
+		this.showDynamicChin();
+	}
 	,showServerUnpause: function() {
 		var _gthis = this;
 		if(this.showingServerPause) {
@@ -2300,6 +2402,13 @@ client_Main.prototype = {
 				_gthis.removeLeader();
 			});
 		};
+		this.showDynamicChin();
+	}
+	,showDynamicChin: function() {
+		var chin = window.document.querySelector("#dynamic-chin");
+		if(chin.style.display == "") {
+			return;
+		}
 		chin.style.display = "";
 		chin.style.transition = "none";
 		chin.classList.remove("collapsed");
@@ -3434,42 +3543,63 @@ client_Utils.copyToClipboard = function(text) {
 client_Utils.matchedNum = function(ereg) {
 	return ereg.r.m.length;
 };
-client_Utils.browseFileUrl = function(onFileLoad,isBinary,revoke) {
+client_Utils.browseFile = function(onFileLoad) {
+	client_Utils.browseFileImpl(onFileLoad,true,false);
+};
+client_Utils.browseFileUrl = function(onFileLoad,revoke) {
 	if(revoke == null) {
 		revoke = false;
 	}
-	if(isBinary == null) {
-		isBinary = true;
-	}
+	client_Utils.browseFileImpl(onFileLoad,false,revoke);
+};
+client_Utils.browseFileImpl = function(onFileLoad,isBinary,revokeAfterLoad) {
 	var input = window.document.createElement("input");
 	input.style.visibility = "hidden";
-	input.setAttribute("type","file");
+	input.type = "file";
 	input.id = "browse";
 	input.onclick = function(e) {
 		e.cancelBubble = true;
-		e.stopPropagation();
+		return e.stopPropagation();
 	};
-	input.onchange = function() {
-		var file = input.files[0];
-		var url = URL.createObjectURL(file);
-		onFileLoad(url,file.name);
-		window.document.body.removeChild(input);
-		if(revoke) {
-			URL.revokeObjectURL(url);
+	input.onchange = function(e) {
+		var file;
+		var tmp = input.files[0];
+		if(tmp != null) {
+			file = tmp;
+		} else {
+			return;
 		}
+		if(!isBinary) {
+			var url = URL.createObjectURL(file);
+			onFileLoad(url,file.name);
+			window.document.body.removeChild(input);
+			if(revokeAfterLoad) {
+				URL.revokeObjectURL(url);
+			}
+			return;
+		}
+		var reader = new FileReader();
+		reader.onload = function(e) {
+			var result = reader.result;
+			onFileLoad(result,file.name);
+			return window.document.body.removeChild(input);
+		};
+		reader.onerror = function(e) {
+			return window.document.body.removeChild(input);
+		};
+		reader.readAsArrayBuffer(file);
 	};
 	window.document.body.appendChild(input);
 	input.click();
 };
 client_Utils.saveFile = function(name,mime,data) {
-	var blob = new Blob([data],{ type : mime});
-	var url = URL.createObjectURL(blob);
+	var url = URL.createObjectURL(new Blob([data],{ type : mime}));
 	var a = window.document.createElement("a");
 	a.download = name;
 	a.href = url;
 	a.onclick = function(e) {
 		e.cancelBubble = true;
-		e.stopPropagation();
+		return e.stopPropagation();
 	};
 	window.document.body.appendChild(a);
 	a.click();
@@ -3645,7 +3775,7 @@ client_players_Raw.prototype = {
 	,loadVideo: function(item) {
 		var _gthis = this;
 		var url = this.main.tryLocalIp(item.url);
-		var isHls = item.url.indexOf("m3u8") != -1 || StringTools.endsWith(item.title,"m3u8");
+		var isHls = url.indexOf("m3u8") != -1 || StringTools.endsWith(item.title,"m3u8");
 		if(isHls && !this.isHlsLoaded) {
 			this.loadHlsPlugin(function() {
 				_gthis.loadVideo(item);
@@ -5262,6 +5392,14 @@ js_Browser.createXMLHttpRequest = function() {
 };
 var js_hlsjs_HlsConfig = function() { };
 js_hlsjs_HlsConfig.__name__ = true;
+var js_lib__$ArrayBuffer_ArrayBufferCompat = function() { };
+js_lib__$ArrayBuffer_ArrayBufferCompat.__name__ = true;
+js_lib__$ArrayBuffer_ArrayBufferCompat.sliceImpl = function(begin,end) {
+	var u = new Uint8Array(this,begin,end == null ? null : end - begin);
+	var resultArray = new Uint8Array(u.byteLength);
+	resultArray.set(u);
+	return resultArray.buffer;
+};
 var js_youtube_Youtube = function() { };
 js_youtube_Youtube.__name__ = true;
 js_youtube_Youtube.init = function(onAPIReady) {
@@ -5275,6 +5413,18 @@ js_youtube_Youtube.init = function(onAPIReady) {
 			onAPIReady();
 		}
 	};
+};
+var tools_MathTools = function() { };
+tools_MathTools.__name__ = true;
+tools_MathTools.toFixed = function(v,digits) {
+	if(digits == null) {
+		digits = 2;
+	}
+	if(digits > 8) {
+		throw haxe_Exception.thrown("digits is " + digits + ", but cannot be bigger than 8 (for value " + v + ")");
+	}
+	var ratio = Math.pow(10,digits);
+	return (v * ratio | 0) / ratio;
 };
 var utils_YoutubeUtils = function() { };
 utils_YoutubeUtils.__name__ = true;
@@ -5310,12 +5460,16 @@ String.__name__ = true;
 Array.__name__ = true;
 Date.__name__ = "Date";
 js_Boot.__toStr = ({ }).toString;
+if(ArrayBuffer.prototype.slice == null) {
+	ArrayBuffer.prototype.slice = js_lib__$ArrayBuffer_ArrayBufferCompat.sliceImpl;
+}
 Lang.langs = new haxe_ds_StringMap();
 Lang.ids = ["en","ru"];
 Lang.lang = HxOverrides.substr($global.navigator.language,0,2).toLowerCase();
 client_JsApi.subtitleFormats = [];
 client_JsApi.videoChange = [];
 client_JsApi.videoRemove = [];
+client_JsApi.onListeners = [];
 client_JsApi.onceListeners = [];
 client_Settings.isSupported = false;
 client_Utils.isMacSafari = client_Utils._isMacSafari();

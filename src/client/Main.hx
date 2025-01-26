@@ -25,8 +25,6 @@ import js.html.URL;
 import js.html.VideoElement;
 import js.html.WebSocket;
 
-using ClientTools;
-
 class Main {
 	public static var instance(default, null):Main;
 	static inline var SETTINGS_VERSION = 5;
@@ -457,7 +455,7 @@ class Main {
 			final t = t.charAt(0).toLowerCase() + t.substr(1);
 			trace('Event: ${data.type}', Reflect.field(data, t));
 		}
-		JsApi.fireOnceEvent(data);
+		JsApi.fireEvents(data);
 		switch (data.type) {
 			case Connected:
 				onConnected(data);
@@ -508,6 +506,26 @@ class Main {
 						Lang.get(id);
 				}
 				serverMessage(text);
+
+			case Progress:
+				final data = data.progress;
+				final text = switch data.type {
+					case Caching:
+						final caching = Lang.get("caching");
+						final name = data.data;
+						'$caching $name';
+					case Downloading: Lang.get("downloading");
+					case Uploading: Lang.get("uploading");
+				}
+				final percent = (data.ratio * 100).toFixed(1);
+				var text = '$text...';
+				if (percent > 0) text += ' $percent%';
+				showProgressInfo(text);
+				if (data.ratio == 1) {
+					Timer.delay(() -> {
+						hideDynamicChin();
+					}, 500);
+				}
 
 			case AddVideo:
 				player.addVideoItem(data.addVideo.item, data.addVideo.atEnd);
@@ -934,7 +952,7 @@ class Main {
 		return msgBuf.lastElementChild?.className.startsWith("server-msg");
 	}
 
-	public function serverMessage(text:String, isText = true, withTimestamp = true):Void {
+	public function serverMessage(text:String, isText = true, withTimestamp = true):Element {
 		final div = document.createDivElement();
 		final time = Date.now().toString().split(" ")[1];
 		div.className = "server-whisper";
@@ -947,6 +965,7 @@ class Main {
 		else textDiv.innerHTML = text;
 		addMessageDiv(div);
 		scrollChatToEnd();
+		return div;
 	}
 
 	public function serverHtmlMessage(el:Element):Void {
@@ -1071,6 +1090,18 @@ class Main {
 		}, {once: true});
 	}
 
+	public function showProgressInfo(text:String):Void {
+		final chin = ge("#dynamic-chin");
+		var div = chin.querySelector("#progress-info");
+		if (div == null) {
+			div = document.createDivElement();
+			div.id = "progress-info";
+			chin.prepend(div);
+		}
+		div.textContent = text;
+		showDynamicChin();
+	}
+
 	public function showServerUnpause():Void {
 		if (showingServerPause) return;
 		showingServerPause = true;
@@ -1096,6 +1127,12 @@ class Main {
 			JsApi.once(SetLeader, event -> removeLeader());
 		}
 
+		showDynamicChin();
+	}
+
+	function showDynamicChin():Void {
+		final chin = ge("#dynamic-chin");
+		if (chin.style.display == "") return;
 		chin.style.display = "";
 		chin.style.transition = "none";
 		chin.classList.remove("collapsed");

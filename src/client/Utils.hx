@@ -5,7 +5,9 @@ import js.Browser.document;
 import js.Browser.navigator;
 import js.Browser.window;
 import js.html.Element;
+import js.html.FileReader;
 import js.html.URL;
+import js.lib.ArrayBuffer;
 
 class Utils {
 	public static function nativeTrace(msg:Dynamic, ?infos:haxe.PosInfos):Void {
@@ -127,25 +129,51 @@ class Utils {
 		#end
 	}
 
+	public static function browseFile(
+		onFileLoad:(buffer:ArrayBuffer, name:String) -> Void
+	):Void {
+		browseFileImpl(onFileLoad, true, false);
+	}
+
 	public static function browseFileUrl(
 		onFileLoad:(url:String, name:String) -> Void,
-		isBinary = true,
 		revoke = false
 	):Void {
-		final input = document.createElement("input");
+		browseFileImpl(onFileLoad, false, revoke);
+	}
+
+	static function browseFileImpl(
+		onFileLoad:(data:Dynamic, name:String) -> Void,
+		isBinary:Bool,
+		revokeAfterLoad:Bool
+	):Void {
+		final input = document.createInputElement();
 		input.style.visibility = "hidden";
-		input.setAttribute("type", "file");
+		input.type = "file";
 		input.id = "browse";
-		input.onclick = function(e) {
+		input.onclick = e -> {
 			e.cancelBubble = true;
 			e.stopPropagation();
 		}
-		input.onchange = function() {
-			final file:Dynamic = (input : Dynamic).files[0];
-			final url = URL.createObjectURL(file);
-			onFileLoad(url, file.name);
-			document.body.removeChild(input);
-			if (revoke) URL.revokeObjectURL(url);
+		input.onchange = e -> {
+			final file = input.files[0] ?? return;
+			if (!isBinary) {
+				final url = URL.createObjectURL(file);
+				onFileLoad(url, file.name);
+				document.body.removeChild(input);
+				if (revokeAfterLoad) URL.revokeObjectURL(url);
+				return;
+			}
+			final reader = new FileReader();
+			reader.onload = e -> {
+				final result:ArrayBuffer = reader.result;
+				onFileLoad(result, file.name);
+				document.body.removeChild(input);
+			}
+			reader.onerror = e -> {
+				document.body.removeChild(input);
+			}
+			reader.readAsArrayBuffer(file);
 		}
 		document.body.appendChild(input);
 		input.click();
@@ -156,10 +184,10 @@ class Utils {
 			type: mime
 		});
 		final url = URL.createObjectURL(blob);
-		final a = document.createElement("a");
-		untyped a.download = name;
-		untyped a.href = url;
-		a.onclick = function(e) {
+		final a = document.createAnchorElement();
+		a.download = name;
+		a.href = url;
+		a.onclick = e -> {
 			e.cancelBubble = true;
 			e.stopPropagation();
 		}

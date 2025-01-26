@@ -1,5 +1,6 @@
 package server;
 
+import haxe.io.Path;
 import js.lib.Promise;
 import js.node.ChildProcess;
 import js.node.Fs.Fs;
@@ -16,7 +17,8 @@ class Cache {
 	public final isYtReady = false;
 
 	/** In bytes **/
-	public var storageLimit = 3 * 1024 * 1024 * 1024;
+	var storageLimit = 3 * 1024 * 1024 * 1024;
+	final freeSpaceBlock = 10 * 1024 * 1024; // 10MB
 
 	public function new(main:Main, cacheDir:String) {
 		this.main = main;
@@ -55,16 +57,22 @@ class Cache {
 			return;
 		}
 		final outName = videoId + ".mp4";
-		if (cachedFiles.contains(outName) && FileSystem.exists('$cacheDir/$outName')) {
+		if (cachedFiles.contains(outName) && isFileExists(outName)) {
 			callback(outName);
 			return;
 		}
 		final ytdl:Dynamic = untyped require("@distube/ytdl-core");
-		log(client, 'Caching $url to $outName...');
-		// final opts = {playerClients: ["IOS", "WEB_CREATOR"]};
+		trace('Caching $url to $outName...');
+		main.send(client, {
+			type: Progress,
+			progress: {
+				type: Caching,
+				ratio: 0,
+				data: outName
+			}
+		});
 		final promise:Promise<YouTubeVideoInfo> = ytdl.getInfo(url);
 		promise.then(info -> {
-			// trace(info.formats.filter(item -> item.audioCodec != null));
 			trace('Get info with ${info.formats.length} formats');
 			final audioFormat:YoutubeVideoFormat = try {
 				ytdl.chooseFormat(info.formats.filter(item -> {
@@ -73,26 +81,23 @@ class Cache {
 			} catch (e) {
 				log(client, "Error: audio format not found");
 				trace(e);
-				trace(info.formats);
+				trace(info.formats.filter(item -> item.hasAudio));
 				return;
 			}
 			final videoFormat = getBestYoutubeVideoFormat(info.formats) ?? {
 				log(client, "Error: video format not found");
-				trace(info.formats);
+				trace(info.formats.filter(item -> item.hasVideo));
 				return;
 			}
-			trace("Picked audio and video formats");
 
 			final dlVideo:Readable<Dynamic> = ytdl(url, {
 				format: videoFormat,
-				// playerClients: opts.playerClients
 			});
 			dlVideo.pipe(Fs.createWriteStream('$cacheDir/input-video'));
 			dlVideo.on("error", err -> log(client, "Error during video download: " + err));
 
 			final dlAudio:Readable<Dynamic> = ytdl(url, {
 				format: audioFormat,
-				// playerClients: opts.playerClients
 			});
 			dlAudio.pipe(Fs.createWriteStream('$cacheDir/input-audio'));
 			dlAudio.on("error", err -> log(client, "Error during audio download: " + err));
@@ -100,8 +105,13 @@ class Cache {
 			var count = 0;
 			function onComplete(type:String):Void {
 				count++;
-				log(client, '$type track downloaded ($count/2)');
+				trace('$type track downloaded ($count/2)');
 				if (count < 2) return;
+				var size = FileSystem.stat('$cacheDir/input-video').size;
+				size += FileSystem.stat('$cacheDir/input-audio').size;
+				// clean some space for full mp4
+				removeOlderCache(size + freeSpaceBlock);
+
 				final args = '-y -i input-video -i input-audio -c copy -map 0:v -map 1:a ./$outName'.split(" ");
 				final process = ChildProcess.spawn("ffmpeg", args, {
 					cwd: cacheDir,
@@ -117,40 +127,111 @@ class Cache {
 					}
 					final inVideo = '$cacheDir/input-video';
 					final inAudio = '$cacheDir/input-audio';
-					if (FileSystem.exists(inVideo)) FileSystem.deleteFile(inVideo);
-					if (FileSystem.exists(inAudio)) FileSystem.deleteFile(inAudio);
+					FileSystem.deleteFile(inVideo);
+					FileSystem.deleteFile(inAudio);
 
-					if (!cachedFiles.contains(outName)) {
-						cachedFiles.unshift(outName);
-					}
-					removeOlderCache();
+					add(outName);
 
 					callback(outName);
 				});
 			}
 			dlVideo.on("finish", () -> onComplete("Video"));
 			dlAudio.on("finish", () -> onComplete("Audio"));
-			// dlVideo.on('progress', (c, d, t) -> {
-			// 	final progress = Std.int((d / t * 100) * 10) / 10;
-			// 	trace(progress);
-			// });
+			var isAudioStart = true;
+			dlAudio.on("progress", (chunkLength:Int, downloaded:Int, contentLength:Int) -> {
+				if (isAudioStart) {
+					isAudioStart = false;
+					removeOlderCache(contentLength);
+				}
+			});
+			var isVideoStart = true;
+			dlVideo.on("progress", (chunkLength:Int, downloaded:Int, contentLength:Int) -> {
+				if (isVideoStart) {
+					isVideoStart = false;
+					removeOlderCache(contentLength);
+				}
+				final ratio = (downloaded / contentLength).clamp(0, 1);
+				main.send(client, {
+					type: Progress,
+					progress: {
+						type: Downloading,
+						ratio: ratio
+					}
+				});
+			});
 		}).catchError(err -> {
 			log(client, "" + err);
 		});
 	}
 
-	function removeOlderCache():Void {
-		while (getUsedSpace() > storageLimit) {
-			final name = cachedFiles.pop();
-			final path = '$cacheDir/$name';
-			if (FileSystem.exists(path)) FileSystem.deleteFile(path);
+	public function setStorageLimit(bytes:Int) {
+		storageLimit = cast bytes;
+		storageLimit = storageLimit.limitMin(0);
+		final statfs = (Fs : Dynamic).statfs ?? return;
+		statfs("/", (err, stats) -> {
+			if (err != null) {
+				trace(err);
+				return;
+			}
+			final availSpace = (stats.bsize * stats.bavail - freeSpaceBlock).limitMin(0);
+			removeOlderCache();
+			final freeSpace = getFreeSpace();
+			if (availSpace < freeSpace) {
+				// shrink limit lower than disk space
+				storageLimit += availSpace - freeSpace;
+				storageLimit = storageLimit.limitMin(0);
+				removeOlderCache();
+			}
+		});
+	}
+
+	public function add(name:String) {
+		if (!cachedFiles.contains(name)) {
+			cachedFiles.unshift(name);
 		}
 	}
 
-	function getUsedSpace():Int {
-		var total = 0;
+	public function removeOlderCache(addFileSize = 0):Void {
+		var space = getUsedSpace(addFileSize);
+		while (space > storageLimit) {
+			final name = cachedFiles.pop() ?? break;
+			final path = getFilePath(name);
+			if (FileSystem.exists(path)) FileSystem.deleteFile(path);
+			space = getUsedSpace(addFileSize);
+		}
+	}
+
+	public function getFreeFileName(baseName = "video"):String {
+		var i = 1;
+		while (true) {
+			final n = i == 1 ? "" : '$i';
+			final name = '$baseName$n.mp4';
+			if (!isFileExists(name)) return name;
+			i++;
+		}
+	}
+
+	public function getFilePath(name:String):String {
+		return '$cacheDir/$name';
+	}
+
+	public function getFileUrl(name:String):String {
+		final folder = Path.withoutDirectory(cacheDir);
+		return '/$folder/$name';
+	}
+
+	public function isFileExists(name:String):Bool {
+		return FileSystem.exists(getFilePath(name));
+	}
+
+	public function getFreeSpace():Int {
+		return storageLimit - getUsedSpace();
+	}
+
+	public function getUsedSpace(addFileSize = 0):Int {
+		var total = addFileSize.limitMin(0);
 		for (name in cachedFiles.reversed()) {
-			final path = '$cacheDir/$name';
+			final path = getFilePath(name);
 			if (!FileSystem.exists(path)) {
 				cachedFiles.remove(name);
 				continue;
@@ -161,7 +242,7 @@ class Cache {
 	}
 
 	function getBestYoutubeVideoFormat(formats:Array<YoutubeVideoFormat>):Null<YoutubeVideoFormat> {
-		final qPriority = [1080, 720, 480, 360, 240];
+		final qPriority = [1080, 720, 480, 360, 240, 144];
 		for (q in qPriority) {
 			final quality = '${q}p';
 			for (format in formats) {

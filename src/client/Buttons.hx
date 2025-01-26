@@ -1,7 +1,10 @@
 package client;
 
+import Types.UploadResponse;
+import Types.WsEvent;
 import client.Main.ge;
 import haxe.Timer;
+import haxe.io.Path;
 import js.Browser.document;
 import js.Browser.window;
 import js.html.Element;
@@ -239,6 +242,60 @@ class Buttons {
 			mediaUrl.focus();
 		}
 
+		ge("#mediaurl-upload").onclick = e -> {
+			Utils.browseFile((buffer, name) -> {
+				if (name == null || name.length == 0) name = "video";
+
+				// send last chunk separately to allow server file streaming while uploading
+				final chunkSize = 1024 * 1024 * 5; // 5 MB
+				if (buffer.byteLength > chunkSize) {
+					final lastChunk = buffer.slice(buffer.byteLength - chunkSize);
+					window.fetch("/upload-last-chunk", {
+						method: "POST",
+						headers: {
+							"content-name": Path.withoutExtension(name),
+							"client-name": main.getName(),
+						},
+						body: lastChunk,
+					});
+				}
+
+				// send full file
+				final request = window.fetch("/upload", {
+					method: "POST",
+					headers: {
+						"content-name": Path.withoutExtension(name),
+						"client-name": main.getName(),
+					},
+					body: buffer,
+				});
+				request.then(e -> {
+					e.json().then((data:UploadResponse) -> {
+						trace(data.info);
+						if (data.errorId == null) return;
+						main.serverMessage(data.info, true, false);
+					});
+				}).catchError(err -> {
+					trace(err);
+					Timer.delay(() -> {
+						main.hideDynamicChin();
+					}, 500);
+				});
+
+				// set file url to input after upload starts
+				function onStartUpload(event:WsEvent):Void {
+					if (event.type != Progress) return;
+					final data = event.progress;
+					if (data.type != Uploading) return;
+					if (data.data == null) return;
+					final input:InputElement = ge("#mediaurl");
+					input.value = data.data;
+					JsApi.off(Progress, onStartUpload);
+				}
+				JsApi.on(Progress, onStartUpload);
+			});
+		}
+
 		final showOptions = ge("#showoptions");
 		showOptions.onclick = e -> {
 			final isActive = toggleGroup(showOptions);
@@ -362,7 +419,7 @@ class Buttons {
 		}
 		final selectLocalVideoBtn = ge("#selectLocalVideoBtn");
 		selectLocalVideoBtn.onclick = e -> {
-			Utils.browseFileUrl((url:String, name:String) -> {
+			Utils.browseFileUrl((url, name) -> {
 				JsApi.setVideoSrc(url);
 			});
 		}
@@ -374,7 +431,7 @@ class Buttons {
 		ge("#getplaylist").title += " (Alt-C)";
 		ge("#fullscreenbtn").title += " (Alt-F)";
 		ge("#leader_btn").title += " (Alt-L)";
-		window.onkeydown = function(e:KeyboardEvent) {
+		window.onkeydown = (e:KeyboardEvent) -> {
 			if (!settings.hotkeysEnabled) return;
 			final target:Element = cast e.target;
 			if (isElementEditable(target)) return;

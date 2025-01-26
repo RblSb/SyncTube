@@ -20,8 +20,8 @@
     <section id="player">
       <div id="ytapiplayer" class="embed-responsive"></div>
       <!-- Video info -->
-      <div class="info">
-        <header id="header">
+      <div class="info video-info">
+        <header>
           <h2 id="currenttitle">${nothingPlaying}</h2>
         </header>
         <!-- Video controls -->
@@ -44,7 +44,7 @@
     <!-- Playlist -->
     <section id="playlist">
       <!-- Playlist info -->
-      <div class="info">
+      <div class="info playlist-info">
         <header>
           <h3>${playlist}</h3>
           <button id="lockplaylist" title="${playlistOpen}">
@@ -88,7 +88,12 @@
             <button id="insert_template" title="${addTemplateUrl}">
               <div>&gt;</div>
             </button>
-            <input id="mediaurl" type="text" placeholder="${addVideoFromUrl}">
+            <div class="mediaurl-wrap">
+              <input id="mediaurl" type="text" placeholder="${addVideoFromUrl}">
+              <button id="mediaurl-upload">
+                <ion-icon name="cloud-upload"></ion-icon>
+              </button>
+            </div>
           </div>
           <div id="mediatitleblock" class="display-flex" style="display: none;">
             <input id="mediatitle" type="text" placeholder="${optionalTitle}">

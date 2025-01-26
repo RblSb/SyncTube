@@ -25,8 +25,6 @@ import json2object.JsonParser;
 import sys.FileSystem;
 import sys.io.File;
 
-using ClientTools;
-
 private typedef MainOptions = {
 	loadState:Bool
 }
@@ -52,11 +50,14 @@ class Main {
 	final playersCacheSupport:Array<PlayerType> = [];
 	var port:Int;
 	final userList:UserList;
-	final clients:Array<Client> = [];
+
+	public final clients:Array<Client> = [];
+
 	final freeIds:Array<Int> = [];
 	final wsEventParser = new JsonParser<WsEvent>();
 	final consoleInput:ConsoleInput;
 	final cache:Cache;
+	final cacheDir:String;
 	final videoList = new VideoList();
 	final videoTimer = new VideoTimer();
 	final messages:Array<Message> = [];
@@ -84,6 +85,8 @@ class Main {
 		verbose = args.exists("verbose");
 		statePath = '$rootDir/user/state.json';
 		logsDir = '$rootDir/user/logs';
+		cacheDir = '$rootDir/user/res/cache';
+
 		// process.on("exit", exit);
 		process.on("SIGINT", exit); // ctrl+c
 		process.on("SIGUSR1", exit); // kill pid
@@ -100,15 +103,16 @@ class Main {
 			logError("unhandledRejection", reason);
 			exit();
 		});
+
 		logger = new Logger(logsDir, 10, verbose);
 		consoleInput = new ConsoleInput(this);
 		consoleInput.initConsoleInput();
-		cache = new Cache(this, '$rootDir/user/res/cache');
+		cache = new Cache(this, cacheDir);
 		if (cache.isYtReady) playersCacheSupport.push(YoutubeType);
 		initIntergationHandlers();
 		loadState();
 		config = loadUserConfig();
-		cache.storageLimit = cast config.cacheStorageLimitGiB * 1024 * 1024 * 1024;
+		cache.setStorageLimit(cast config.cacheStorageLimitGiB * 1024 * 1024 * 1024);
 		userList = loadUsers();
 		config.isVerbose = verbose;
 		config.salt = generateConfigSalt();
@@ -154,11 +158,16 @@ class Main {
 		}
 
 		final dir = '$rootDir/res';
-		HttpServer.init(dir, '$rootDir/user/res', config.localAdmins);
+		final httpServer = new HttpServer(this, {
+			dir: dir,
+			customDir: '$rootDir/user/res',
+			allowLocalRequests: config.localAdmins,
+			cache: cache,
+		});
 		Lang.init('$dir/langs');
 
 		final server = Http.createServer((req, res) -> {
-			HttpServer.serveFiles(req, res);
+			httpServer.serveFiles(req, res);
 		});
 		wss = new WSServer({server: server});
 		wss.on("connection", onConnect);
@@ -330,7 +339,7 @@ class Main {
 		if (isHeroku && process.env["APP_URL"] != null) {
 			var url = process.env["APP_URL"];
 			if (!url.startsWith("http")) url = 'http://$url';
-			new Timer(10 * 60 * 1000).run = function() {
+			new Timer(10 * 60 * 1000).run = () -> {
 				if (clients.length == 0) return;
 				trace('Ping $url');
 				Http.get(url, r -> {});
@@ -644,6 +653,7 @@ class Main {
 				broadcast(data);
 
 			case ServerMessage:
+			case Progress:
 			case AddVideo:
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, AddVideoPerm)) return;
@@ -682,7 +692,7 @@ class Main {
 					addVideo();
 				} else {
 					cache.cacheYoutubeVideo(client, item.url, (name) -> {
-						item = item.withUrl('/cache/$name');
+						item = item.withUrl(cache.getFileUrl(name));
 						if (item.duration > 1) item.duration -= 1;
 						addVideo();
 					});
@@ -973,17 +983,17 @@ class Main {
 		});
 	}
 
-	function send(client:Client, data:WsEvent):Void {
+	public function send(client:Client, data:WsEvent):Void {
 		client.ws.send(Json.stringify(data), null);
 	}
 
-	function broadcast(data:WsEvent):Void {
+	public function broadcast(data:WsEvent):Void {
 		final json = Json.stringify(data);
 		for (client in clients)
 			client.ws.send(json, null);
 	}
 
-	function broadcastExcept(skipped:Client, data:WsEvent):Void {
+	public function broadcastExcept(skipped:Client, data:WsEvent):Void {
 		final json = Json.stringify(data);
 		for (client in clients) {
 			if (client == skipped) continue;
