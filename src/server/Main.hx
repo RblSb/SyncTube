@@ -940,7 +940,7 @@ class Main {
 					}),
 					logs: logger.getLogs()
 				}
-				final json = Json.stringify(data, logger.filterNulls, "\t");
+				final json = jsonStringify(data, "\t");
 				send(client, {
 					type: Dump,
 					dump: {
@@ -984,21 +984,32 @@ class Main {
 	}
 
 	public function send(client:Client, data:WsEvent):Void {
-		client.ws.send(Json.stringify(data), null);
+		client.ws.send(jsonStringify(data), null);
 	}
 
 	public function broadcast(data:WsEvent):Void {
-		final json = Json.stringify(data);
+		final json = jsonStringify(data);
 		for (client in clients)
 			client.ws.send(json, null);
 	}
 
 	public function broadcastExcept(skipped:Client, data:WsEvent):Void {
-		final json = Json.stringify(data);
+		final json = jsonStringify(data);
 		for (client in clients) {
 			if (client == skipped) continue;
 			client.ws.send(json, null);
 		}
+	}
+
+	public static function jsonStringify(data:Any, ?space:String):String {
+		return Json.stringify(data, jsonFilterNulls, space);
+	}
+
+	static function jsonFilterNulls(key:Any, value:Any):Any {
+		#if js
+		if (value == null) return js.Lib.undefined;
+		#end
+		return value;
 	}
 
 	function skipVideo(data:WsEvent):Void {

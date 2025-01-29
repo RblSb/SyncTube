@@ -1,0 +1,12 @@
+{
+  "name": "SyncTube",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "img/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}

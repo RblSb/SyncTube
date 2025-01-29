@@ -2,7 +2,7 @@ package client;
 
 import Types.UploadResponse;
 import Types.WsEvent;
-import client.Main.ge;
+import client.Main.getEl;
 import haxe.Timer;
 import haxe.io.Path;
 import js.Browser.document;
@@ -15,28 +15,30 @@ import js.html.TransitionEvent;
 import js.html.VisualViewport;
 
 class Buttons {
-	static inline var CHAT_MIN_SIZE = 200;
 	static var split:Split;
 	static var settings:ClientSettings;
 
 	public static function init(main:Main):Void {
 		settings = main.settings;
 		if (settings.isSwapped) swapPlayerAndChat();
-		initSplit();
-		setSplitSize(settings.chatSize);
+
+		split?.destroy();
+		split = new Split(settings);
+		split.setSize(settings.chatSize);
+
 		initChatInputs(main);
 
 		for (item in settings.checkboxes) {
 			if (item.checked == null) continue;
-			final checkbox:InputElement = ge('#${item.id}') ?? continue;
+			final checkbox:InputElement = getEl('#${item.id}') ?? continue;
 			checkbox.checked = item.checked;
 		}
 
-		final passIcon = ge("#guestpass_icon");
+		final passIcon = getEl("#guestpass_icon");
 		passIcon.onclick = e -> {
 			final icon = passIcon.firstElementChild;
 			final isOpen = icon.getAttribute("name") == "eye-off";
-			final pass:InputElement = cast ge("#guestpass");
+			final pass:InputElement = getEl("#guestpass");
 			if (isOpen) {
 				pass.type = "password";
 				icon.setAttribute("name", "eye");
@@ -46,10 +48,10 @@ class Buttons {
 			}
 		}
 
-		final smilesBtn = ge("#smilesbtn");
+		final smilesBtn = getEl("#smilesbtn");
 		smilesBtn.onclick = e -> {
-			final wrap = ge("#smiles-wrap");
-			final list = ge("#smiles-list");
+			final wrap = getEl("#smiles-wrap");
+			final list = getEl("#smiles-list");
 			if (list.children.length == 0) return;
 			final isActive = smilesBtn.classList.toggle("active");
 			if (isActive) {
@@ -70,22 +72,22 @@ class Buttons {
 			}
 		}
 
-		final scrollToChatEndBtn = ge("#scroll-to-chat-end");
+		final scrollToChatEndBtn = getEl("#scroll-to-chat-end");
 		scrollToChatEndBtn.onclick = e -> {
 			main.scrollChatToEnd();
 			main.hideScrollToChatEndBtn();
 		}
 		// hide scroll button when chat is scrolled to the end
-		final msgBuf = ge("#messagebuffer");
+		final msgBuf = getEl("#messagebuffer");
 		msgBuf.onscroll = e -> {
 			if (!main.isInChatEnd(1)) return;
 			main.hideScrollToChatEndBtn();
 		}
 
-		ge("#clearchatbtn").onclick = e -> {
+		getEl("#clearchatbtn").onclick = e -> {
 			if (main.isAdmin()) main.send({type: ClearChat});
 		}
-		final userList = ge("#userlist");
+		final userList = getEl("#userlist");
 		userList.onclick = e -> {
 			if (!main.isAdmin()) return;
 			var el:Element = cast e.target;
@@ -105,12 +107,12 @@ class Buttons {
 			});
 		}
 
-		final userlistToggle = ge("#userlisttoggle");
+		final userlistToggle = getEl("#userlisttoggle");
 		userlistToggle.onclick = e -> {
 			final icon = userlistToggle.firstElementChild;
 			final isHidden = icon.getAttribute("name") == "chevron-forward";
-			final wrap = ge("#userlist-wrap");
-			final style = ge("#userlist").style;
+			final wrap = getEl("#userlist-wrap");
+			final style = getEl("#userlist").style;
 			if (isHidden) {
 				icon.setAttribute("name", "chevron-down");
 				style.display = "";
@@ -126,19 +128,19 @@ class Buttons {
 			settings.isUserListHidden = !isHidden;
 			Settings.write(settings);
 		}
-		ge("#usercount").onclick = userlistToggle.onclick;
+		getEl("#usercount").onclick = userlistToggle.onclick;
 		if (settings.isUserListHidden) userlistToggle.onclick();
 		else {
-			final wrap = ge("#userlist-wrap");
+			final wrap = getEl("#userlist-wrap");
 			final list = wrap.firstElementChild;
 			wrap.style.height = "15vh";
 		}
 		// enable animation after page loads
 		Timer.delay(() -> {
-			ge("#userlist-wrap").style.transition = "200ms";
+			getEl("#userlist-wrap").style.transition = "200ms";
 		}, 0);
 
-		final toggleSynch = ge("#togglesynch");
+		final toggleSynch = getEl("#togglesynch");
 		toggleSynch.onclick = e -> {
 			final icon = toggleSynch.firstElementChild;
 			if (main.isSyncActive) {
@@ -153,21 +155,21 @@ class Buttons {
 				main.send({type: UpdatePlaylist});
 			}
 		}
-		final mediaRefresh = ge("#mediarefresh");
+		final mediaRefresh = getEl("#mediarefresh");
 		mediaRefresh.onclick = e -> {
 			main.refreshPlayer();
 		}
-		final fullscreenBtn = ge("#fullscreenbtn");
+		final fullscreenBtn = getEl("#fullscreenbtn");
 		fullscreenBtn.onclick = e -> {
 			if ((Utils.isTouch() || main.isVerbose()) && !Utils.hasFullscreen()) {
 				window.scrollTo(0, 0);
 				Utils.requestFullscreen(document.documentElement);
 			} else {
-				Utils.requestFullscreen(ge("#ytapiplayer"));
+				Utils.requestFullscreen(getEl("#ytapiplayer"));
 			}
 		}
 		initPageFullscreen();
-		final getPlaylist = ge("#getplaylist");
+		final getPlaylist = getEl("#getplaylist");
 		getPlaylist.onclick = e -> {
 			final text = main.getPlaylistLinks().join(",");
 			Utils.copyToClipboard(text);
@@ -177,18 +179,18 @@ class Buttons {
 				icon.setAttribute("name", "link");
 			}, 2000);
 		}
-		final clearPlaylist = ge("#clearplaylist");
+		final clearPlaylist = getEl("#clearplaylist");
 		clearPlaylist.onclick = e -> {
 			if (!window.confirm(Lang.get("clearPlaylistConfirm"))) return;
 			main.send({type: ClearPlaylist});
 		}
-		final shufflePlaylist = ge("#shuffleplaylist");
+		final shufflePlaylist = getEl("#shuffleplaylist");
 		shufflePlaylist.onclick = e -> {
 			if (!window.confirm(Lang.get("shufflePlaylistConfirm"))) return;
 			main.send({type: ShufflePlaylist});
 		}
 
-		final lockPlaylist = ge("#lockplaylist");
+		final lockPlaylist = getEl("#lockplaylist");
 		lockPlaylist.onclick = e -> {
 			if (!main.hasPermission(LockPlaylistPerm)) return;
 			if (main.isPlaylistOpen) {
@@ -199,36 +201,36 @@ class Buttons {
 			});
 		}
 
-		final showMediaUrl = ge("#showmediaurl");
+		final showMediaUrl = getEl("#showmediaurl");
 		showMediaUrl.onclick = e -> {
 			final isOpen = showPlayerGroup(showMediaUrl);
 			if (isOpen) Timer.delay(() -> {
-				ge("#addfromurl").scrollIntoView();
-				ge("#mediaurl").focus();
+				getEl("#addfromurl").scrollIntoView();
+				getEl("#mediaurl").focus();
 			}, 100);
 		}
 
-		final showCustomEmbed = ge("#showcustomembed");
+		final showCustomEmbed = getEl("#showcustomembed");
 		showCustomEmbed.onclick = e -> {
 			final isOpen = showPlayerGroup(showCustomEmbed);
 			if (isOpen) Timer.delay(() -> {
-				ge("#customembed").scrollIntoView();
-				ge("#customembed-title").focus();
+				getEl("#customembed").scrollIntoView();
+				getEl("#customembed-title").focus();
 			}, 100);
 		}
 
-		final mediaUrl:InputElement = cast ge("#mediaurl");
+		final mediaUrl:InputElement = getEl("#mediaurl");
 		mediaUrl.oninput = () -> {
 			final url = mediaUrl.value;
 			final playerType = main.getLinkPlayerType(url);
 			final isSingle = main.isSingleVideoUrl(url);
 			final isSingleRawVideo = url != "" && playerType == RawType && isSingle;
-			ge("#mediatitleblock").style.display = isSingleRawVideo ? "" : "none";
-			ge("#subsurlblock").style.display = isSingleRawVideo ? "" : "none";
-			ge("#voiceoverblock").style.display = (url.length > 0 && isSingle) ? "" : "none";
+			getEl("#mediatitleblock").style.display = isSingleRawVideo ? "" : "none";
+			getEl("#subsurlblock").style.display = isSingleRawVideo ? "" : "none";
+			getEl("#voiceoverblock").style.display = (url.length > 0 && isSingle) ? "" : "none";
 			final showCache = isSingle && main.playersCacheSupport.contains(playerType);
-			ge("#cache-on-server").parentElement.style.display = showCache ? "" : "none";
-			final panel = ge("#addfromurl");
+			getEl("#cache-on-server").parentElement.style.display = showCache ? "" : "none";
+			final panel = getEl("#addfromurl");
 			final oldH = panel.style.height; // save for animation
 			panel.style.height = ""; // to calculate height from content
 			final newH = Utils.outerHeight(panel) + "px";
@@ -237,12 +239,12 @@ class Buttons {
 		}
 		mediaUrl.onfocus = mediaUrl.oninput;
 
-		ge("#insert_template").onclick = e -> {
+		getEl("#insert_template").onclick = e -> {
 			mediaUrl.value = main.getTemplateUrl();
 			mediaUrl.focus();
 		}
 
-		ge("#mediaurl-upload").onclick = e -> {
+		getEl("#mediaurl-upload").onclick = e -> {
 			Utils.browseFile((buffer, name) -> {
 				if (name == null || name.length == 0) name = "video";
 
@@ -288,7 +290,7 @@ class Buttons {
 					final data = event.progress;
 					if (data.type != Uploading) return;
 					if (data.data == null) return;
-					final input:InputElement = ge("#mediaurl");
+					final input:InputElement = getEl("#mediaurl");
 					input.value = data.data;
 					JsApi.off(Progress, onStartUpload);
 				}
@@ -296,24 +298,24 @@ class Buttons {
 			});
 		}
 
-		final showOptions = ge("#showoptions");
+		final showOptions = getEl("#showoptions");
 		showOptions.onclick = e -> {
 			final isActive = toggleGroup(showOptions);
-			ge("#optionsPanel").style.opacity = isActive ? "1" : "0";
+			getEl("#optionsPanel").style.opacity = isActive ? "1" : "0";
 			Timer.delay(() -> {
 				if (showOptions.classList.contains("active") != isActive) return;
-				ge("#optionsPanel").classList.toggle("collapse", !isActive);
+				getEl("#optionsPanel").classList.toggle("collapse", !isActive);
 			}, isActive ? 0 : 200);
 		}
 
-		final exitBtn = ge("#exitBtn");
+		final exitBtn = getEl("#exitBtn");
 		exitBtn.onclick = e -> {
 			showOptions.onclick();
 			if (main.isUser()) main.send({type: Logout});
-			else ge("#guestname").focus();
+			else getEl("#guestname").focus();
 		}
 
-		final swapLayoutBtn = ge("#swapLayoutBtn");
+		final swapLayoutBtn = getEl("#swapLayoutBtn");
 		swapLayoutBtn.onclick = e -> {
 			swapPlayerAndChat();
 			Settings.write(settings);
@@ -332,7 +334,7 @@ class Buttons {
 
 	static function toggleGroup(el:Element):Bool {
 		el.classList.toggle("collapsed");
-		final target = ge(el.dataset.target);
+		final target = getEl(el.dataset.target);
 		final isClosed = target.classList.toggle("collapse");
 		if (isClosed) {
 			target.style.height = "0";
@@ -347,42 +349,14 @@ class Buttons {
 	}
 
 	static function swapPlayerAndChat():Void {
-		settings.isSwapped = ge("body").classList.toggle("swap");
+		settings.isSwapped = getEl("body").classList.toggle("swap");
 		final sizes = document.body.style.gridTemplateColumns.split(" ");
 		sizes.reverse();
 		document.body.style.gridTemplateColumns = sizes.join(" ");
 	}
 
-	static function initSplit():Void {
-		if (split != null) split.destroy();
-		split = new Split({
-			columnGutters: [{
-				element: ge(".gutter"),
-				track: 1,
-			}],
-			minSize: 200,
-			snapOffset: 0,
-			onDragEnd: saveSplitSize
-		});
-	}
-
-	static function setSplitSize(chatSize:Float):Void {
-		if (chatSize < CHAT_MIN_SIZE) return;
-		final sizes = document.body.style.gridTemplateColumns.split(" ");
-		final chatId = settings.isSwapped ? 0 : sizes.length - 1;
-		sizes[chatId] = '${chatSize}px';
-		document.body.style.gridTemplateColumns = sizes.join(" ");
-	}
-
-	static function saveSplitSize():Void {
-		final sizes = document.body.style.gridTemplateColumns.split(" ");
-		if (settings.isSwapped) sizes.reverse();
-		settings.chatSize = Std.parseFloat(sizes[sizes.length - 1]);
-		Settings.write(settings);
-	}
-
 	public static function initTextButtons(main:Main):Void {
-		final synchThresholdBtn = ge("#synchThresholdBtn");
+		final synchThresholdBtn = getEl("#synchThresholdBtn");
 		synchThresholdBtn.onclick = e -> {
 			var secs = settings.synchThreshold + 1;
 			if (secs > 5) secs = 1;
@@ -391,7 +365,7 @@ class Buttons {
 		}
 		updateSynchThresholdBtn();
 
-		final hotkeysBtn = ge("#hotkeysBtn");
+		final hotkeysBtn = getEl("#hotkeysBtn");
 		hotkeysBtn.onclick = e -> {
 			settings.hotkeysEnabled = !settings.hotkeysEnabled;
 			Settings.write(settings);
@@ -399,7 +373,7 @@ class Buttons {
 		}
 		updateHotkeysBtn();
 
-		final removeBtn = ge("#removePlayerBtn");
+		final removeBtn = getEl("#removePlayerBtn");
 		removeBtn.onclick = e -> {
 			final isActive = main.toggleVideoElement();
 			if (isActive) {
@@ -408,7 +382,7 @@ class Buttons {
 				removeBtn.innerText = Lang.get("restorePlayer");
 			}
 		}
-		final setVideoUrlBtn = ge("#setVideoUrlBtn");
+		final setVideoUrlBtn = getEl("#setVideoUrlBtn");
 		setVideoUrlBtn.onclick = e -> {
 			final src = window.prompt(Lang.get("setVideoUrlPrompt"));
 			if (src.trim() == "") { // reset to default url
@@ -417,7 +391,7 @@ class Buttons {
 			}
 			JsApi.setVideoSrc(src);
 		}
-		final selectLocalVideoBtn = ge("#selectLocalVideoBtn");
+		final selectLocalVideoBtn = getEl("#selectLocalVideoBtn");
 		selectLocalVideoBtn.onclick = e -> {
 			Utils.browseFileUrl((url, name) -> {
 				JsApi.setVideoSrc(url);
@@ -426,11 +400,11 @@ class Buttons {
 	}
 
 	public static function initHotkeys(main:Main, player:Player):Void {
-		ge("#mediarefresh").title += " (Alt-R)";
-		ge("#voteskip").title += " (Alt-S)";
-		ge("#getplaylist").title += " (Alt-C)";
-		ge("#fullscreenbtn").title += " (Alt-F)";
-		ge("#leader_btn").title += " (Alt-L)";
+		getEl("#mediarefresh").title += " (Alt-R)";
+		getEl("#voteskip").title += " (Alt-S)";
+		getEl("#getplaylist").title += " (Alt-C)";
+		getEl("#fullscreenbtn").title += " (Alt-F)";
+		getEl("#leader_btn").title += " (Alt-L)";
 		window.onkeydown = (e:KeyboardEvent) -> {
 			if (!settings.hotkeysEnabled) return;
 			final target:Element = cast e.target;
@@ -440,13 +414,13 @@ class Buttons {
 			if (!e.altKey) return;
 			switch (key) {
 				case R:
-					ge("#mediarefresh").onclick();
+					getEl("#mediarefresh").onclick();
 				case S:
-					ge("#voteskip").onclick();
+					getEl("#voteskip").onclick();
 				case C:
-					ge("#getplaylist").onclick();
+					getEl("#getplaylist").onclick();
 				case F:
-					ge("#fullscreenbtn").onclick();
+					getEl("#fullscreenbtn").onclick();
 				case L:
 					main.toggleLeader();
 				case P:
@@ -469,17 +443,17 @@ class Buttons {
 	static function updateSynchThresholdBtn():Void {
 		final text = Lang.get("synchThreshold");
 		final secs = settings.synchThreshold;
-		ge("#synchThresholdBtn").innerText = '$text: ${secs}s';
+		getEl("#synchThresholdBtn").innerText = '$text: ${secs}s';
 	}
 
 	static function updateHotkeysBtn():Void {
 		final text = Lang.get("hotkeys");
 		final state = settings.hotkeysEnabled ? Lang.get("on") : Lang.get("off");
-		ge("#hotkeysBtn").innerText = '$text: $state';
+		getEl("#hotkeysBtn").innerText = '$text: $state';
 	}
 
 	static function initChatInputs(main:Main):Void {
-		final guestName:InputElement = cast ge("#guestname");
+		final guestName:InputElement = getEl("#guestname");
 		guestName.onkeydown = e -> {
 			if (e.keyCode == KeyCode.Return) {
 				main.guestLogin(guestName.value);
@@ -487,7 +461,7 @@ class Buttons {
 			}
 		}
 
-		final guestPass:InputElement = cast ge("#guestpass");
+		final guestPass:InputElement = getEl("#guestpass");
 		guestPass.onkeydown = e -> {
 			if (e.keyCode == KeyCode.Return) {
 				main.userLogin(guestName.value, guestPass.value);
@@ -496,14 +470,14 @@ class Buttons {
 			}
 		}
 
-		final chatline:InputElement = cast ge("#chatline");
+		final chatline:InputElement = getEl("#chatline");
 		chatline.onfocus = e -> {
 			if (Utils.isIOS()) {
 				// final startY = window.scrollY;
 				final startY = 0;
 				Timer.delay(() -> {
 					window.scrollBy(0, -(window.scrollY - startY));
-					ge("#video").scrollTop = 0;
+					getEl("#video").scrollTop = 0;
 					main.scrollChatToEnd();
 				}, 100);
 			} else if (Utils.isTouch()) {
@@ -528,8 +502,8 @@ class Buttons {
 			return true;
 		});
 		final checkboxes:Array<InputElement> = [
-			ge("#add-temp"),
-			ge("#cache-on-server"),
+			getEl("#add-temp"),
+			getEl("#cache-on-server"),
 		];
 		for (checkbox in checkboxes) {
 			checkbox.addEventListener("change", () -> {
@@ -545,10 +519,10 @@ class Buttons {
 	public static function onViewportResize():Void {
 		final viewport = getVisualViewport() ?? return;
 		final isPortrait = window.innerHeight > window.innerWidth;
-		final playerH = ge("#ytapiplayer").offsetHeight;
+		final playerH = getEl("#ytapiplayer").offsetHeight;
 		var h = viewport.height - playerH;
 		if (!isPortrait) h = viewport.height;
-		ge("#chat").style.height = '${h}px';
+		getEl("#chat").style.height = '${h}px';
 	}
 
 	static inline function getVisualViewport():Null<VisualViewport> {

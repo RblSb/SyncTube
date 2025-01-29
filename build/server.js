@@ -4529,16 +4529,10 @@ server_Logger.prototype = {
 		server_Utils.ensureDir(this.folder);
 		this.removeOldestLog(this.folder);
 		var name = DateTools.format(new Date(),"%Y-%m-%d_%H_%M_%S");
-		js_node_Fs.writeFileSync("" + this.folder + "/" + name + ".json",JSON.stringify(this.getLogs(),$bind(this,this.filterNulls),"\t"));
+		js_node_Fs.writeFileSync("" + this.folder + "/" + name + ".json",server_Main.jsonStringify(this.getLogs(),"\t"));
 	}
 	,getLogs: function() {
 		return this.logs;
-	}
-	,filterNulls: function(key,value) {
-		if(value == null) {
-			return undefined;
-		}
-		return value;
 	}
 	,removeOldestLog: function(folder) {
 		var _gthis = this;
@@ -4670,6 +4664,15 @@ var server_Main = function(opts) {
 server_Main.__name__ = true;
 server_Main.main = function() {
 	new server_Main({ loadState : true});
+};
+server_Main.jsonStringify = function(data,space) {
+	return JSON.stringify(data,server_Main.jsonFilterNulls,space);
+};
+server_Main.jsonFilterNulls = function(key,value) {
+	if(value == null) {
+		return undefined;
+	}
+	return value;
 };
 server_Main.prototype = {
 	runServer: function() {
@@ -5205,7 +5208,7 @@ server_Main.prototype = {
 				var client1 = _this[i];
 				result[i] = { name : client1.name, id : client1.id, ip : _gthis.clientIp(client1.req), isBanned : (client1.group & 1) != 0, isAdmin : (client1.group & 8) != 0, isLeader : (client1.group & 4) != 0, isUser : (client1.group & 2) != 0};
 			}
-			var json = JSON.stringify({ state : data1, clients : result, logs : this.logger.getLogs()},($_=this.logger,$bind($_,$_.filterNulls)),"\t");
+			var json = server_Main.jsonStringify({ state : data1, clients : result, logs : this.logger.getLogs()},"\t");
 			this.send(client,{ type : "Dump", dump : { data : json}});
 			break;
 		case "Flashback":
@@ -5557,16 +5560,16 @@ server_Main.prototype = {
 		this.send(client,{ type : "ServerMessage", serverMessage : { textId : textId}});
 	}
 	,send: function(client,data) {
-		client.ws.send(JSON.stringify(data),null);
+		client.ws.send(server_Main.jsonStringify(data),null);
 	}
 	,broadcast: function(data) {
-		var json = JSON.stringify(data);
+		var json = server_Main.jsonStringify(data);
 		var _g = 0;
 		var _g1 = this.clients;
 		while(_g < _g1.length) _g1[_g++].ws.send(json,null);
 	}
 	,broadcastExcept: function(skipped,data) {
-		var json = JSON.stringify(data);
+		var json = server_Main.jsonStringify(data);
 		var _g = 0;
 		var _g1 = this.clients;
 		while(_g < _g1.length) {
@@ -5627,7 +5630,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1045, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1056, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;

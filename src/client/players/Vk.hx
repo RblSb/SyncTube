@@ -4,7 +4,7 @@ import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.VideoItem;
-import client.Main.ge;
+import client.Main.getEl;
 import haxe.Constraints.Function;
 import js.Browser.document;
 import js.html.Element;
@@ -41,7 +41,7 @@ private extern class VkPlayer {
 class Vk implements IPlayer {
 	final main:Main;
 	final player:Player;
-	final playerEl:Element = ge("#ytapiplayer");
+	final playerEl:Element = getEl("#ytapiplayer");
 	var video:Element;
 	var vkPlayer:VkPlayer;
 	var isLoaded = false;

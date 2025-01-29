@@ -4,7 +4,7 @@ import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.VideoItem;
-import client.Main.ge;
+import client.Main.getEl;
 import client.players.Iframe;
 import client.players.Raw;
 import client.players.Streamable;
@@ -24,15 +24,15 @@ class Player {
 	final iframePlayer:IPlayer;
 	final rawPlayer:IPlayer;
 	final videoList = new VideoList();
-	final videoItemsEl = ge("#queue");
-	final playerEl = ge("#ytapiplayer");
+	final videoItemsEl = getEl("#queue");
+	final playerEl = getEl("#ytapiplayer");
 	var player:Null<IPlayer>;
 	var isLoaded = false;
 	var skipSetTime = false;
 	var skipSetRate = false;
 	var streamable:Streamable;
 
-	final voiceOverInput:InputElement = cast ge("#voiceoverurl");
+	final voiceOverInput:InputElement = getEl("#voiceoverurl");
 	var audioTrack:Null<Audio>;
 	var isAudioTrackLoaded = false;
 	var needsVolumeReset = false;
@@ -76,7 +76,7 @@ class Player {
 	}
 
 	function initItemButtons():Void {
-		final queue = ge("#queue");
+		final queue = getEl("#queue");
 		queue.onclick = e -> {
 			final btn:Element = cast e.target;
 			final item = btn.parentElement.parentElement;
@@ -192,7 +192,7 @@ class Player {
 			onCanBePlayed();
 		}
 		JsApi.fireVideoChangeEvents(item);
-		ge("#currenttitle").textContent = item.title;
+		getEl("#currenttitle").textContent = item.title;
 	}
 
 	function setExternalAudioTrack(item:VideoItem):Void {
@@ -248,17 +248,17 @@ class Player {
 	public function removeVideo():Void {
 		JsApi.fireVideoRemoveEvents(videoList.currentItem);
 		player.removeVideo();
-		ge("#currenttitle").textContent = Lang.get("nothingPlaying");
+		getEl("#currenttitle").textContent = Lang.get("nothingPlaying");
 		setPauseIndicator(false);
 	}
 
 	public function setPauseIndicator(isPause:Bool):Void {
 		if (!main.isSyncActive) return;
 		final state = isPause ? "pause" : "play";
-		final el = ge("#pause-indicator");
+		final el = getEl("#pause-indicator");
 		el.setAttribute("name", state);
 
-		final el2 = ge("#pause-indicator-portrait");
+		final el2 = getEl("#pause-indicator-portrait");
 		el2.setAttribute("name", state);
 		var isVisible = isPause || main.hasLeader();
 		el2.style.display = isVisible ? "" : "none";
@@ -484,8 +484,8 @@ class Player {
 	}
 
 	function updateCounters():Void {
-		ge("#plcount").textContent = '${videoList.length} ${Lang.get("videos")}';
-		ge("#pllength").textContent = totalDuration();
+		getEl("#plcount").textContent = '${videoList.length} ${Lang.get("videos")}';
+		getEl("#pllength").textContent = totalDuration();
 	}
 
 	public function getItems():Array<VideoItem> {
@@ -625,8 +625,12 @@ class Player {
 
 	public function skipAd():Void {
 		final item = videoList.currentItem ?? return;
-		if (!youtube.isSupportedLink(item.url)) return;
-		final id = youtube.extractVideoId(item.url);
+		var itemUrl = item.url;
+		if (!youtube.isSupportedLink(itemUrl)) {
+			itemUrl = itemUrl.replace("/cache/", "youtu.be/");
+			if (!youtube.isSupportedLink(itemUrl)) return;
+		}
+		final id = youtube.extractVideoId(itemUrl);
 		final url = 'https://sponsor.ajay.app/api/skipSegments?videoID=$id';
 		final http = new Http(url);
 		http.onData = text -> {

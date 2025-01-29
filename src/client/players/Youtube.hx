@@ -4,7 +4,7 @@ import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.VideoItem;
-import client.Main.ge;
+import client.Main.getEl;
 import haxe.Http;
 import haxe.Json;
 import js.Browser.document;
@@ -20,7 +20,7 @@ class Youtube implements IPlayer {
 	final urlVideoId = "?part=snippet&fields=nextPageToken,items(snippet/resourceId/videoId)";
 	final main:Main;
 	final player:Player;
-	final playerEl:Element = ge("#ytapiplayer");
+	final playerEl:Element = getEl("#ytapiplayer");
 	var apiKey:String;
 	var video:Element;
 	var youtube:YoutubePlayer;

@@ -4,14 +4,14 @@ import Types.PlayerType;
 import Types.VideoData;
 import Types.VideoDataRequest;
 import Types.VideoItem;
-import client.Main.ge;
+import client.Main.getEl;
 import js.Browser.document;
 import js.html.Element;
 
 class Iframe implements IPlayer {
 	final main:Main;
 	final player:Player;
-	final playerEl:Element = ge("#ytapiplayer");
+	final playerEl:Element = getEl("#ytapiplayer");
 	var video:Element;
 
 	public function new(main:Main, player:Player) {

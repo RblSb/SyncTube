@@ -21,3 +21,4 @@ Server has input commands, for example, to set admin users. Simple enter anythin
 - `users.json` - Admin names with password hashes and random channel-specific salt. Do not share this file!
 - `crashes/` - Latest error logs, when the server crashes.
 - `logs/` - Latest activity logs, saved when the server shuts down.
+- `cache/` - Folder with video cache and uploads. You can change `cacheStorageLimitGiB` in config to limit it.

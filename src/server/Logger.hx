@@ -40,18 +40,11 @@ class Logger {
 		Utils.ensureDir(folder);
 		removeOldestLog(folder);
 		final name = DateTools.format(Date.now(), "%Y-%m-%d_%H_%M_%S");
-		File.saveContent('$folder/$name.json', Json.stringify(getLogs(), filterNulls, "\t"));
+		File.saveContent('$folder/$name.json', Main.jsonStringify(getLogs(), "\t"));
 	}
 
 	public function getLogs():Array<ServerEvent> {
 		return logs;
-	}
-
-	public function filterNulls(key:Any, value:Any):Any {
-		#if js
-		if (value == null) return js.Lib.undefined;
-		#end
-		return value;
 	}
 
 	function removeOldestLog(folder:String):Void {

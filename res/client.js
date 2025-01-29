@@ -556,8 +556,12 @@ client_Buttons.init = function(main) {
 	if(client_Buttons.settings.isSwapped) {
 		client_Buttons.swapPlayerAndChat();
 	}
-	client_Buttons.initSplit();
-	client_Buttons.setSplitSize(client_Buttons.settings.chatSize);
+	var tmp = client_Buttons.split;
+	if(tmp != null) {
+		tmp.destroy();
+	}
+	client_Buttons.split = new client_Split(client_Buttons.settings);
+	client_Buttons.split.setSize(client_Buttons.settings.chatSize);
 	client_Buttons.initChatInputs(main);
 	var _g = 0;
 	var _g1 = client_Buttons.settings.checkboxes;
@@ -801,14 +805,14 @@ client_Buttons.init = function(main) {
 			var request = window.fetch("/upload",{ method : "POST", headers : { "content-name" : haxe_io_Path.withoutExtension(name), "client-name" : main.personal.name}, body : buffer});
 			request.then(function(e) {
 				return e.json().then(function(data) {
-					haxe_Log.trace(data.info,{ fileName : "src/client/Buttons.hx", lineNumber : 274, className : "client.Buttons", methodName : "init"});
+					haxe_Log.trace(data.info,{ fileName : "src/client/Buttons.hx", lineNumber : 276, className : "client.Buttons", methodName : "init"});
 					if(data.errorId == null) {
 						return;
 					}
 					main.serverMessage(data.info,true,false);
 				});
 			}).catch(function(err) {
-				haxe_Log.trace(err,{ fileName : "src/client/Buttons.hx", lineNumber : 279, className : "client.Buttons", methodName : "init"});
+				haxe_Log.trace(err,{ fileName : "src/client/Buttons.hx", lineNumber : 281, className : "client.Buttons", methodName : "init"});
 				return haxe_Timer.delay(function() {
 					main.hideDynamicChin();
 				},500);
@@ -896,29 +900,6 @@ client_Buttons.swapPlayerAndChat = function() {
 	var sizes = window.document.body.style.gridTemplateColumns.split(" ");
 	sizes.reverse();
 	window.document.body.style.gridTemplateColumns = sizes.join(" ");
-};
-client_Buttons.initSplit = function() {
-	if(client_Buttons.split != null) {
-		client_Buttons.split.destroy();
-	}
-	client_Buttons.split = new Split({ columnGutters : [{ element : window.document.querySelector(".gutter"), track : 1}], minSize : 200, snapOffset : 0, onDragEnd : client_Buttons.saveSplitSize});
-};
-client_Buttons.setSplitSize = function(chatSize) {
-	if(chatSize < 200) {
-		return;
-	}
-	var sizes = window.document.body.style.gridTemplateColumns.split(" ");
-	sizes[client_Buttons.settings.isSwapped ? 0 : sizes.length - 1] = "" + chatSize + "px";
-	window.document.body.style.gridTemplateColumns = sizes.join(" ");
-};
-client_Buttons.saveSplitSize = function() {
-	var sizes = window.document.body.style.gridTemplateColumns.split(" ");
-	if(client_Buttons.settings.isSwapped) {
-		sizes.reverse();
-	}
-	var tmp = parseFloat(sizes[sizes.length - 1]);
-	client_Buttons.settings.chatSize = tmp;
-	client_Settings.write(client_Buttons.settings);
 };
 client_Buttons.initTextButtons = function(main) {
 	window.document.querySelector("#synchThresholdBtn").onclick = function(e) {
@@ -3321,10 +3302,14 @@ client_Player.prototype = {
 		if(tmp == null) {
 			return;
 		}
-		if(!this.youtube.isSupportedLink(tmp.url)) {
-			return;
+		var itemUrl = tmp.url;
+		if(!this.youtube.isSupportedLink(itemUrl)) {
+			itemUrl = StringTools.replace(itemUrl,"/cache/","youtu.be/");
+			if(!this.youtube.isSupportedLink(itemUrl)) {
+				return;
+			}
 		}
-		var http = new haxe_http_HttpJs("https://sponsor.ajay.app/api/skipSegments?videoID=" + this.youtube.extractVideoId(tmp.url));
+		var http = new haxe_http_HttpJs("https://sponsor.ajay.app/api/skipSegments?videoID=" + this.youtube.extractVideoId(itemUrl));
 		http.onData = function(text) {
 			var json;
 			try {
@@ -3345,7 +3330,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 652, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 656, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -3442,6 +3427,33 @@ client_Settings.write = function(data) {
 		return;
 	}
 	client_Settings.storage.setItem("data",JSON.stringify(data));
+};
+var client_Split = function(settings) {
+	this.settings = settings;
+	this.split = new Split({ columnGutters : [{ element : window.document.querySelector(".gutter"), track : 1}], minSize : 200, snapOffset : 0, onDragEnd : $bind(this,this.saveSize)});
+};
+client_Split.__name__ = true;
+client_Split.prototype = {
+	setSize: function(chatSize) {
+		if(chatSize < 200) {
+			return;
+		}
+		var sizes = window.document.body.style.gridTemplateColumns.split(" ");
+		sizes[this.settings.isSwapped ? 0 : sizes.length - 1] = "" + chatSize + "px";
+		window.document.body.style.gridTemplateColumns = sizes.join(" ");
+	}
+	,saveSize: function() {
+		var sizes = window.document.body.style.gridTemplateColumns.split(" ");
+		if(this.settings.isSwapped) {
+			sizes.reverse();
+		}
+		var tmp = parseFloat(sizes[sizes.length - 1]);
+		this.settings.chatSize = tmp;
+		client_Settings.write(this.settings);
+	}
+	,destroy: function() {
+		this.split.destroy();
+	}
 };
 var client_Utils = function() { };
 client_Utils.__name__ = true;

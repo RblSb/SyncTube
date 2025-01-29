@@ -761,6 +761,12 @@ footer#footer {
   background-color: var(--background-chat);
 }
 
+@media only screen and (orientation: portrait) {
+  #swapLayoutBtn {
+    display: none !important;
+  }
+}
+
 /* Message buffer */
 
 #messagebuffer {

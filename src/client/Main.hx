@@ -38,7 +38,7 @@ class Main {
 	public var isPlaylistOpen(default, null) = true;
 	public var playersCacheSupport(default, null):Array<PlayerType> = [];
 	public var showingServerPause(default, null) = false;
-	/** How much time passed from last GetTime **/
+	/** How much time passed since lastState.time update **/
 	public var timeFromLastState(default, null) = 0.0;
 	public final lastState:GetTimeEvent = {
 		time: 0,
@@ -63,7 +63,7 @@ class Main {
 	var onTimeGet:Timer;
 	var onBlinkTab:Null<Timer>;
 	var gotFirstPageInteraction = false;
-	var msgBuf = ge("#messagebuffer");
+	var msgBuf = getEl("#messagebuffer");
 
 	static function main():Void {
 		instance = new Main();
@@ -189,14 +189,14 @@ class Main {
 	function initListeners():Void {
 		Buttons.init(this);
 
-		final leaderBtn = ge("#leader_btn");
+		final leaderBtn = getEl("#leader_btn");
 		leaderBtn.onclick = toggleLeader;
 		leaderBtn.oncontextmenu = (e:MouseEvent) -> {
 			toggleLeaderAndPause();
 			e.preventDefault();
 		}
 
-		final voteSkip = ge("#voteskip");
+		final voteSkip = getEl("#voteskip");
 		voteSkip.onclick = e -> {
 			if (Utils.isTouch() && !window.confirm(Lang.get("skipItemConfirm"))) return;
 			if (player.isListEmpty()) return;
@@ -210,29 +210,29 @@ class Main {
 			});
 		}
 
-		ge("#queue_next").onclick = e -> addVideoUrl(false);
-		ge("#queue_end").onclick = e -> addVideoUrl(true);
-		new InputWithHistory(cast ge("#mediaurl"), settings.latestLinks, 10, value -> {
+		getEl("#queue_next").onclick = e -> addVideoUrl(false);
+		getEl("#queue_end").onclick = e -> addVideoUrl(true);
+		new InputWithHistory(getEl("#mediaurl"), settings.latestLinks, 10, value -> {
 			addVideoUrl(true);
 			return false;
 		});
-		ge("#mediatitle").onkeydown = (e:KeyboardEvent) -> {
+		getEl("#mediatitle").onkeydown = (e:KeyboardEvent) -> {
 			if (e.keyCode == KeyCode.Return) addVideoUrl(true);
 		}
-		new InputWithHistory(cast ge("#subsurl"), settings.latestSubs, 10, value -> {
+		new InputWithHistory(getEl("#subsurl"), settings.latestSubs, 10, value -> {
 			addVideoUrl(true);
 			return false;
 		});
 
-		ge("#ce_queue_next").onclick = e -> addIframe(false);
-		ge("#ce_queue_end").onclick = e -> addIframe(true);
-		ge("#customembed-title").onkeydown = (e:KeyboardEvent) -> {
+		getEl("#ce_queue_next").onclick = e -> addIframe(false);
+		getEl("#ce_queue_end").onclick = e -> addIframe(true);
+		getEl("#customembed-title").onkeydown = (e:KeyboardEvent) -> {
 			if (e.keyCode == KeyCode.Return) {
 				addIframe(true);
 				e.preventDefault();
 			}
 		}
-		ge("#customembed-content").onkeydown = ge("#customembed-title").onkeydown;
+		getEl("#customembed-content").onkeydown = getEl("#customembed-title").onkeydown;
 	}
 
 	public inline function isUser():Bool {
@@ -274,11 +274,11 @@ class Main {
 	}
 
 	function addVideoUrl(atEnd:Bool):Void {
-		final mediaUrl:InputElement = cast ge("#mediaurl");
-		final subsUrl:InputElement = cast ge("#subsurl");
-		final checkboxTemp:InputElement = cast ge("#addfromurl .add-temp");
+		final mediaUrl:InputElement = getEl("#mediaurl");
+		final subsUrl:InputElement = getEl("#subsurl");
+		final checkboxTemp:InputElement = getEl("#addfromurl .add-temp");
 		final isTemp = checkboxTemp.checked;
-		final checkboxCache:InputElement = cast ge("#cache-on-server");
+		final checkboxCache:InputElement = getEl("#cache-on-server");
 		final doCache = checkboxCache.checked
 			&& checkboxCache.parentElement.style.display != "none";
 		final url = mediaUrl.value;
@@ -364,14 +364,14 @@ class Main {
 	}
 
 	function addIframe(atEnd:Bool):Void {
-		final iframeCode:InputElement = cast ge("#customembed-content");
+		final iframeCode:InputElement = getEl("#customembed-content");
 		final iframe = iframeCode.value;
 		if (iframe.length == 0) return;
 		iframeCode.value = "";
-		final mediaTitle:InputElement = cast ge("#customembed-title");
+		final mediaTitle:InputElement = getEl("#customembed-title");
 		final title = mediaTitle.value;
 		mediaTitle.value = "";
-		final checkbox:InputElement = cast ge("#customembed .add-temp");
+		final checkbox:InputElement = getEl("#customembed .add-temp");
 		final isTemp = checkbox.checked;
 		final obj:VideoDataRequest = {
 			url: iframe,
@@ -699,7 +699,7 @@ class Main {
 		} else {
 			onLogin(connected.clients, connected.clientName);
 		}
-		final guestName:InputElement = cast ge("#guestname");
+		final guestName:InputElement = getEl("#guestname");
 		var name = settings.name;
 		if (name.length == 0) name = guestName.value;
 		final hash = settings.hash;
@@ -743,30 +743,30 @@ class Main {
 
 		serverMessage(text, false, false);
 
-		ge("#addVideosHintButton").onclick = e -> {
-			final addBtn = ge("#showmediaurl");
+		getEl("#addVideosHintButton").onclick = e -> {
+			final addBtn = getEl("#showmediaurl");
 			addBtn.scrollIntoView();
 			Timer.delay(() -> {
-				if (!ge("#addfromurl").classList.contains("collapse")) {
-					ge("#mediaurl").focus();
+				if (!getEl("#addfromurl").classList.contains("collapse")) {
+					getEl("#mediaurl").focus();
 					return;
 				}
 				addBtn.onclick();
 			}, 300);
 		}
-		ge("#requestLeaderHintButton").onclick = (e:MouseEvent) -> {
+		getEl("#requestLeaderHintButton").onclick = (e:MouseEvent) -> {
 			window.scrollTo(0, 0);
 			if (Utils.isTouch()) blinkLeaderButton();
 		}
-		ge("#requestLeaderHintButton").onpointerenter = e -> {
+		getEl("#requestLeaderHintButton").onpointerenter = e -> {
 			if (Utils.isTouch()) return;
-			ge("#leader_btn").classList.add("hint");
+			getEl("#leader_btn").classList.add("hint");
 		}
-		ge("#requestLeaderHintButton").onpointerleave = e -> {
-			ge("#leader_btn").classList.remove("hint");
+		getEl("#requestLeaderHintButton").onpointerleave = e -> {
+			getEl("#leader_btn").classList.remove("hint");
 		}
 		if (Utils.isAndroid()) {
-			ge("#openInApp").onclick = e -> {
+			getEl("#openInApp").onclick = e -> {
 				var isRedirected = false;
 				window.addEventListener("blur", e -> isRedirected = true, {once: true});
 				window.setTimeout(function() {
@@ -777,26 +777,26 @@ class Main {
 				return false;
 			}
 		}
-		ge("#hideHintList").onclick = e -> {
-			ge("#hideHintList").parentElement.remove();
+		getEl("#hideHintList").onclick = e -> {
+			getEl("#hideHintList").parentElement.remove();
 			settings.showHintList = false;
 			Settings.write(settings);
 		}
 	}
 
 	public function blinkLeaderButton():Void {
-		ge("#leader_btn").classList.add("hint");
-		Timer.delay(() -> ge("#leader_btn").classList.remove("hint"), 500);
+		getEl("#leader_btn").classList.add("hint");
+		Timer.delay(() -> getEl("#leader_btn").classList.remove("hint"), 500);
 	}
 
 	function onUserGroupChanged():Void {
-		final button:ButtonElement = cast ge("#queue_next");
+		final button:ButtonElement = getEl("#queue_next");
 		if (personal.hasPermission(ChangeOrderPerm, config.permissions)) {
 			button.disabled = false;
 		} else {
 			button.disabled = true;
 		}
-		final adminMenu = ge("#adminMenu");
+		final adminMenu = getEl("#adminMenu");
 		if (isAdmin()) adminMenu.style.display = "";
 		else adminMenu.style.display = "none";
 	}
@@ -840,9 +840,9 @@ class Main {
 			config.unpauseWithoutLeader = false;
 		}
 		pageTitle = config.channelName;
-		final login:InputElement = cast ge("#guestname");
+		final login:InputElement = getEl("#guestname");
 		login.maxLength = config.maxLoginLength;
-		final form:InputElement = cast ge("#chatline");
+		final form:InputElement = getEl("#chatline");
 		form.maxLength = config.maxMessageLength;
 
 		filters.resize(0);
@@ -860,14 +860,14 @@ class Main {
 				replace: '$1<$tag class="channel-emote" src="${emote.image}" title="${emote.name}"/>'
 			});
 		}
-		ge("#smilesbtn").classList.remove("active");
-		final smilesWrap = ge("#smiles-wrap");
+		getEl("#smilesbtn").classList.remove("active");
+		final smilesWrap = getEl("#smiles-wrap");
 		smilesWrap.style.display = "none";
-		final smilesList = ge("#smiles-list");
+		final smilesList = getEl("#smiles-list");
 		smilesList.onclick = (e:MouseEvent) -> {
 			final el:Element = cast e.target;
 			if (el == smilesList) return;
-			final form:InputElement = cast ge("#chatline");
+			final form:InputElement = getEl("#chatline");
 			form.value += ' ${el.title}';
 			form.focus();
 		}
@@ -892,25 +892,25 @@ class Main {
 	}
 
 	function showGuestLoginPanel():Void {
-		ge("#guestlogin").style.display = "";
-		ge("#guestpassword").style.display = "none";
-		ge("#chatbox").style.display = "none";
-		ge("#exitBtn").textContent = Lang.get("login");
+		getEl("#guestlogin").style.display = "";
+		getEl("#guestpassword").style.display = "none";
+		getEl("#chatbox").style.display = "none";
+		getEl("#exitBtn").textContent = Lang.get("login");
 	}
 
 	function hideGuestLoginPanel():Void {
-		ge("#guestlogin").style.display = "none";
-		ge("#guestpassword").style.display = "none";
-		ge("#chatbox").style.display = "";
-		ge("#exitBtn").textContent = Lang.get("exit");
+		getEl("#guestlogin").style.display = "none";
+		getEl("#guestpassword").style.display = "none";
+		getEl("#chatbox").style.display = "";
+		getEl("#exitBtn").textContent = Lang.get("exit");
 	}
 
 	function showGuestPasswordPanel():Void {
-		ge("#guestlogin").style.display = "none";
-		ge("#chatbox").style.display = "none";
-		ge("#guestpassword").style.display = "";
-		(cast ge("#guestpass") : InputElement).type = "password";
-		ge("#guestpass_icon").setAttribute("name", "eye");
+		getEl("#guestlogin").style.display = "none";
+		getEl("#chatbox").style.display = "none";
+		getEl("#guestpassword").style.display = "";
+		(getEl("#guestpass") : InputElement).type = "password";
+		getEl("#guestpass_icon").setAttribute("name", "eye");
 	}
 
 	function updateClients(newClients:Array<ClientData>):Void {
@@ -982,7 +982,7 @@ class Main {
 	}
 
 	function updateUserList():Void {
-		final userCount = ge("#usercount");
+		final userCount = getEl("#usercount");
 		userCount.textContent = clients.length + " " + Lang.get("online");
 		document.title = getPageTitle();
 
@@ -995,7 +995,7 @@ class Main {
 			if (client.isAdmin) klass += " userlist_owner";
 			list.add('<span class="$klass">${client.name}</span></div>');
 		}
-		final userlist = ge("#userlist");
+		final userlist = getEl("#userlist");
 		userlist.innerHTML = list.toString();
 	}
 
@@ -1076,13 +1076,13 @@ class Main {
 	}
 
 	public function showScrollToChatEndBtn():Void {
-		final btn = ge("#scroll-to-chat-end");
+		final btn = getEl("#scroll-to-chat-end");
 		btn.style.display = "";
 		Timer.delay(() -> btn.style.opacity = "1", 0);
 	}
 
 	public function hideScrollToChatEndBtn():Void {
-		final btn = ge("#scroll-to-chat-end");
+		final btn = getEl("#scroll-to-chat-end");
 		if (btn.style.opacity == "0") return;
 		btn.style.opacity = "0";
 		btn.addEventListener("transitionend", e -> {
@@ -1091,7 +1091,7 @@ class Main {
 	}
 
 	public function showProgressInfo(text:String):Void {
-		final chin = ge("#dynamic-chin");
+		final chin = getEl("#dynamic-chin");
 		var div = chin.querySelector("#progress-info");
 		if (div == null) {
 			div = document.createDivElement();
@@ -1105,7 +1105,7 @@ class Main {
 	public function showServerUnpause():Void {
 		if (showingServerPause) return;
 		showingServerPause = true;
-		final chin = ge("#dynamic-chin");
+		final chin = getEl("#dynamic-chin");
 		chin.innerHTML = "";
 
 		final div = document.createDivElement();
@@ -1131,7 +1131,7 @@ class Main {
 	}
 
 	function showDynamicChin():Void {
-		final chin = ge("#dynamic-chin");
+		final chin = getEl("#dynamic-chin");
 		if (chin.style.display == "") return;
 		chin.style.display = "";
 		chin.style.transition = "none";
@@ -1153,7 +1153,7 @@ class Main {
 
 	public function hideDynamicChin():Void {
 		showingServerPause = false;
-		final chin = ge("#dynamic-chin");
+		final chin = getEl("#dynamic-chin");
 		final h = chin.clientHeight;
 		chin.style.height = '${h}px';
 		Timer.delay(() -> {
@@ -1171,7 +1171,7 @@ class Main {
 	function onChatImageLoaded(e:Event):Void {
 		scrollChatToEnd();
 		(cast e.target : Element).onload = null;
-		final btn = ge("#scroll-to-chat-end");
+		final btn = getEl("#scroll-to-chat-end");
 		btn.style.opacity = "0";
 		btn.style.display = "none";
 	}
@@ -1337,13 +1337,13 @@ class Main {
 	}
 
 	function setLeaderButton(flag:Bool):Void {
-		final leaderBtn = ge("#leader_btn");
+		final leaderBtn = getEl("#leader_btn");
 		leaderBtn.classList.toggle("success-bg", flag);
 	}
 
 	function setPlaylistLock(isOpen:Bool):Void {
 		isPlaylistOpen = isOpen;
-		final lockPlaylist = ge("#lockplaylist");
+		final lockPlaylist = getEl("#lockplaylist");
 		final icon = lockPlaylist.firstElementChild;
 		if (isOpen) {
 			lockPlaylist.title = Lang.get("playlistOpen");
@@ -1439,7 +1439,7 @@ class Main {
 	}
 
 	@:generic
-	public static inline function ge<T:Element>(id:String):T {
+	public static inline function getEl<T:Element>(id:String):T {
 		return cast document.querySelector(id);
 	}
 }
