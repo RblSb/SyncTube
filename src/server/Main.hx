@@ -517,7 +517,6 @@ class Main {
 				clients.remove(client);
 				sendClientList();
 				if (client.isLeader) {
-					// if (videoTimer.isPaused()) videoTimer.play();
 					if (videoList.length > 0) {
 						videoTimer.pause();
 						isServerPause = true;
@@ -700,6 +699,7 @@ class Main {
 
 			case VideoLoaded:
 				// Called if client loads next video and can play it
+				if (isServerPause) return;
 				prepareVideoPlayback();
 
 			case RemoveVideo:
@@ -715,12 +715,8 @@ class Main {
 					saveFlashbackTime(videoList.currentItem);
 				}
 				videoList.removeItem(index);
-				if (isCurrent && videoList.length > 0) {
-					broadcast(data);
-					restartWaitTimer();
-				} else {
-					broadcast(data);
-				}
+				broadcast(data);
+				if (isCurrent && videoList.length > 0) restartWaitTimer();
 
 			case SkipVideo:
 				if (!checkPermission(client, RemoveVideoPerm)) return;
@@ -857,10 +853,12 @@ class Main {
 
 			case PlayItem:
 				if (!checkPermission(client, ChangeOrderPerm)) return;
+				final pos = data.playItem.pos;
+				if (!videoList.hasItem(pos)) return;
 				if (videoTimer.getTime() > FLASHBACK_DIST) {
 					saveFlashbackTime(videoList.currentItem);
 				}
-				videoList.setPos(data.playItem.pos);
+				videoList.setPos(pos);
 				data.playItem.pos = videoList.pos;
 				restartWaitTimer();
 				broadcast(data);
@@ -869,6 +867,7 @@ class Main {
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, ChangeOrderPerm)) return;
 				final pos = data.setNextItem.pos;
+				if (!videoList.hasItem(pos)) return;
 				if (pos == videoList.pos || pos == videoList.pos + 1) return;
 				videoList.setNextItem(pos);
 				broadcast(data);
@@ -877,6 +876,7 @@ class Main {
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, ToggleItemTypePerm)) return;
 				final pos = data.toggleItemType.pos;
+				if (!videoList.hasItem(pos)) return;
 				videoList.toggleItemType(pos);
 				broadcast(data);
 
@@ -941,6 +941,12 @@ class Main {
 					logs: logger.getLogs()
 				}
 				final json = jsonStringify(data, "\t");
+				send(client, {
+					type: ServerMessage,
+					serverMessage: {
+						textId: "Free space: " + (cache.getFreeSpace() / 1024).toFixed() + "KiB"
+					}
+				});
 				send(client, {
 					type: Dump,
 					dump: {
@@ -1047,7 +1053,7 @@ class Main {
 		}
 		final ip = clientIp(client.req);
 		final currentTime = Date.now().getTime();
-		for (ban in userList.bans) {
+		for (ban in userList.bans.reversed()) {
 			if (ban.ip != ip) continue;
 			final isOutdated = ban.toDate.getTime() < currentTime;
 			client.isBanned = !isOutdated;

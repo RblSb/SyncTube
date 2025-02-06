@@ -67,10 +67,6 @@ class TestServer extends Test {
 		server.onServerInited = () -> {
 			final client = new FakeClient(server.localIp, server.port);
 			var client2:FakeClient = null;
-			// client.ws.on("message", data -> {
-			// 	final data:WsEvent = Json.parse(data);
-			// 	trace(data.type);
-			// });
 
 			client.message().then((data) -> {
 				Assert.equals(Connected, data.type);

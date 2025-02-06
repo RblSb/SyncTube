@@ -44,6 +44,10 @@ class VideoList {
 		pos = i;
 	}
 
+	public function hasItem(i:Int):Bool {
+		return items[i] != null;
+	}
+
 	public function exists(f:(item:VideoItem) -> Bool):Bool {
 		return items.exists(f);
 	}

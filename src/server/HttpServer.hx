@@ -54,7 +54,8 @@ class HttpServer {
 	final allowLocalRequests = false;
 	final cache:Cache = null;
 	final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
-	final uploadingFiles:Map<String, Int> = [];
+	// temp media data while file is uploading to allow instant streaming
+	final uploadingFilesSizes:Map<String, Int> = [];
 	final uploadingFilesLastChunks:Map<String, Buffer> = [];
 
 	public function new(main:Main, config:HttpServerConfig):Void {
@@ -76,8 +77,8 @@ class HttpServer {
 		var filePath = getPath(dir, url);
 		final ext = Path.extension(filePath).toLowerCase();
 
-		res.setHeader("Accept-Ranges", "bytes");
-		res.setHeader("Content-Type", getMimeType(ext));
+		res.setHeader("accept-ranges", "bytes");
+		res.setHeader("content-type", getMimeType(ext));
 
 		if (cache != null && req.method == "POST") {
 			switch url.pathname {
@@ -140,10 +141,11 @@ class HttpServer {
 			final buffer = Buffer.concat(body);
 			uploadingFilesLastChunks[filePath] = buffer;
 			res.writeHead(200, {
-				'Content-Type': 'application/json',
+				"content-type": getMimeType("json"),
 			});
 			final json:UploadResponse = {
-				info: "File last chunk uploaded"
+				info: "File last chunk uploaded",
+				url: cache.getFileUrl(name)
 			}
 			res.end(Json.stringify(json));
 		});
@@ -154,70 +156,57 @@ class HttpServer {
 		final clientName = req.headers["client-name"];
 		final filePath = cache.getFilePath(name);
 		final size = Std.parseInt(req.headers["content-length"]) ?? return;
-		var written = 0;
 
-		inline function end(json:UploadResponse):Void {
-			uploadingFiles.remove(name);
-			uploadingFilesLastChunks.remove(name);
-
-			res.statusCode = 200;
+		inline function end(code:Int, json:UploadResponse):Void {
+			res.statusCode = code;
 			res.end(Json.stringify(json));
+
+			uploadingFilesSizes.remove(filePath);
+			uploadingFilesLastChunks.remove(filePath);
 		}
 
+		if (size < cache.storageLimit) {
+			// do not remove older cache if file is out of limit anyway
+			cache.removeOlderCache(size);
+		}
 		if (cache.getFreeSpace() < size) {
-			end({
-				info: "Error: Not enough free space on server or file size is out of cache storage limit.",
-				errorId: "freeSpace"
+			final errText = "Error: Not enough free space on server or file size is out of cache storage limit.";
+			end(413, { // Payload Too Large
+				info: errText,
+				errorId: "freeSpace",
 			});
+			cache.remove(name);
+			req.destroy();
+			final client = main.clients.getByName(name) ?? return;
+			main.serverMessage(client, errText);
 			return;
 		}
 
 		final stream = Fs.createWriteStream(filePath);
 		req.pipe(stream);
 
-		inline function onStart() {
-			cache.removeOlderCache(size);
-			cache.add(name);
-			uploadingFiles[filePath] = size;
-		}
-		var isStart = true;
-		req.on("data", chunk -> {
-			var url:String = null;
-			if (isStart) {
-				isStart = false;
-				onStart();
-				url = cache.getFileUrl(name);
-			}
-			written += chunk.length;
-			final ratio = (written / size).clamp(0, 1);
-			final percent = (ratio * 100).toFixed(2);
-			final client = main.clients.getByName(clientName) ?? return;
-			main.send(client, {
-				type: Progress,
-				progress: {
-					type: Uploading,
-					ratio: ratio,
-					data: url
-				}
-			});
-		});
+		cache.add(name);
+		uploadingFilesSizes[filePath] = size;
+
 		stream.on("close", () -> {
-			end({
+			end(200, {
 				info: "File write stream closed.",
 			});
 		});
 		stream.on("error", err -> {
 			trace(err);
-			end({
+			end(500, {
 				info: "File write stream error.",
 			});
+			cache.remove(name);
 		});
 		req.on("error", err -> {
 			trace("Request Error:", err);
 			stream.destroy();
-			end({
+			end(500, {
 				info: "File request error.",
 			});
+			cache.remove(name);
 		});
 	}
 
@@ -229,7 +218,7 @@ class HttpServer {
 	}
 
 	function readFileError(err:Dynamic, res:ServerResponse, filePath:String):Void {
-		res.setHeader("Content-Type", getMimeType("html"));
+		res.setHeader("content-type", getMimeType("html"));
 		if (err.code == "ENOENT") {
 			res.statusCode = 404;
 			var rel = JsPath.relative(dir, filePath);
@@ -244,13 +233,13 @@ class HttpServer {
 		if (!Fs.existsSync(filePath)) return false;
 		var videoSize:Int = cast Fs.statSync(filePath).size;
 		// use future content length to start playing it before uploaded
-		if (uploadingFiles.exists(filePath)) {
-			videoSize = uploadingFiles[filePath];
+		if (uploadingFilesSizes.exists(filePath)) {
+			videoSize = uploadingFilesSizes[filePath];
 		}
 		final rangeHeader:String = req.headers["range"];
 		if (rangeHeader == null) {
 			res.statusCode = 200;
-			res.setHeader("Content-Length", '$videoSize');
+			res.setHeader("content-length", '$videoSize');
 			final videoStream = Fs.createReadStream(filePath);
 			videoStream.pipe(res);
 			res.on("error", () -> videoStream.destroy());
@@ -262,8 +251,8 @@ class HttpServer {
 		final end = range.end;
 		final contentLength = end - start + 1;
 
-		res.setHeader("Content-Range", 'bytes $start-$end/$videoSize');
-		res.setHeader("Content-Length", '$contentLength');
+		res.setHeader("content-range", 'bytes $start-$end/$videoSize');
+		res.setHeader("content-length", '$contentLength');
 		res.statusCode = 206; // partial content
 
 		// check for last chunk cache for instant play while uploading
@@ -368,7 +357,7 @@ class HttpServer {
 
 	function isChildOf(parent:String, child:String):Bool {
 		final rel = JsPath.relative(parent, child);
-		return rel.length > 0 && !rel.startsWith('..') && !JsPath.isAbsolute(rel);
+		return rel.length > 0 && !rel.startsWith("..") && !JsPath.isAbsolute(rel);
 	}
 
 	function getMimeType(ext:String):String {

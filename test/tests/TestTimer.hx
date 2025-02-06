@@ -137,6 +137,18 @@ class TestTimer extends Test {
 	}
 
 	@:timeout(500)
+	function testDoublePause(async:Async) {
+		final timer = new VideoTimer();
+		timer.start();
+		timer.pause();
+		Timer.delay(() -> {
+			timer.pause();
+			almostEq(0, timer.getTime());
+			async.done();
+		}, 300);
+	}
+
+	@:timeout(500)
 	function testBigRate(async:Async) {
 		final timer = new VideoTimer();
 		timer.start();

@@ -279,8 +279,11 @@ class Player {
 		if (!main.isLeader()) {
 			// user click, so we can unpause by removing leader
 			// (doesn't work in Firefox because of no video click propagation)
-			final allowUnpause = (hasAutoPause && inUserInteraction);
-			if (allowUnpause || main.hasUnpauseWithoutLeader()) {
+			var allowUnpause = hasAutoPause && inUserInteraction;
+			if (!allowUnpause) allowUnpause = main.hasUnpauseWithoutLeader();
+			// do not remove leader with custom rate
+			if (getPlaybackRate() != 1) allowUnpause = false;
+			if (allowUnpause) {
 				main.removeLeader();
 			} else {
 				// paused and no leader - instant pause
@@ -299,7 +302,9 @@ class Player {
 		});
 		if (hasAutoPause) {
 			// do not remove leader if user cannot request it back
-			if (main.hasPermission(RequestLeaderPerm)) main.toggleLeader();
+			if (main.hasPermission(RequestLeaderPerm) && getPlaybackRate() == 1) {
+				main.removeLeader();
+			}
 		}
 	}
 

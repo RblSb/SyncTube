@@ -26,6 +26,11 @@ class VideoTimer {
 	}
 
 	public function pause():Void {
+		if (isPaused()) return;
+		updatePauseTime();
+	}
+
+	function updatePauseTime():Void {
 		startTime += rateTime() - rateTime() * this.rate;
 		pauseStartTime = stamp();
 		rateStartTime = 0;
@@ -47,7 +52,7 @@ class VideoTimer {
 	public function setTime(secs:Float):Void {
 		startTime = stamp() - secs;
 		rateStartTime = stamp();
-		if (isPaused()) pause();
+		if (isPaused()) updatePauseTime();
 	}
 
 	public function isPaused():Bool {

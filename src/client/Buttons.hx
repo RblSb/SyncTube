@@ -1,18 +1,20 @@
 package client;
 
 import Types.UploadResponse;
-import Types.WsEvent;
 import client.Main.getEl;
+import haxe.Json;
 import haxe.Timer;
-import haxe.io.Path;
 import js.Browser.document;
 import js.Browser.window;
+import js.html.Blob;
 import js.html.Element;
 import js.html.ImageElement;
 import js.html.InputElement;
 import js.html.KeyboardEvent;
+import js.html.ProgressEvent;
 import js.html.TransitionEvent;
 import js.html.VisualViewport;
+import js.html.XMLHttpRequest;
 
 class Buttons {
 	static var split:Split;
@@ -250,51 +252,63 @@ class Buttons {
 
 				// send last chunk separately to allow server file streaming while uploading
 				final chunkSize = 1024 * 1024 * 5; // 5 MB
-				if (buffer.byteLength > chunkSize) {
-					final lastChunk = buffer.slice(buffer.byteLength - chunkSize);
-					window.fetch("/upload-last-chunk", {
-						method: "POST",
-						headers: {
-							"content-name": Path.withoutExtension(name),
-							"client-name": main.getName(),
-						},
-						body: lastChunk,
+				final bufferOffset = (buffer.byteLength - chunkSize).limitMin(0);
+				final lastChunk = buffer.slice(bufferOffset);
+				final chunkReq = window.fetch("/upload-last-chunk", {
+					method: "POST",
+					headers: {
+						"content-name": name,
+						"client-name": main.getName(),
+					},
+					body: lastChunk,
+				});
+				chunkReq.then(e -> {
+					e.json().then((data:UploadResponse) -> {
+						if (data.errorId != null) {
+							main.serverMessage(data.info, true, false);
+							return;
+						}
+						final input:InputElement = getEl("#mediaurl");
+						input.value = data.url;
+					});
+				});
+
+				final request = new XMLHttpRequest();
+				request.open("POST", "/upload", true);
+				request.setRequestHeader("content-name", name);
+				request.setRequestHeader("client-name", main.getName());
+
+				request.upload.onprogress = (event:ProgressEvent) -> {
+					var ratio = 0.0;
+					if (event.lengthComputable) {
+						ratio = (event.loaded / event.total).clamp(0, 1);
+					}
+					main.onProgressEvent({
+						type: Progress,
+						progress: {
+							type: Uploading,
+							ratio: ratio
+						}
 					});
 				}
 
-				// send full file
-				final request = window.fetch("/upload", {
-					method: "POST",
-					headers: {
-						"content-name": Path.withoutExtension(name),
-						"client-name": main.getName(),
-					},
-					body: buffer,
-				});
-				request.then(e -> {
-					e.json().then((data:UploadResponse) -> {
-						trace(data.info);
-						if (data.errorId == null) return;
-						main.serverMessage(data.info, true, false);
-					});
-				}).catchError(err -> {
-					trace(err);
+				request.onload = (e:ProgressEvent) -> {
+					final data:UploadResponse = try {
+						Json.parse(request.responseText);
+					} catch (e) {
+						trace(e);
+						return;
+					}
+					if (data.errorId == null) return;
+					main.serverMessage(data.info, true, false);
+				}
+				request.onloadend = () -> {
 					Timer.delay(() -> {
 						main.hideDynamicChin();
 					}, 500);
-				});
-
-				// set file url to input after upload starts
-				function onStartUpload(event:WsEvent):Void {
-					if (event.type != Progress) return;
-					final data = event.progress;
-					if (data.type != Uploading) return;
-					if (data.data == null) return;
-					final input:InputElement = getEl("#mediaurl");
-					input.value = data.data;
-					JsApi.off(Progress, onStartUpload);
 				}
-				JsApi.on(Progress, onStartUpload);
+
+				request.send(new Blob([buffer]));
 			});
 		}
 

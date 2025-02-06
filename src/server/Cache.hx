@@ -17,7 +17,8 @@ class Cache {
 	public final isYtReady = false;
 
 	/** In bytes **/
-	var storageLimit = 3 * 1024 * 1024 * 1024;
+	public var storageLimit(default, null) = 3 * 1024 * 1024 * 1024;
+
 	final freeSpaceBlock = 10 * 1024 * 1024; // 10MB
 
 	public function new(main:Main, cacheDir:String) {
@@ -25,6 +26,7 @@ class Cache {
 		this.cacheDir = cacheDir;
 		Utils.ensureDir(cacheDir);
 		isYtReady = checkYtDeps();
+		if (isYtReady) cleanYtInputFiles();
 	}
 
 	function checkYtDeps():Bool {
@@ -38,6 +40,14 @@ class Cache {
 			return true;
 		} catch (e) {
 			return false;
+		}
+	}
+
+	function cleanYtInputFiles():Void {
+		final names = FileSystem.readDirectory(cacheDir);
+		for (name in names) {
+			if (!name.startsWith("__tmp")) continue;
+			remove(name);
 		}
 	}
 
@@ -59,6 +69,16 @@ class Cache {
 		final outName = videoId + ".mp4";
 		if (cachedFiles.contains(outName) && isFileExists(outName)) {
 			callback(outName);
+			return;
+		}
+		final inVideoName = '__tmp-video-$videoId';
+		final inAudioName = '__tmp-audio-$videoId';
+		inline function removeInputFiles():Void {
+			remove(inVideoName);
+			remove(inAudioName);
+		}
+		if (isFileExists(inVideoName)) {
+			log(client, 'Caching $outName already in progress');
 			return;
 		}
 		final ytdl:Dynamic = untyped require("@distube/ytdl-core");
@@ -93,26 +113,36 @@ class Cache {
 			final dlVideo:Readable<Dynamic> = ytdl(url, {
 				format: videoFormat,
 			});
-			dlVideo.pipe(Fs.createWriteStream('$cacheDir/input-video'));
-			dlVideo.on("error", err -> log(client, "Error during video download: " + err));
+			dlVideo.pipe(Fs.createWriteStream('$cacheDir/$inVideoName'));
+			dlVideo.on("error", err -> {
+				log(client, "Error during video download: " + err);
+				removeInputFiles();
+			});
 
 			final dlAudio:Readable<Dynamic> = ytdl(url, {
 				format: audioFormat,
 			});
-			dlAudio.pipe(Fs.createWriteStream('$cacheDir/input-audio'));
-			dlAudio.on("error", err -> log(client, "Error during audio download: " + err));
+			dlAudio.pipe(Fs.createWriteStream('$cacheDir/$inAudioName'));
+			dlAudio.on("error", err -> {
+				log(client, "Error during audio download: " + err);
+				removeInputFiles();
+			});
 
 			var count = 0;
 			function onComplete(type:String):Void {
 				count++;
 				trace('$type track downloaded ($count/2)');
 				if (count < 2) return;
-				var size = FileSystem.stat('$cacheDir/input-video').size;
-				size += FileSystem.stat('$cacheDir/input-audio').size;
+				if (!isFileExists(inVideoName) || !isFileExists(inAudioName)) {
+					removeInputFiles();
+					return;
+				}
+				var size = FileSystem.stat('$cacheDir/$inVideoName').size;
+				size += FileSystem.stat('$cacheDir/$inAudioName').size;
 				// clean some space for full mp4
 				removeOlderCache(size + freeSpaceBlock);
 
-				final args = '-y -i input-video -i input-audio -c copy -map 0:v -map 1:a ./$outName'.split(" ");
+				final args = '-y -i ./$inVideoName -i ./$inAudioName -c copy -map 0:v -map 1:a ./$outName'.split(" ");
 				final process = ChildProcess.spawn("ffmpeg", args, {
 					cwd: cacheDir,
 					stdio: "ignore"
@@ -121,15 +151,11 @@ class Cache {
 				// 	trace('FFmpeg stderr: ${data}');
 				// });
 				process.on("close", (code:Int) -> {
+					removeInputFiles();
 					if (code != 0) {
 						log(client, 'Error: ffmpeg closed with code $code');
 						return;
 					}
-					final inVideo = '$cacheDir/input-video';
-					final inAudio = '$cacheDir/input-audio';
-					FileSystem.deleteFile(inVideo);
-					FileSystem.deleteFile(inAudio);
-
 					add(outName);
 
 					callback(outName);
@@ -160,6 +186,7 @@ class Cache {
 				});
 			});
 		}).catchError(err -> {
+			removeInputFiles();
 			log(client, "" + err);
 		});
 	}
@@ -191,21 +218,32 @@ class Cache {
 		}
 	}
 
+	public function remove(name:String):Void {
+		cachedFiles.remove(name);
+		removeFile(name);
+	}
+
 	public function removeOlderCache(addFileSize = 0):Void {
 		var space = getUsedSpace(addFileSize);
 		while (space > storageLimit) {
 			final name = cachedFiles.pop() ?? break;
-			final path = getFilePath(name);
-			if (FileSystem.exists(path)) FileSystem.deleteFile(path);
+			removeFile(name);
 			space = getUsedSpace(addFileSize);
 		}
 	}
 
-	public function getFreeFileName(baseName = "video"):String {
+	function removeFile(name:String):Void {
+		final path = getFilePath(name);
+		if (FileSystem.exists(path)) FileSystem.deleteFile(path);
+	}
+
+	public function getFreeFileName(fullName = "video.mp4"):String {
+		final baseName = Path.withoutDirectory(Path.withoutExtension(fullName));
+		final ext = Path.extension(fullName);
 		var i = 1;
 		while (true) {
 			final n = i == 1 ? "" : '$i';
-			final name = '$baseName$n.mp4';
+			final name = '$baseName$n.$ext';
 			if (!isFileExists(name)) return name;
 			i++;
 		}

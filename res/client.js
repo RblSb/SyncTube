@@ -798,41 +798,49 @@ client_Buttons.init = function(main) {
 			if(name == null || name.length == 0) {
 				name = "video";
 			}
-			if(buffer.byteLength > 5242880) {
-				var lastChunk = buffer.slice(buffer.byteLength - 5242880);
-				window.fetch("/upload-last-chunk",{ method : "POST", headers : { "content-name" : haxe_io_Path.withoutExtension(name), "client-name" : main.personal.name}, body : lastChunk});
-			}
-			var request = window.fetch("/upload",{ method : "POST", headers : { "content-name" : haxe_io_Path.withoutExtension(name), "client-name" : main.personal.name}, body : buffer});
-			request.then(function(e) {
+			var a = buffer.byteLength - 5242880;
+			var lastChunk = buffer.slice(a < 0 ? 0 : a);
+			var chunkReq = window.fetch("/upload-last-chunk",{ method : "POST", headers : { "content-name" : name, "client-name" : main.personal.name}, body : lastChunk});
+			chunkReq.then(function(e) {
 				return e.json().then(function(data) {
-					haxe_Log.trace(data.info,{ fileName : "src/client/Buttons.hx", lineNumber : 276, className : "client.Buttons", methodName : "init"});
-					if(data.errorId == null) {
+					if(data.errorId != null) {
+						main.serverMessage(data.info,true,false);
 						return;
 					}
-					main.serverMessage(data.info,true,false);
+					window.document.querySelector("#mediaurl").value = data.url;
 				});
-			}).catch(function(err) {
-				haxe_Log.trace(err,{ fileName : "src/client/Buttons.hx", lineNumber : 281, className : "client.Buttons", methodName : "init"});
+			});
+			var request = new XMLHttpRequest();
+			request.open("POST","/upload",true);
+			request.setRequestHeader("content-name",name);
+			request.setRequestHeader("client-name",main.personal.name);
+			request.upload.onprogress = function(event) {
+				var ratio = 0.0;
+				if(event.lengthComputable) {
+					var v = event.loaded / event.total;
+					ratio = v < 0 ? 0 : v > 1 ? 1 : v;
+				}
+				main.onProgressEvent({ type : "Progress", progress : { type : "Uploading", ratio : ratio}});
+			};
+			request.onload = function(e) {
+				var data;
+				try {
+					data = JSON.parse(request.responseText);
+				} catch( _g ) {
+					haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/Buttons.hx", lineNumber : 299, className : "client.Buttons", methodName : "init"});
+					return;
+				}
+				if(data.errorId == null) {
+					return;
+				}
+				main.serverMessage(data.info,true,false);
+			};
+			request.onloadend = function() {
 				return haxe_Timer.delay(function() {
 					main.hideDynamicChin();
 				},500);
-			});
-			var onStartUpload = null;
-			onStartUpload = function(event) {
-				if(event.type != "Progress") {
-					return;
-				}
-				var data = event.progress;
-				if(data.type != "Uploading") {
-					return;
-				}
-				if(data.data == null) {
-					return;
-				}
-				window.document.querySelector("#mediaurl").value = data.data;
-				client_JsApi.off("Progress",onStartUpload);
 			};
-			client_JsApi.on("Progress",onStartUpload);
+			request.send(new Blob([buffer]));
 		});
 	};
 	var showOptions = window.document.querySelector("#showoptions");
@@ -1267,18 +1275,6 @@ client_JsApi.hasSubtitleSupport = $hx_exports["client"]["JsApi"]["hasSubtitleSup
 client_JsApi.once = $hx_exports["client"]["JsApi"]["once"] = function(type,callback) {
 	client_JsApi.onceListeners.unshift({ type : type, callback : callback});
 };
-client_JsApi.on = function(type,callback) {
-	client_JsApi.onListeners.unshift({ type : type, callback : callback});
-};
-client_JsApi.off = function(type,callback) {
-	HxOverrides.remove(client_JsApi.onListeners,Lambda.find(client_JsApi.onListeners,function(item) {
-		if(item.type == type) {
-			return item.callback == callback;
-		} else {
-			return false;
-		}
-	}));
-};
 client_JsApi.fireEvents = function(event) {
 	var _g_arr = client_JsApi.onListeners;
 	var _g_i = _g_arr.length - 1;
@@ -1385,7 +1381,7 @@ client_Main.prototype = {
 		}
 		this.gotFirstPageInteraction = true;
 		this.player.unmute();
-		if(!this.hasLeader() && !this.showingServerPause) {
+		if(!this.hasLeader() && !this.showingServerPause && !this.player.inUserInteraction) {
 			this.player.play();
 		}
 		window.document.removeEventListener("click",$bind(this,this.onFirstInteraction));
@@ -1678,7 +1674,6 @@ client_Main.prototype = {
 		}
 	}
 	,onMessage: function(e) {
-		var _gthis = this;
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
@@ -1830,30 +1825,7 @@ client_Main.prototype = {
 			this.player.setVideo(data.playItem.pos);
 			break;
 		case "Progress":
-			var data1 = data.progress;
-			var text;
-			switch(data1.type) {
-			case "Caching":
-				text = "" + Lang.get("caching") + " " + data1.data;
-				break;
-			case "Downloading":
-				text = Lang.get("downloading");
-				break;
-			case "Uploading":
-				text = Lang.get("uploading");
-				break;
-			}
-			var percent = tools_MathTools.toFixed(data1.ratio * 100,1);
-			var text1 = "" + text + "...";
-			if(percent > 0) {
-				text1 += " " + percent + "%";
-			}
-			this.showProgressInfo(text1);
-			if(data1.ratio == 1) {
-				haxe_Timer.delay(function() {
-					_gthis.hideDynamicChin();
-				},500);
-			}
+			this.onProgressEvent(data);
 			break;
 		case "RemoveVideo":
 			this.player.removeItem(data.removeVideo.url);
@@ -1933,6 +1905,33 @@ client_Main.prototype = {
 				this.forceSyncNextTick = true;
 			}
 			break;
+		}
+	}
+	,onProgressEvent: function(data) {
+		var _gthis = this;
+		var data1 = data.progress;
+		var text;
+		switch(data1.type) {
+		case "Caching":
+			text = "" + Lang.get("caching") + " " + data1.data;
+			break;
+		case "Downloading":
+			text = Lang.get("downloading");
+			break;
+		case "Uploading":
+			text = Lang.get("uploading");
+			break;
+		}
+		var percent = tools_MathTools.toFixed(data1.ratio * 100,1);
+		var text1 = "" + text + "...";
+		if(percent > 0) {
+			text1 += " " + percent + "%";
+		}
+		this.showProgressInfo(text1);
+		if(data1.ratio == 1) {
+			haxe_Timer.delay(function() {
+				_gthis.hideDynamicChin();
+			},500);
 		}
 	}
 	,updateLastStateTime: function() {
@@ -2918,7 +2917,14 @@ client_Player.prototype = {
 		}
 		var hasAutoPause = this.main.hasLeaderOnPauseRequest();
 		if((this.main.personal.group & 4) == 0) {
-			if(hasAutoPause && this.inUserInteraction || this.main.hasUnpauseWithoutLeader()) {
+			var allowUnpause = hasAutoPause && this.inUserInteraction;
+			if(!allowUnpause) {
+				allowUnpause = this.main.hasUnpauseWithoutLeader();
+			}
+			if(this.getPlaybackRate() != 1) {
+				allowUnpause = false;
+			}
+			if(allowUnpause) {
 				this.main.removeLeader();
 			} else if(this.main.lastState.paused) {
 				this.pause();
@@ -2928,8 +2934,8 @@ client_Player.prototype = {
 		}
 		this.main.send({ type : "Play", play : { time : this.getTime()}});
 		if(hasAutoPause) {
-			if(this.main.hasPermission("requestLeader")) {
-				this.main.toggleLeader();
+			if(this.main.hasPermission("requestLeader") && this.getPlaybackRate() == 1) {
+				this.main.removeLeader();
 			}
 		}
 	}
@@ -3330,7 +3336,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 656, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 661, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}

@@ -120,7 +120,7 @@ class Main {
 		if (!player.isVideoLoaded()) return;
 		gotFirstPageInteraction = true;
 		player.unmute();
-		if (!hasLeader() && !showingServerPause) player.play();
+		if (!hasLeader() && !showingServerPause && !player.inUserInteraction) player.play();
 		document.removeEventListener("click", onFirstInteraction);
 	}
 
@@ -508,24 +508,7 @@ class Main {
 				serverMessage(text);
 
 			case Progress:
-				final data = data.progress;
-				final text = switch data.type {
-					case Caching:
-						final caching = Lang.get("caching");
-						final name = data.data;
-						'$caching $name';
-					case Downloading: Lang.get("downloading");
-					case Uploading: Lang.get("uploading");
-				}
-				final percent = (data.ratio * 100).toFixed(1);
-				var text = '$text...';
-				if (percent > 0) text += ' $percent%';
-				showProgressInfo(text);
-				if (data.ratio == 1) {
-					Timer.delay(() -> {
-						hideDynamicChin();
-					}, 500);
-				}
+				onProgressEvent(data);
 
 			case AddVideo:
 				player.addVideoItem(data.addVideo.item, data.addVideo.atEnd);
@@ -672,6 +655,27 @@ class Main {
 
 			case Dump:
 				Utils.saveFile("dump.json", ApplicationJson, data.dump.data);
+		}
+	}
+
+	public function onProgressEvent(data:WsEvent):Void {
+		final data = data.progress;
+		final text = switch data.type {
+			case Caching:
+				final caching = Lang.get("caching");
+				final name = data.data;
+				'$caching $name';
+			case Downloading: Lang.get("downloading");
+			case Uploading: Lang.get("uploading");
+		}
+		final percent = (data.ratio * 100).toFixed(1);
+		var text = '$text...';
+		if (percent > 0) text += ' $percent%';
+		showProgressInfo(text);
+		if (data.ratio == 1) {
+			Timer.delay(() -> {
+				hideDynamicChin();
+			}, 500);
 		}
 	}
 
