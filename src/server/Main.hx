@@ -293,7 +293,7 @@ class Main {
 				paused: videoTimer.isPaused()
 			},
 			flashbacks: flashbacks,
-			cachedFiles: cache.cachedFiles
+			cachedFiles: cache.getCachedFiles()
 		}
 	}
 
@@ -315,8 +315,7 @@ class Main {
 		flashbacks.resize(0);
 		for (flashback in state.flashbacks) flashbacks.push(flashback);
 
-		cache.cachedFiles.resize(0);
-		for (name in state.cachedFiles) cache.cachedFiles.push(name);
+		cache.setCachedFiles(state.cachedFiles);
 
 		videoTimer.start();
 		videoTimer.setTime(state.timer.time);
@@ -324,6 +323,7 @@ class Main {
 	}
 
 	function logError(type:String, data:Dynamic):Void {
+		cache.removeOlderCache(1024 * 1024);
 		trace(type, data);
 		final crashesFolder = '$rootDir/user/crashes';
 		Utils.ensureDir(crashesFolder);

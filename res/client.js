@@ -1596,7 +1596,7 @@ client_Main.prototype = {
 		if(StringTools.startsWith(url,"/")) {
 			var host = $global.location.hostname;
 			var port = $global.location.port;
-			url = "" + protocol + "//" + host + ":" + port + url;
+			url = "" + protocol + "//" + host + (port.length > 0 ? ":" + port : port) + url;
 		}
 		if(!StringTools.startsWith(url,"http")) {
 			url = "" + protocol + "//" + url;
@@ -1677,7 +1677,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 456, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 457, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireEvents(data);
 		switch(data.type) {
@@ -1915,6 +1915,9 @@ client_Main.prototype = {
 		case "Caching":
 			text = "" + Lang.get("caching") + " " + data1.data;
 			break;
+		case "Canceled":
+			this.hideDynamicChin();
+			return;
 		case "Downloading":
 			text = Lang.get("downloading");
 			break;

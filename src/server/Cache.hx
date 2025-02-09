@@ -2,6 +2,7 @@ package server;
 
 import haxe.io.Path;
 import js.lib.Promise;
+import js.node.Buffer;
 import js.node.ChildProcess;
 import js.node.Fs.Fs;
 import js.node.stream.Readable;
@@ -9,16 +10,16 @@ import sys.FileSystem;
 import utils.YoutubeUtils;
 
 class Cache {
-	final main:Main;
-	final cacheDir:String;
-
-	public final cachedFiles:Array<String> = [];
+	public final notEnoughSpaceErrorText = "Error: Not enough free space on server or file size is out of cache storage limit.";
 
 	public final isYtReady = false;
 
 	/** In bytes **/
 	public var storageLimit(default, null) = 3 * 1024 * 1024 * 1024;
 
+	final main:Main;
+	final cacheDir:String;
+	final cachedFiles:Array<String> = [];
 	final freeSpaceBlock = 10 * 1024 * 1024; // 10MB
 
 	public function new(main:Main, cacheDir:String) {
@@ -51,6 +52,24 @@ class Cache {
 		}
 	}
 
+	public function getCachedFiles():Array<String> {
+		return cachedFiles;
+	}
+
+	public function setCachedFiles(names:Array<String>) {
+		cachedFiles.resize(0);
+		for (name in names) cachedFiles.push(name);
+
+		final names = FileSystem.readDirectory(cacheDir);
+		for (name in names) {
+			if (name.startsWith(".")) continue;
+			if (FileSystem.isDirectory('$cacheDir/$name')) continue;
+			if (cachedFiles.contains(name)) continue;
+			trace('Remove non-tracked cache $name');
+			remove(name);
+		}
+	}
+
 	function log(client:Client, msg:String):Void {
 		main.serverMessage(client, msg);
 		trace(msg);
@@ -76,6 +95,15 @@ class Cache {
 		inline function removeInputFiles():Void {
 			remove(inVideoName);
 			remove(inAudioName);
+		}
+		inline function cancelProgress():Void {
+			main.send(client, {
+				type: Progress,
+				progress: {
+					type: Canceled,
+					ratio: 1
+				}
+			});
 		}
 		if (isFileExists(inVideoName)) {
 			log(client, 'Caching $outName already in progress');
@@ -117,6 +145,7 @@ class Cache {
 			dlVideo.on("error", err -> {
 				log(client, "Error during video download: " + err);
 				removeInputFiles();
+				cancelProgress();
 			});
 
 			final dlAudio:Readable<Dynamic> = ytdl(url, {
@@ -126,6 +155,7 @@ class Cache {
 			dlAudio.on("error", err -> {
 				log(client, "Error during audio download: " + err);
 				removeInputFiles();
+				cancelProgress();
 			});
 
 			var count = 0;
@@ -134,26 +164,40 @@ class Cache {
 				trace('$type track downloaded ($count/2)');
 				if (count < 2) return;
 				if (!isFileExists(inVideoName) || !isFileExists(inAudioName)) {
+					log(client, "Input files not found for making final video");
 					removeInputFiles();
+					cancelProgress();
 					return;
 				}
 				var size = FileSystem.stat('$cacheDir/$inVideoName').size;
 				size += FileSystem.stat('$cacheDir/$inAudioName').size;
 				// clean some space for full mp4
-				removeOlderCache(size + freeSpaceBlock);
+				final hasSpace = removeOlderCache(size + freeSpaceBlock);
+				if (!hasSpace) {
+					removeInputFiles();
+					cancelProgress();
+					log(client, notEnoughSpaceErrorText);
+					return;
+				}
 
 				final args = '-y -i ./$inVideoName -i ./$inAudioName -c copy -map 0:v -map 1:a ./$outName'.split(" ");
 				final process = ChildProcess.spawn("ffmpeg", args, {
 					cwd: cacheDir,
-					stdio: "ignore"
+					// stdio: "ignore"
 				});
-				// process.stderr.on('data', (data) -> {
-				// 	trace('FFmpeg stderr: ${data}');
-				// });
+				final outputData:Array<Buffer> = [];
+				process.stderr.on("data", (data) -> outputData.push(data));
 				process.on("close", (code:Int) -> {
 					removeInputFiles();
 					if (code != 0) {
-						log(client, 'Error: ffmpeg closed with code $code');
+						cancelProgress();
+						final errCodeMsg = 'Error: ffmpeg closed with code $code';
+						final admins = main.clients.filter(client -> client.isAdmin);
+						for (client in admins) {
+							log(client, Buffer.concat(outputData).toString());
+							log(client, errCodeMsg);
+						}
+						if (!admins.contains(client)) log(client, errCodeMsg);
 						return;
 					}
 					add(outName);
@@ -163,18 +207,28 @@ class Cache {
 			}
 			dlVideo.on("finish", () -> onComplete("Video"));
 			dlAudio.on("finish", () -> onComplete("Audio"));
+			inline function checkEnoughSpace(contentLength:Int):Void {
+				final hasSpace = removeOlderCache(contentLength + freeSpaceBlock);
+				if (!hasSpace) {
+					dlVideo.destroy();
+					dlAudio.destroy();
+					removeInputFiles();
+					cancelProgress();
+					main.serverMessage(client, notEnoughSpaceErrorText);
+				}
+			}
 			var isAudioStart = true;
 			dlAudio.on("progress", (chunkLength:Int, downloaded:Int, contentLength:Int) -> {
 				if (isAudioStart) {
 					isAudioStart = false;
-					removeOlderCache(contentLength);
+					checkEnoughSpace(contentLength);
 				}
 			});
 			var isVideoStart = true;
 			dlVideo.on("progress", (chunkLength:Int, downloaded:Int, contentLength:Int) -> {
 				if (isVideoStart) {
 					isVideoStart = false;
-					removeOlderCache(contentLength);
+					checkEnoughSpace(contentLength);
 				}
 				final ratio = (downloaded / contentLength).clamp(0, 1);
 				main.send(client, {
@@ -187,6 +241,7 @@ class Cache {
 			});
 		}).catchError(err -> {
 			removeInputFiles();
+			cancelProgress();
 			log(client, "" + err);
 		});
 	}
@@ -194,13 +249,8 @@ class Cache {
 	public function setStorageLimit(bytes:Int) {
 		storageLimit = cast bytes;
 		storageLimit = storageLimit.limitMin(0);
-		final statfs = (Fs : Dynamic).statfs ?? return;
-		statfs("/", (err, stats) -> {
-			if (err != null) {
-				trace(err);
-				return;
-			}
-			final availSpace = (stats.bsize * stats.bavail - freeSpaceBlock).limitMin(0);
+		getFreeDiskSpace(availSpace -> {
+			final availSpace = (availSpace - freeSpaceBlock).limitMin(0);
 			removeOlderCache();
 			final freeSpace = getFreeSpace();
 			if (availSpace < freeSpace) {
@@ -209,6 +259,22 @@ class Cache {
 				storageLimit = storageLimit.limitMin(0);
 				removeOlderCache();
 			}
+		});
+	}
+
+	public function getFreeDiskSpace(callback:(availSpace:Int) -> Void):Void {
+		final statfs = (Fs : Dynamic).statfs ?? {
+			trace("Warning: no fs.statfs support in current nodejs version (needs v18+)");
+			callback(storageLimit);
+			return;
+		}
+		statfs("/", (err, stats) -> {
+			if (err != null) {
+				trace(err);
+				callback(storageLimit);
+				return;
+			}
+			callback(stats.bsize * stats.bavail);
 		});
 	}
 
@@ -223,13 +289,15 @@ class Cache {
 		removeFile(name);
 	}
 
-	public function removeOlderCache(addFileSize = 0):Void {
+	/** Returns `true` if there is enough space to save `addFileSize` bytes. **/
+	public function removeOlderCache(addFileSize = 0):Bool {
 		var space = getUsedSpace(addFileSize);
 		while (space > storageLimit) {
 			final name = cachedFiles.pop() ?? break;
 			removeFile(name);
 			space = getUsedSpace(addFileSize);
 		}
+		return space < storageLimit;
 	}
 
 	function removeFile(name:String):Void {

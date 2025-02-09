@@ -117,6 +117,7 @@ enum abstract ProgressType(String) {
 	var Caching;
 	var Downloading;
 	var Uploading;
+	var Canceled;
 }
 
 @:using(Types.VideoItemTools)

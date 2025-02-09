@@ -327,7 +327,8 @@ class Main {
 		if (url.startsWith("/")) {
 			final host = Browser.location.hostname;
 			final port = Browser.location.port;
-			url = '$protocol//$host:$port$url';
+			final colonPort = port.length > 0 ? ':$port' : port;
+			url = '$protocol//$host$colonPort$url';
 		}
 		if (!url.startsWith("http")) url = '$protocol//$url';
 
@@ -667,6 +668,9 @@ class Main {
 				'$caching $name';
 			case Downloading: Lang.get("downloading");
 			case Uploading: Lang.get("uploading");
+			case Canceled:
+				hideDynamicChin();
+				return;
 		}
 		final percent = (data.ratio * 100).toFixed(1);
 		var text = '$text...';

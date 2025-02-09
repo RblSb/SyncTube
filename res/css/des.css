@@ -800,6 +800,7 @@ footer#footer {
   font-size: .8em;
   font-style: normal;
   color: var(--midground);
+  flex-shrink: 0;
 }
 
 #messagebuffer .text {
@@ -808,6 +809,7 @@ footer#footer {
 
 .server-whisper {
   font-style: italic;
+  word-break: break-word;
 }
 
 #scroll-to-chat-end {

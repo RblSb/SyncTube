@@ -170,15 +170,14 @@ class HttpServer {
 			cache.removeOlderCache(size);
 		}
 		if (cache.getFreeSpace() < size) {
-			final errText = "Error: Not enough free space on server or file size is out of cache storage limit.";
 			end(413, { // Payload Too Large
-				info: errText,
+				info: cache.notEnoughSpaceErrorText,
 				errorId: "freeSpace",
 			});
 			cache.remove(name);
 			req.destroy();
 			final client = main.clients.getByName(name) ?? return;
-			main.serverMessage(client, errText);
+			main.serverMessage(client, cache.notEnoughSpaceErrorText);
 			return;
 		}
 

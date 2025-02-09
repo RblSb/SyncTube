@@ -1617,7 +1617,7 @@ JsonParser_$57.prototype = $extend(json2object_reader_BaseParser.prototype,{
 		this.value = null;
 	}
 	,loadJsonString: function(s,pos,variable) {
-		this.value = this.loadString(s,pos,variable,["Caching","Downloading","Uploading"],"Caching");
+		this.value = this.loadString(s,pos,variable,["Caching","Downloading","Uploading","Canceled"],"Caching");
 	}
 	,__class__: JsonParser_$57
 });
@@ -3681,9 +3681,10 @@ json2object_PositionUtils.prototype = {
 };
 var server_Cache = function(main,cacheDir) {
 	this.freeSpaceBlock = 10485760;
+	this.cachedFiles = [];
 	this.storageLimit = 3145728 * 1024;
 	this.isYtReady = false;
-	this.cachedFiles = [];
+	this.notEnoughSpaceErrorText = "Error: Not enough free space on server or file size is out of cache storage limit.";
 	this.main = main;
 	this.cacheDir = cacheDir;
 	server_Utils.ensureDir(cacheDir);
@@ -3720,14 +3721,39 @@ server_Cache.prototype = {
 			this.remove(name);
 		}
 	}
+	,getCachedFiles: function() {
+		return this.cachedFiles;
+	}
+	,setCachedFiles: function(names) {
+		this.cachedFiles.length = 0;
+		var _g = 0;
+		while(_g < names.length) this.cachedFiles.push(names[_g++]);
+		var names = js_node_Fs.readdirSync(this.cacheDir);
+		var _g = 0;
+		while(_g < names.length) {
+			var name = names[_g];
+			++_g;
+			if(StringTools.startsWith(name,".")) {
+				continue;
+			}
+			if(sys_FileSystem.isDirectory("" + this.cacheDir + "/" + name)) {
+				continue;
+			}
+			if(this.cachedFiles.indexOf(name) != -1) {
+				continue;
+			}
+			haxe_Log.trace("Remove non-tracked cache " + name,{ fileName : "src/server/Cache.hx", lineNumber : 68, className : "server.Cache", methodName : "setCachedFiles"});
+			this.remove(name);
+		}
+	}
 	,log: function(client,msg) {
 		this.main.serverMessage(client,msg);
-		haxe_Log.trace(msg,{ fileName : "src/server/Cache.hx", lineNumber : 56, className : "server.Cache", methodName : "log"});
+		haxe_Log.trace(msg,{ fileName : "src/server/Cache.hx", lineNumber : 75, className : "server.Cache", methodName : "log"});
 	}
 	,cacheYoutubeVideo: function(client,url,callback) {
 		var _gthis = this;
 		if(!this.isYtReady) {
-			haxe_Log.trace("Do `npm i @distube/ytdl-core@latest` to use cache feature (you also need to install `ffmpeg` to build mp4 from downloaded audio/video tracks).",{ fileName : "src/server/Cache.hx", lineNumber : 61, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+			haxe_Log.trace("Do `npm i @distube/ytdl-core@latest` to use cache feature (you also need to install `ffmpeg` to build mp4 from downloaded audio/video tracks).",{ fileName : "src/server/Cache.hx", lineNumber : 80, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 			return;
 		}
 		var videoId = utils_YoutubeUtils.extractVideoId(url);
@@ -3747,11 +3773,11 @@ server_Cache.prototype = {
 			return;
 		}
 		var ytdl = require("@distube/ytdl-core");
-		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/Cache.hx", lineNumber : 85, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/Cache.hx", lineNumber : 113, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 		this.main.send(client,{ type : "Progress", progress : { type : "Caching", ratio : 0, data : outName}});
 		var promise = ytdl.getInfo(url);
 		promise.then(function(info) {
-			haxe_Log.trace("Get info with " + info.formats.length + " formats",{ fileName : "src/server/Cache.hx", lineNumber : 96, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+			haxe_Log.trace("Get info with " + info.formats.length + " formats",{ fileName : "src/server/Cache.hx", lineNumber : 124, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 			var audioFormat;
 			try {
 				var ytdl1 = ytdl.chooseFormat;
@@ -3770,7 +3796,7 @@ server_Cache.prototype = {
 			} catch( _g ) {
 				var e = haxe_Exception.caught(_g);
 				_gthis.log(client,"Error: audio format not found");
-				haxe_Log.trace(e,{ fileName : "src/server/Cache.hx", lineNumber : 103, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+				haxe_Log.trace(e,{ fileName : "src/server/Cache.hx", lineNumber : 131, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 				var _g1 = [];
 				var _g2 = 0;
 				var _g3 = info.formats;
@@ -3781,7 +3807,7 @@ server_Cache.prototype = {
 						_g1.push(v);
 					}
 				}
-				haxe_Log.trace(_g1,{ fileName : "src/server/Cache.hx", lineNumber : 104, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+				haxe_Log.trace(_g1,{ fileName : "src/server/Cache.hx", lineNumber : 132, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 				return;
 			}
 			var videoFormat;
@@ -3800,7 +3826,7 @@ server_Cache.prototype = {
 						_g.push(v);
 					}
 				}
-				haxe_Log.trace(_g,{ fileName : "src/server/Cache.hx", lineNumber : 109, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+				haxe_Log.trace(_g,{ fileName : "src/server/Cache.hx", lineNumber : 137, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 				return;
 			}
 			var dlVideo = ytdl(url,{ format : videoFormat});
@@ -3809,6 +3835,7 @@ server_Cache.prototype = {
 				_gthis.log(client,"Error during video download: " + err);
 				_gthis.remove(inVideoName);
 				_gthis.remove(inAudioName);
+				_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
 			});
 			var dlAudio = ytdl(url,{ format : audioFormat});
 			dlAudio.pipe(js_node_Fs.createWriteStream("" + _gthis.cacheDir + "/" + inAudioName));
@@ -3816,29 +3843,65 @@ server_Cache.prototype = {
 				_gthis.log(client,"Error during audio download: " + err);
 				_gthis.remove(inVideoName);
 				_gthis.remove(inAudioName);
+				_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
 			});
 			var count = 0;
 			var onComplete = function(type) {
 				count += 1;
-				haxe_Log.trace("" + type + " track downloaded (" + count + "/2)",{ fileName : "src/server/Cache.hx", lineNumber : 134, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+				haxe_Log.trace("" + type + " track downloaded (" + count + "/2)",{ fileName : "src/server/Cache.hx", lineNumber : 164, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 				if(count < 2) {
 					return;
 				}
 				if(!_gthis.isFileExists(inVideoName) || !_gthis.isFileExists(inAudioName)) {
+					_gthis.log(client,"Input files not found for making final video");
 					_gthis.remove(inVideoName);
 					_gthis.remove(inAudioName);
+					_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
 					return;
 				}
 				var size = js_node_Fs.statSync("" + _gthis.cacheDir + "/" + inVideoName).size;
 				size += js_node_Fs.statSync("" + _gthis.cacheDir + "/" + inAudioName).size;
-				_gthis.removeOlderCache(size + _gthis.freeSpaceBlock);
+				var hasSpace = _gthis.removeOlderCache(size + _gthis.freeSpaceBlock);
+				if(!hasSpace) {
+					_gthis.remove(inVideoName);
+					_gthis.remove(inAudioName);
+					_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
+					_gthis.log(client,_gthis.notEnoughSpaceErrorText);
+					return;
+				}
 				var args = ("-y -i ./" + inVideoName + " -i ./" + inAudioName + " -c copy -map 0:v -map 1:a ./" + outName).split(" ");
-				var $process = js_node_ChildProcess.spawn("ffmpeg",args,{ cwd : _gthis.cacheDir, stdio : "ignore"});
+				var $process = js_node_ChildProcess.spawn("ffmpeg",args,{ cwd : _gthis.cacheDir});
+				var outputData = [];
+				$process.stderr.on("data",function(data) {
+					return outputData.push(data);
+				});
 				$process.on("close",function(code) {
 					_gthis.remove(inVideoName);
 					_gthis.remove(inAudioName);
 					if(code != 0) {
-						_gthis.log(client,"Error: ffmpeg closed with code " + code);
+						_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
+						var errCodeMsg = "Error: ffmpeg closed with code " + code;
+						var _g = [];
+						var _g1 = 0;
+						var _g2 = _gthis.main.clients;
+						while(_g1 < _g2.length) {
+							var v = _g2[_g1];
+							++_g1;
+							if((v.group & 1 << ClientGroup.Admin._hx_index) != 0) {
+								_g.push(v);
+							}
+						}
+						var admins = _g;
+						var _g = 0;
+						while(_g < admins.length) {
+							var client1 = admins[_g];
+							++_g;
+							_gthis.log(client1,js_node_buffer_Buffer.concat(outputData).toString());
+							_gthis.log(client1,errCodeMsg);
+						}
+						if(admins.indexOf(client) == -1) {
+							_gthis.log(client,errCodeMsg);
+						}
 						return;
 					}
 					_gthis.add(outName);
@@ -3855,14 +3918,30 @@ server_Cache.prototype = {
 			dlAudio.on("progress",function(chunkLength,downloaded,contentLength) {
 				if(isAudioStart) {
 					isAudioStart = false;
-					_gthis.removeOlderCache(contentLength);
+					var hasSpace = _gthis.removeOlderCache(contentLength + _gthis.freeSpaceBlock);
+					if(!hasSpace) {
+						dlVideo.destroy();
+						dlAudio.destroy();
+						_gthis.remove(inVideoName);
+						_gthis.remove(inAudioName);
+						_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
+						_gthis.main.serverMessage(client,_gthis.notEnoughSpaceErrorText);
+					}
 				}
 			});
 			var isVideoStart = true;
 			dlVideo.on("progress",function(chunkLength,downloaded,contentLength) {
 				if(isVideoStart) {
 					isVideoStart = false;
-					_gthis.removeOlderCache(contentLength);
+					var hasSpace = _gthis.removeOlderCache(contentLength + _gthis.freeSpaceBlock);
+					if(!hasSpace) {
+						dlVideo.destroy();
+						dlAudio.destroy();
+						_gthis.remove(inVideoName);
+						_gthis.remove(inAudioName);
+						_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
+						_gthis.main.serverMessage(client,_gthis.notEnoughSpaceErrorText);
+					}
 				}
 				var v = downloaded / contentLength;
 				var ratio = v < 0 ? 0 : v > 1 ? 1 : v;
@@ -3871,6 +3950,7 @@ server_Cache.prototype = {
 		}).catch(function(err) {
 			_gthis.remove(inVideoName);
 			_gthis.remove(inAudioName);
+			_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
 			_gthis.log(client,"" + err);
 		});
 	}
@@ -3879,16 +3959,8 @@ server_Cache.prototype = {
 		this.storageLimit = bytes;
 		var a = this.storageLimit;
 		this.storageLimit = a < 0 ? 0 : a;
-		var tmp = js_node_Fs.statfs;
-		if(tmp == null) {
-			return;
-		}
-		tmp("/",function(err,stats) {
-			if(err != null) {
-				haxe_Log.trace(err,{ fileName : "src/server/Cache.hx", lineNumber : 200, className : "server.Cache", methodName : "setStorageLimit"});
-				return;
-			}
-			var a = stats.bsize * stats.bavail - _gthis.freeSpaceBlock;
+		this.getFreeDiskSpace(function(availSpace) {
+			var a = availSpace - _gthis.freeSpaceBlock;
 			var availSpace = a < 0 ? 0 : a;
 			_gthis.removeOlderCache();
 			var freeSpace = _gthis.getFreeSpace();
@@ -3897,6 +3969,23 @@ server_Cache.prototype = {
 				_gthis.storageLimit = a < 0 ? 0 : a;
 				_gthis.removeOlderCache();
 			}
+		});
+	}
+	,getFreeDiskSpace: function(callback) {
+		var _gthis = this;
+		var tmp = js_node_Fs.statfs;
+		if(tmp == null) {
+			haxe_Log.trace("Warning: no fs.statfs support in current nodejs version (needs v18+)",{ fileName : "src/server/Cache.hx", lineNumber : 267, className : "server.Cache", methodName : "getFreeDiskSpace"});
+			callback(this.storageLimit);
+			return;
+		}
+		tmp("/",function(err,stats) {
+			if(err != null) {
+				haxe_Log.trace(err,{ fileName : "src/server/Cache.hx", lineNumber : 273, className : "server.Cache", methodName : "getFreeDiskSpace"});
+				callback(_gthis.storageLimit);
+				return;
+			}
+			callback(stats.bsize * stats.bavail);
 		});
 	}
 	,add: function(name) {
@@ -3921,6 +4010,7 @@ server_Cache.prototype = {
 			this.removeFile(tmp);
 			space = this.getUsedSpace(addFileSize);
 		}
+		return space < this.storageLimit;
 	}
 	,removeFile: function(name) {
 		var path = this.getFilePath(name);
@@ -4285,7 +4375,7 @@ server_HttpServer.prototype = {
 		}
 		if(this.cache.getFreeSpace() < tmp) {
 			res.statusCode = 413;
-			res.end(JSON.stringify({ info : "Error: Not enough free space on server or file size is out of cache storage limit.", errorId : "freeSpace"}));
+			res.end(JSON.stringify({ info : this.cache.notEnoughSpaceErrorText, errorId : "freeSpace"}));
 			var _this = _gthis.uploadingFilesSizes;
 			if(Object.prototype.hasOwnProperty.call(_this.h,filePath)) {
 				delete(_this.h[filePath]);
@@ -4300,7 +4390,7 @@ server_HttpServer.prototype = {
 			if(tmp1 == null) {
 				return;
 			}
-			this.main.serverMessage(tmp1,"Error: Not enough free space on server or file size is out of cache storage limit.");
+			this.main.serverMessage(tmp1,this.cache.notEnoughSpaceErrorText);
 			return;
 		}
 		var stream = js_node_Fs.createWriteStream(filePath);
@@ -4320,7 +4410,7 @@ server_HttpServer.prototype = {
 			}
 		});
 		stream.on("error",function(err) {
-			haxe_Log.trace(err,{ fileName : "src/server/HttpServer.hx", lineNumber : 197, className : "server.HttpServer", methodName : "uploadFile"});
+			haxe_Log.trace(err,{ fileName : "src/server/HttpServer.hx", lineNumber : 196, className : "server.HttpServer", methodName : "uploadFile"});
 			res.statusCode = 500;
 			res.end(JSON.stringify({ info : "File write stream error."}));
 			var _this = _gthis.uploadingFilesSizes;
@@ -4334,7 +4424,7 @@ server_HttpServer.prototype = {
 			_gthis.cache.remove(name);
 		});
 		req.on("error",function(err) {
-			haxe_Log.trace("Request Error:",{ fileName : "src/server/HttpServer.hx", lineNumber : 204, className : "server.HttpServer", methodName : "uploadFile", customParams : [err]});
+			haxe_Log.trace("Request Error:",{ fileName : "src/server/HttpServer.hx", lineNumber : 203, className : "server.HttpServer", methodName : "uploadFile", customParams : [err]});
 			stream.destroy();
 			res.statusCode = 500;
 			res.end(JSON.stringify({ info : "File request error."}));
@@ -4559,22 +4649,22 @@ server_Logger.prototype = {
 			return;
 		}
 		server_Utils.ensureDir(this.folder);
-		this.removeOldestLog(this.folder);
+		this.removeOldestLog();
 		var name = DateTools.format(new Date(),"%Y-%m-%d_%H_%M_%S");
 		js_node_Fs.writeFileSync("" + this.folder + "/" + name + ".json",server_Main.jsonStringify(this.getLogs(),"\t"));
 	}
 	,getLogs: function() {
 		return this.logs;
 	}
-	,removeOldestLog: function(folder) {
+	,removeOldestLog: function() {
 		var _gthis = this;
-		var _this = js_node_Fs.readdirSync(folder);
+		var _this = js_node_Fs.readdirSync(this.folder);
 		var _g = [];
 		var _g1 = 0;
 		while(_g1 < _this.length) {
 			var v = _this[_g1];
 			++_g1;
-			if(sys_FileSystem.isDirectory("" + folder + "/" + v) ? false : StringTools.startsWith(v,".") ? false : StringTools.endsWith(v,".json")) {
+			if(sys_FileSystem.isDirectory("" + _gthis.folder + "/" + v) ? false : StringTools.startsWith(v,".") ? false : StringTools.endsWith(v,".json")) {
 				_g.push(v);
 			}
 		}
@@ -4598,7 +4688,7 @@ server_Logger.prototype = {
 		if(fileName == null) {
 			return;
 		}
-		js_node_Fs.unlinkSync("" + folder + "/" + fileName);
+		js_node_Fs.unlinkSync("" + this.folder + "/" + fileName);
 	}
 	,extractFileDate: function(name) {
 		name = haxe_io_Path.withoutExtension(name);
@@ -4865,7 +4955,7 @@ server_Main.prototype = {
 		this.writeUsers(this.userList);
 	}
 	,getCurrentState: function() {
-		return { videoList : this.videoList.items, isPlaylistOpen : this.videoList.isOpen, itemPos : this.videoList.pos, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}, flashbacks : this.flashbacks, cachedFiles : this.cache.cachedFiles};
+		return { videoList : this.videoList.items, isPlaylistOpen : this.videoList.isOpen, itemPos : this.videoList.pos, messages : this.messages, timer : { time : this.videoTimer.getTime(), paused : this.videoTimer.isPaused()}, flashbacks : this.flashbacks, cachedFiles : this.cache.getCachedFiles()};
 	}
 	,loadState: function() {
 		if(this.isNoState) {
@@ -4889,15 +4979,13 @@ server_Main.prototype = {
 		var _g = 0;
 		var _g1 = state.flashbacks;
 		while(_g < _g1.length) this.flashbacks.push(_g1[_g++]);
-		this.cache.cachedFiles.length = 0;
-		var _g = 0;
-		var _g1 = state.cachedFiles;
-		while(_g < _g1.length) this.cache.cachedFiles.push(_g1[_g++]);
+		this.cache.setCachedFiles(state.cachedFiles);
 		this.videoTimer.start();
 		this.videoTimer.setTime(state.timer.time);
 		this.videoTimer.pause();
 	}
 	,logError: function(type,data) {
+		this.cache.removeOlderCache(1048576);
 		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 327, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.rootDir + "/user/crashes";
 		server_Utils.ensureDir(crashesFolder);
