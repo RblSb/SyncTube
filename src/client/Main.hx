@@ -824,7 +824,7 @@ class Main {
 	public function userLogin(name:String, password:String):Void {
 		if (config.salt == null) return;
 		if (password.length == 0) return;
-		if (name.length == 0) return;
+		if (name.length == 0) name = settings.name;
 		final hash = Sha256.encode(password + config.salt);
 		loginRequest(name, hash);
 		settings.hash = hash;
@@ -1277,6 +1277,21 @@ class Main {
 			case "ad":
 				player.skipAd();
 				return false;
+			case "volume":
+				var v = Std.parseFloat(args[0]);
+				if (Math.isNaN(v)) v = 1;
+				v = v.clamp(0, 3);
+				final wasNotFull = player.getVolume() < 1;
+				player.setVolume(v.clamp(0, 1));
+
+				if (player.getPlayerType() != RawType) return true;
+				if (wasNotFull && v > 1) {
+					serverMessage("Volume was not maxed yet to be boosted, you can send command again.");
+					return true;
+				}
+				final rawPlayer = @:privateAccess player.rawPlayer;
+				rawPlayer.boostVolume(v);
+				return true;
 			case "dump":
 				send({type: Dump});
 				return true;

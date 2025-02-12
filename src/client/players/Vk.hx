@@ -102,7 +102,7 @@ class Vk implements IPlayer {
 		final oid = ids.oid;
 		final id = ids.id;
 		final tempVideo = Utils.nodeFromString(
-			'<iframe id="temp-videoplayer" src="https://vk.com/video_ext.php?oid=$oid&id=$id&hd=1&js_api=1"
+			'<iframe class="temp-videoplayer" src="https://vk.com/video_ext.php?oid=$oid&id=$id&hd=1&js_api=1"
 				allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
 				frameborder="0" allowfullscreen>
 			</iframe>'.trim()

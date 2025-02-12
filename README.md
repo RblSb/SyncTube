@@ -68,9 +68,11 @@ It's just works, but you can also check [user/ folder](/user/README.md) for serv
 - If you want to restrict permissions or add admins/emotes, see `Configuration` above
 
 ## Chat commands
-- `/-1h9m54` - Command format to rewind video **back** by `1 hour 9 minutes 54 seconds`
+- `/1h9m54` - Command format to rewind video by `1 hour 9 minutes 54 seconds`
+- `/-1h9m54` - Same, but rewinds back
 - `/ad` - Rewind sponsored block in active YouTube video
-- `/fb` (`/flashback`) - rewind video to a prev time if someone rewinded/restarted video accidentally
+- `/fb` (`/flashback`) - Rewind video to a prev time if someone rewinded/restarted video accidentally
+- `/volume 2.6` - Change player volume in `0-1` range or boost it in `0-3` range for quiet videos
 - `/clear` - Clear chat. Admin clears chat globally
 - `/help` - Show initial tutorial message
 

@@ -174,7 +174,7 @@ class Youtube implements IPlayer {
 			return;
 		}
 		final video = document.createDivElement();
-		video.id = "temp-videoplayer";
+		video.className = "temp-videoplayer";
 		playerEl.prepend(video);
 		var tempYoutube:YoutubePlayer = null;
 		tempYoutube = new YoutubePlayer(video.id, {

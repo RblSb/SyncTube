@@ -7,6 +7,7 @@ import js.Browser.window;
 import js.html.Element;
 import js.html.FileReader;
 import js.html.URL;
+import js.html.audio.AudioContext;
 import js.lib.ArrayBuffer;
 
 class Utils {
@@ -204,5 +205,11 @@ class Utils {
 		final window = js.Browser.window;
 		final observer = (window : Dynamic).ResizeObserver ?? return null;
 		return js.Syntax.code("new ResizeObserver({0})", callback);
+	}
+
+	public static function createAudioContext():Null<AudioContext> {
+		final w:Dynamic = js.Browser.window;
+		final ctx = w.AudioContext ?? w.webkitAudioContext ?? return null;
+		return js.Syntax.code("new {0}()", ctx);
 	}
 }

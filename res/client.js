@@ -2090,7 +2090,7 @@ client_Main.prototype = {
 			return;
 		}
 		if(name.length == 0) {
-			return;
+			name = this.settings.name;
 		}
 		var hash = haxe_crypto_Sha256.encode(password + this.config.salt);
 		this.loginRequest(name,hash);
@@ -2517,6 +2517,27 @@ client_Main.prototype = {
 			this.mergeRedundantArgs(args,0,1);
 			this.send({ type : "BanClient", banClient : { name : args[0], time : 0}});
 			return true;
+		case "volume":
+			var v = parseFloat(args[0]);
+			if(isNaN(v)) {
+				v = 1;
+			}
+			if(v < 0) {
+				v = 0;
+			} else if(v > 3) {
+				v = 3;
+			}
+			var wasNotFull = this.player.getVolume() < 1;
+			this.player.setVolume(v < 0 ? 0 : v > 1 ? 1 : v);
+			if(this.player.getPlayerType() != "RawType") {
+				return true;
+			}
+			if(wasNotFull && v > 1) {
+				this.serverMessage("Volume was not maxed yet to be boosted, you can send command again.");
+				return true;
+			}
+			this.player.rawPlayer.boostVolume(v);
+			return true;
 		}
 		if(this.matchSimpleDate.match(command)) {
 			this.send({ type : "Rewind", rewind : { time : this.parseSimpleDate(command)}});
@@ -2740,6 +2761,10 @@ client_Player.prototype = {
 		var el = this.videoItemsEl.children[pos];
 		this.setItemElementType(el,this.videoList.items[pos].isTemp);
 	}
+	,getCurrentItem: function() {
+		var _this = this.videoList;
+		return _this.items[_this.pos];
+	}
 	,setPlayer: function(newPlayer) {
 		if(this.player != newPlayer) {
 			if(this.player != null) {
@@ -2767,6 +2792,12 @@ client_Player.prototype = {
 			data.voiceOverTrack = data.voiceOverTrack != null ? data.voiceOverTrack : voiceOverTrack;
 			callback(data);
 		});
+	}
+	,getPlayerType: function() {
+		if(this.player == null) {
+			return null;
+		}
+		return this.player.getPlayerType();
 	}
 	,getLinkPlayerType: function(url) {
 		var player = Lambda.find(this.players,function(player) {
@@ -2836,7 +2867,7 @@ client_Player.prototype = {
 			return _gthis.isAudioTrackLoaded = true;
 		};
 		this.audioTrack.onerror = function(e) {
-			haxe_Log.trace(e,{ fileName : "src/client/Player.hx", lineNumber : 215, className : "client.Player", methodName : "setExternalAudioTrack"});
+			haxe_Log.trace(e,{ fileName : "src/client/Player.hx", lineNumber : 220, className : "client.Player", methodName : "setExternalAudioTrack"});
 			_gthis.audioTrack.oncanplay = null;
 			_gthis.audioTrack.onerror = null;
 			_gthis.isAudioTrackLoaded = false;
@@ -3339,7 +3370,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 661, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 666, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -3630,6 +3661,18 @@ client_Utils.saveFile = function(name,mime,data) {
 client_Utils.createResizeObserver = function(callback) {
 	return null;
 };
+client_Utils.createAudioContext = function() {
+	var w = window;
+	var ctx;
+	var tmp = w.AudioContext;
+	var tmp1 = tmp != null ? tmp : w.webkitAudioContext;
+	if(tmp1 != null) {
+		ctx = tmp1;
+	} else {
+		return null;
+	}
+	return new ctx();
+};
 var client_players_Iframe = function(main,player) {
 	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.main = main;
@@ -3712,7 +3755,7 @@ client_players_Iframe.prototype = {
 	}
 };
 var client_players_Raw = function(main,player) {
-	this.isHlsLoaded = false;
+	this.isHlsPluginLoaded = false;
 	this.playAllowed = true;
 	this.matchName = new EReg("^(.+)\\.(.+)","");
 	this.subsInput = window.document.querySelector("#subsurl");
@@ -3729,27 +3772,27 @@ client_players_Raw.prototype = {
 	,isSupportedLink: function(url) {
 		return true;
 	}
+	,isHlsItem: function(url,title) {
+		if(url.indexOf("m3u8") == -1) {
+			return StringTools.endsWith(title,"m3u8");
+		} else {
+			return true;
+		}
+	}
 	,getVideoData: function(data,callback) {
 		var _gthis = this;
 		var url = data.url;
-		var decodedUrl = decodeURIComponent(url.split("+").join(" "));
-		var optTitle = StringTools.trim(this.titleInput.value);
-		var title = HxOverrides.substr(decodedUrl,decodedUrl.lastIndexOf("/") + 1,null);
-		var isNameMatched = this.matchName.match(title);
-		if(optTitle != "") {
-			title = optTitle;
-		} else if(isNameMatched) {
-			title = this.matchName.matched(1);
-		} else {
-			title = Lang.get("rawVideo");
+		var title = StringTools.trim(this.titleInput.value);
+		if(title.length == 0) {
+			var decodedUrl = decodeURIComponent(url.split("+").join(" "));
+			if(this.matchName.match(HxOverrides.substr(decodedUrl,decodedUrl.lastIndexOf("/") + 1,null))) {
+				title = this.matchName.matched(1);
+			} else {
+				title = Lang.get("rawVideo");
+			}
 		}
-		var isHls = false;
-		if(isNameMatched) {
-			isHls = this.matchName.matched(2).indexOf("m3u8") != -1;
-		} else {
-			isHls = StringTools.endsWith(title,"m3u8");
-		}
-		if(isHls && !this.isHlsLoaded) {
+		var isHls = this.isHlsItem(url,title);
+		if(isHls && !this.isHlsPluginLoaded) {
 			this.loadHlsPlugin(function() {
 				_gthis.getVideoData(data,callback);
 			});
@@ -3758,62 +3801,119 @@ client_players_Raw.prototype = {
 		this.titleInput.value = "";
 		var subs = StringTools.trim(this.subsInput.value);
 		this.subsInput.value = "";
+		this.getVideoDuration(url,isHls,function(duration) {
+			if(duration == 0) {
+				callback({ duration : duration});
+				return;
+			}
+			callback({ duration : duration, title : title, subs : subs});
+		});
+	}
+	,getVideoDuration: function(url,isHls,callback,isAnonCrossOrigin) {
+		if(isAnonCrossOrigin == null) {
+			isAnonCrossOrigin = false;
+		}
+		var _gthis = this;
 		var video = window.document.createElement("video");
-		video.id = "temp-videoplayer";
+		if(isAnonCrossOrigin) {
+			video.crossOrigin = "anonymous";
+		}
+		video.className = "temp-videoplayer";
 		video.src = url;
+		var tempHls = null;
 		video.onerror = function(e) {
+			callback(0);
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
-			callback({ duration : 0});
+			video.onerror = null;
+			video.onloadedmetadata = null;
+			if(tempHls != null) {
+				tempHls.destroy();
+			}
+			video.pause();
+			video.removeAttribute("src");
+			video.load();
 		};
 		video.onloadedmetadata = function() {
+			callback(video.duration);
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
-			callback({ duration : video.duration, title : title, subs : subs});
+			video.onerror = null;
+			video.onloadedmetadata = null;
+			if(tempHls != null) {
+				tempHls.destroy();
+			}
+			video.pause();
+			video.removeAttribute("src");
+			video.load();
 		};
-		this.playerEl.prepend(video);
 		if(isHls) {
-			this.initHlsSource(video,url);
+			tempHls = this.initHlsSource(video,url);
+			tempHls.on(Hls.Events.ERROR,function(errorType,e) {
+				callback(0);
+				if(_gthis.playerEl.contains(video)) {
+					_gthis.playerEl.removeChild(video);
+				}
+				video.onerror = null;
+				video.onloadedmetadata = null;
+				if(tempHls != null) {
+					tempHls.destroy();
+				}
+				video.pause();
+				video.removeAttribute("src");
+				video.load();
+			});
 		}
+		this.playerEl.prepend(video);
 	}
 	,loadHlsPlugin: function(callback) {
 		var _gthis = this;
 		client_JsApi.addScriptToHead("https://cdn.jsdelivr.net/npm/hls.js@latest",function() {
-			_gthis.isHlsLoaded = true;
+			_gthis.isHlsPluginLoaded = true;
 			callback();
 		});
 	}
-	,initHlsSource: function(video,url) {
+	,initHlsSource: function(video,url,hls) {
 		if(!Hls.isSupported()) {
-			return;
+			return null;
 		}
-		var hls = new Hls();
+		if(hls != null) {
+			hls.detachMedia();
+		}
+		if(hls == null) {
+			hls = new Hls();
+		}
 		hls.loadSource(url);
 		hls.attachMedia(video);
+		return hls;
 	}
 	,loadVideo: function(item) {
 		var _gthis = this;
 		var url = this.main.tryLocalIp(item.url);
-		var isHls = url.indexOf("m3u8") != -1 || StringTools.endsWith(item.title,"m3u8");
-		if(isHls && !this.isHlsLoaded) {
+		var isHls = this.isHlsItem(url,item.title);
+		if(isHls && !this.isHlsPluginLoaded) {
 			this.loadHlsPlugin(function() {
 				_gthis.loadVideo(item);
 			});
 			return;
 		}
+		if(this.audioCtx != null) {
+			this.removeVideo();
+		}
 		if(this.video != null) {
+			var tmp = this.hls;
+			if(tmp != null) {
+				tmp.detachMedia();
+			}
 			this.video.src = url;
-			var _g = 0;
-			var _g1 = this.video.children;
-			while(_g < _g1.length) {
-				var element = _g1[_g];
-				++_g;
-				if(element.nodeName != "TRACK") {
-					continue;
+			var i = this.video.children.length;
+			while(i-- > 0) {
+				var child = this.video.children[i];
+				if(child.nodeName == "TRACK") {
+					child.remove();
 				}
-				element.remove();
 			}
 		} else {
 			this.video = window.document.createElement("video");
@@ -3834,7 +3934,7 @@ client_players_Raw.prototype = {
 			this.playerEl.appendChild(this.video);
 		}
 		if(isHls) {
-			this.initHlsSource(this.video,url);
+			this.hls = this.initHlsSource(this.video,url,this.hls);
 		}
 		this.restartControlsHider();
 		var subsUrl;
@@ -3873,8 +3973,9 @@ client_players_Raw.prototype = {
 		if(client_Utils.isTouch()) {
 			return;
 		}
-		if(this.controlsHider != null) {
-			this.controlsHider.stop();
+		var tmp = this.controlsHider;
+		if(tmp != null) {
+			tmp.stop();
 		}
 		this.controlsHider = haxe_Timer.delay(function() {
 			if(_gthis.video == null) {
@@ -3883,16 +3984,92 @@ client_players_Raw.prototype = {
 			_gthis.video.controls = false;
 		},3000);
 		this.video.onmousemove = function(e) {
-			if(_gthis.controlsHider != null) {
-				_gthis.controlsHider.stop();
+			var tmp = _gthis.controlsHider;
+			if(tmp != null) {
+				tmp.stop();
 			}
 			_gthis.video.controls = true;
 			return _gthis.video.onmousemove = null;
 		};
 	}
+	,boostVolume: function(volume) {
+		var _gthis = this;
+		if(this.gainNode != null) {
+			this.gainNode.gain.value = volume;
+			return;
+		}
+		if(volume <= 1) {
+			return;
+		}
+		if(this.video.crossOrigin != "anonymous") {
+			var tmp = this.player.getCurrentItem();
+			if(tmp == null) {
+				return;
+			}
+			var isHls = this.isHlsItem(tmp.url,tmp.title);
+			this.getVideoDuration(tmp.url,isHls,function(duration) {
+				if(duration == 0) {
+					_gthis.main.serverMessage("Cannot boost volume for this video, no CORS access.");
+				} else {
+					_gthis.video.crossOrigin = "anonymous";
+					_gthis.boostVolume(volume);
+				}
+			},true);
+			return;
+		}
+		var tmp;
+		if(this.audioCtx != null) {
+			tmp = this.audioCtx;
+		} else {
+			var tmp1 = client_Utils.createAudioContext();
+			if(tmp1 != null) {
+				tmp = tmp1;
+			} else {
+				return;
+			}
+		}
+		this.audioCtx = tmp;
+		var sourceNode = this.audioCtx.createMediaElementSource(this.video);
+		this.gainNode = this.audioCtx.createGain();
+		this.gainNode.gain.value = volume;
+		sourceNode.connect(this.gainNode);
+		this.gainNode.connect(this.audioCtx.destination);
+		var analyzer = this.audioCtx.createAnalyser();
+		analyzer.fftSize = 256;
+		sourceNode.connect(analyzer);
+		var arrayBuffer = new Uint8Array(256);
+		haxe_Timer.delay(function() {
+			analyzer.getByteFrequencyData(arrayBuffer);
+			var sum = 0;
+			var _g = 0;
+			while(_g < arrayBuffer.length) sum += arrayBuffer[_g++];
+			if(sum == 0) {
+				var tmp = _gthis.player.getCurrentItem();
+				if(tmp == null) {
+					return;
+				}
+				_gthis.video.src = tmp.url;
+				_gthis.isHlsItem(tmp.url,tmp.title);
+				_gthis.initHlsSource(_gthis.video,tmp.url,_gthis.hls);
+			}
+		},300);
+	}
+	,destroyAudioContext: function() {
+		if(this.audioCtx == null) {
+			return;
+		}
+		this.gainNode = null;
+		this.audioCtx.close();
+		this.audioCtx = null;
+	}
 	,removeVideo: function() {
 		if(this.video == null) {
 			return;
+		}
+		this.destroyAudioContext();
+		var tmp = this.hls;
+		if(tmp != null) {
+			tmp.detachMedia();
 		}
 		this.video.pause();
 		this.video.removeAttribute("src");
@@ -4266,7 +4443,7 @@ client_players_Vk.prototype = {
 			callback({ duration : 0});
 			return;
 		}
-		var tempVideo = client_Utils.nodeFromString(StringTools.trim("<iframe id=\"temp-videoplayer\" src=\"https://vk.com/video_ext.php?oid=" + ids.oid + "&id=" + ids.id + "&hd=1&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>"));
+		var tempVideo = client_Utils.nodeFromString(StringTools.trim("<iframe class=\"temp-videoplayer\" src=\"https://vk.com/video_ext.php?oid=" + ids.oid + "&id=" + ids.id + "&hd=1&js_api=1\"\n\t\t\t\tallow=\"autoplay; encrypted-media; fullscreen; picture-in-picture;\"\n\t\t\t\tframeborder=\"0\" allowfullscreen>\n\t\t\t</iframe>"));
 		this.playerEl.prepend(tempVideo);
 		var tempVkPlayer = this.createVkPlayer(tempVideo);
 		tempVkPlayer.on("inited",function() {
@@ -4531,7 +4708,7 @@ client_players_Youtube.prototype = {
 			return;
 		}
 		var video = window.document.createElement("div");
-		video.id = "temp-videoplayer";
+		video.className = "temp-videoplayer";
 		this.playerEl.prepend(video);
 		var tempYoutube = null;
 		tempYoutube = new YT.Player(video.id,{ videoId : this.extractVideoId(url), playerVars : { modestbranding : 1, rel : 0, showinfo : 0}, events : { onReady : function(e) {

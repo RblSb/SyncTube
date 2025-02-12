@@ -3,7 +3,7 @@
 --library json2object
 # Client libs for completion
 --library youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
---library hls.js-extern:git:https://github.com/grosmar/hls.js-haxe-extern.git
+--library hls.js-extern:git:https://github.com/zoldesi-andor/hls.js-haxe-extern.git
 --library utest
 --class-path src
 --class-path test

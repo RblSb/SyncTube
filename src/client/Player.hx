@@ -21,8 +21,8 @@ class Player {
 	final main:Main;
 	final youtube:Youtube;
 	final players:Array<IPlayer>;
-	final iframePlayer:IPlayer;
-	final rawPlayer:IPlayer;
+	final iframePlayer:Iframe;
+	final rawPlayer:Raw;
 	final videoList = new VideoList();
 	final videoItemsEl = getEl("#queue");
 	final playerEl = getEl("#ytapiplayer");
@@ -151,6 +151,11 @@ class Player {
 			data.voiceOverTrack ??= voiceOverTrack;
 			callback(data);
 		});
+	}
+
+	public function getPlayerType():Null<PlayerType> {
+		if (player == null) return null;
+		return player.getPlayerType();
 	}
 
 	public function getLinkPlayerType(url:String):PlayerType {

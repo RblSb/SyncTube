@@ -448,7 +448,7 @@ header h4 {
   max-height: 80vh;
 }
 
-#temp-videoplayer {
+.temp-videoplayer {
   display: none;
 }
 
