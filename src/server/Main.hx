@@ -38,6 +38,7 @@ class Main {
 
 	final rootDir = '$__dirname/..';
 
+	public final userDir:String;
 	public final logsDir:String;
 	public final config:Config;
 
@@ -83,9 +84,10 @@ class Main {
 		isNoState = !opts.loadState;
 		final args = Utils.parseArgs(Sys.args(), false);
 		verbose = args.exists("verbose");
-		statePath = '$rootDir/user/state.json';
-		logsDir = '$rootDir/user/logs';
-		cacheDir = '$rootDir/user/res/cache';
+		userDir = '$rootDir/user';
+		statePath = '$userDir/state.json';
+		logsDir = '$userDir/logs';
+		cacheDir = '$userDir/res/cache';
 
 		// process.on("exit", exit);
 		process.on("SIGINT", exit); // ctrl+c
@@ -160,7 +162,7 @@ class Main {
 		final dir = '$rootDir/res';
 		final httpServer = new HttpServer(this, {
 			dir: dir,
-			customDir: '$rootDir/user/res',
+			customDir: '$userDir/res',
 			allowLocalRequests: config.localAdmins,
 			cache: cache,
 		});
@@ -222,7 +224,7 @@ class Main {
 	function getUserConfig():Config {
 		final config:Config = Json.parse(File.getContent('$rootDir/default-config.json'));
 		if (isNoState) return config;
-		final customPath = '$rootDir/user/config.json';
+		final customPath = '$userDir/config.json';
 		if (!FileSystem.exists(customPath)) return config;
 		final customConfig:Config = Json.parse(File.getContent(customPath));
 		for (field in Reflect.fields(customConfig)) {
@@ -245,7 +247,7 @@ class Main {
 	}
 
 	function loadUsers():UserList {
-		final customPath = '$rootDir/user/users.json';
+		final customPath = '$userDir/users.json';
 		if (isNoState || !FileSystem.exists(customPath)) return {
 			admins: [],
 			bans: []
@@ -260,8 +262,7 @@ class Main {
 	}
 
 	function writeUsers(users:UserList):Void {
-		final folder = '$rootDir/user';
-		Utils.ensureDir(folder);
+		Utils.ensureDir(userDir);
 		final data:UserList = {
 			admins: users.admins,
 			bans: [
@@ -272,7 +273,7 @@ class Main {
 			],
 			salt: users.salt
 		}
-		File.saveContent('$folder/users.json', Json.stringify(data, "\t"));
+		File.saveContent('$userDir/users.json', Json.stringify(data, "\t"));
 	}
 
 	function saveState():Void {
@@ -325,7 +326,7 @@ class Main {
 	function logError(type:String, data:Dynamic):Void {
 		cache.removeOlderCache(1024 * 1024);
 		trace(type, data);
-		final crashesFolder = '$rootDir/user/crashes';
+		final crashesFolder = '$userDir/crashes';
 		Utils.ensureDir(crashesFolder);
 		final name = DateTools.format(Date.now(), "%Y-%m-%d_%H_%M_%S") + "-" + type;
 		File.saveContent('$crashesFolder/$name.json', Json.stringify(data, "\t"));

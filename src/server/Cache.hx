@@ -1,5 +1,6 @@
 package server;
 
+import haxe.Json;
 import haxe.io.Path;
 import js.lib.Promise;
 import js.node.Buffer;
@@ -7,6 +8,7 @@ import js.node.ChildProcess;
 import js.node.Fs.Fs;
 import js.node.stream.Readable;
 import sys.FileSystem;
+import sys.io.File;
 import utils.YoutubeUtils;
 
 class Cache {
@@ -119,7 +121,14 @@ class Cache {
 				data: outName
 			}
 		});
-		final promise:Promise<YouTubeVideoInfo> = ytdl.getInfo(url);
+		var agent:Any = null;
+		final cookiesPath = '${main.userDir}/cookies.json';
+		if (FileSystem.exists(cookiesPath)) {
+			agent = ytdl.createAgent(Json.parse(File.getContent(cookiesPath)));
+		}
+		final promise:Promise<YouTubeVideoInfo> = ytdl.getInfo(url, {
+			agent: agent,
+		});
 		promise.then(info -> {
 			trace('Get info with ${info.formats.length} formats');
 			final audioFormat:YoutubeVideoFormat = try {
@@ -140,6 +149,7 @@ class Cache {
 
 			final dlVideo:Readable<Dynamic> = ytdl(url, {
 				format: videoFormat,
+				agent: agent,
 			});
 			dlVideo.pipe(Fs.createWriteStream('$cacheDir/$inVideoName'));
 			dlVideo.on("error", err -> {
@@ -150,6 +160,7 @@ class Cache {
 
 			final dlAudio:Readable<Dynamic> = ytdl(url, {
 				format: audioFormat,
+				agent: agent,
 			});
 			dlAudio.pipe(Fs.createWriteStream('$cacheDir/$inAudioName'));
 			dlAudio.on("error", err -> {
