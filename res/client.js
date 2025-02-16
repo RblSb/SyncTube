@@ -1598,8 +1598,10 @@ client_Main.prototype = {
 			var port = $global.location.port;
 			url = "" + protocol + "//" + host + (port.length > 0 ? ":" + port : port) + url;
 		}
-		if(!StringTools.startsWith(url,"http")) {
-			url = "" + protocol + "//" + url;
+		if(!StringTools.startsWith(url,"pt:")) {
+			if(!StringTools.startsWith(url,"http")) {
+				url = "" + protocol + "//" + url;
+			}
 		}
 		this.player.getVideoData({ url : url, atEnd : atEnd},function(data) {
 			if(data.duration == 0) {
@@ -1677,7 +1679,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 457, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 459, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireEvents(data);
 		switch(data.type) {
@@ -2700,8 +2702,7 @@ var client_Player = function(main) {
 	var _gthis = this;
 	this.main = main;
 	this.youtube = new client_players_Youtube(main,this);
-	this.streamable = new client_players_Streamable(main,this);
-	this.players = [this.youtube,new client_players_Vk(main,this),this.streamable];
+	this.players = [this.youtube,new client_players_Vk(main,this),new client_players_Streamable(main,this),new client_players_Peertube(main,this)];
 	this.iframePlayer = new client_players_Iframe(main,this);
 	this.rawPlayer = new client_players_Raw(main,this);
 	this.initItemButtons();
@@ -4121,6 +4122,138 @@ client_players_Raw.prototype = {
 		this.video.muted = false;
 	}
 };
+var client_players_Peertube = function(main,player) {
+	this.matchOldPeertube = new EReg("^pt:.+/videos/watch/([-A-z0-9]+)","g");
+	this.matchPeertube = new EReg("^pt:.+/w/(p/)?([A-z0-9]+)","g");
+	client_players_Raw.call(this,main,player);
+};
+client_players_Peertube.__name__ = true;
+client_players_Peertube.__super__ = client_players_Raw;
+client_players_Peertube.prototype = $extend(client_players_Raw.prototype,{
+	isSupportedLink: function(url) {
+		return this.extractVideoId(url).length > 0;
+	}
+	,extractVideoId: function(url) {
+		if(this.matchPeertube.match(url)) {
+			return this.matchPeertube.matched(2);
+		}
+		if(this.matchOldPeertube.match(url)) {
+			return this.matchOldPeertube.matched(1);
+		}
+		return "";
+	}
+	,getVideoData: function(data,callback) {
+		var _gthis = this;
+		if(!this.isSupportedLink(data.url)) {
+			this.getRawVideoData(data,callback);
+			return;
+		}
+		this.getPeertubeVideoData(data.url,function(info) {
+			if(info == null) {
+				callback({ duration : 0});
+				return;
+			}
+			_gthis.getRawVideoData({ url : info.url, atEnd : data.atEnd},function(data) {
+				data.url = info.url;
+				data.title = info.title;
+				callback(data);
+			});
+		});
+	}
+	,getRawVideoData: function(data,callback) {
+		client_players_Raw.prototype.getVideoData.call(this,data,callback);
+	}
+	,getPeertubeVideoData: function(url,callback) {
+		var _gthis = this;
+		var id = this.extractVideoId(url);
+		url = StringTools.replace(url,"pt:","");
+		if(!StringTools.startsWith(url,"http")) {
+			url = "https://" + url;
+		}
+		var urlObj;
+		try {
+			urlObj = new URL(url);
+		} catch( _g ) {
+			haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/players/Peertube.hx", lineNumber : 53, className : "client.players.Peertube", methodName : "getPeertubeVideoData"});
+			callback(null);
+			return;
+		}
+		var host = urlObj.host;
+		if(url.indexOf("/p/") != -1) {
+			var http = new haxe_http_HttpJs("https://" + host + "/api/v1/video-playlists/" + id + "/videos");
+			http.onData = function(data) {
+				var arr = JSON.parse(data).data;
+				var tmp = urlObj.searchParams.get("playlistPosition");
+				var pos = Std.parseInt(tmp != null ? tmp : "1");
+				var tmp = Lambda.find(arr,function(item) {
+					return item.position == pos;
+				});
+				var item = tmp != null ? tmp : arr[0];
+				var uuid;
+				var tmp = item.video;
+				var tmp1 = tmp != null ? tmp.uuid : null;
+				if(tmp1 != null) {
+					uuid = tmp1;
+				} else {
+					haxe_Log.trace(item,{ fileName : "src/client/players/Peertube.hx", lineNumber : 69, className : "client.players.Peertube", methodName : "getPeertubeVideoData"});
+					callback(null);
+					return;
+				}
+				_gthis.getPeertubeVideoData("pt:https://" + host + "/videos/watch/" + uuid,callback);
+			};
+			http.onError = function(err) {
+				haxe_Log.trace(err,{ fileName : "src/client/players/Peertube.hx", lineNumber : 76, className : "client.players.Peertube", methodName : "getPeertubeVideoData"});
+				callback(null);
+			};
+			http.request();
+			return;
+		}
+		var http = new haxe_http_HttpJs("https://" + host + "/api/v1/videos/" + id);
+		http.onData = function(data) {
+			try {
+				var json = JSON.parse(data);
+				var tmp = json.name;
+				var title = tmp != null ? tmp : "PeerTube video";
+				var playlistUrl = _gthis.getBestHlsPlaylistUrl(json);
+				if(playlistUrl != null) {
+					callback({ url : playlistUrl, title : title});
+					return;
+				}
+				var mp4Url = _gthis.getBestMp4Url(json);
+				if(mp4Url != null) {
+					callback({ url : mp4Url, title : title});
+					return;
+				}
+				callback(null);
+			} catch( _g ) {
+				haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/players/Peertube.hx", lineNumber : 109, className : "client.players.Peertube", methodName : "getPeertubeVideoData"});
+				callback(null);
+			}
+		};
+		http.onError = function(err) {
+			haxe_Log.trace(err,{ fileName : "src/client/players/Peertube.hx", lineNumber : 115, className : "client.players.Peertube", methodName : "getPeertubeVideoData"});
+			callback(null);
+		};
+		http.request();
+	}
+	,getBestHlsPlaylistUrl: function(json) {
+		var playlists = json.streamingPlaylists;
+		if(playlists == null || playlists.length == 0) {
+			return null;
+		}
+		return playlists[0].playlistUrl;
+	}
+	,getBestMp4Url: function(json) {
+		var files = json.files;
+		if(files == null || files.length == 0) {
+			return null;
+		}
+		files.sort(function(a,b) {
+			return b.resolution.id - a.resolution.id;
+		});
+		return files[0].fileDownloadUrl;
+	}
+});
 var client_players_RawSubs = function() { };
 client_players_RawSubs.__name__ = true;
 client_players_RawSubs.loadSubs = function(subsUrl,video) {

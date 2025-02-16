@@ -330,7 +330,9 @@ class Main {
 			final colonPort = port.length > 0 ? ':$port' : port;
 			url = '$protocol//$host$colonPort$url';
 		}
-		if (!url.startsWith("http")) url = '$protocol//$url';
+		if (!url.startsWith("pt:")) {
+			if (!url.startsWith("http")) url = '$protocol//$url';
+		}
 
 		final obj:VideoDataRequest = {
 			url: url,

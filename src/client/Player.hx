@@ -6,6 +6,7 @@ import Types.VideoDataRequest;
 import Types.VideoItem;
 import client.Main.getEl;
 import client.players.Iframe;
+import client.players.Peertube;
 import client.players.Raw;
 import client.players.Streamable;
 import client.players.Vk;
@@ -30,7 +31,6 @@ class Player {
 	var isLoaded = false;
 	var skipSetTime = false;
 	var skipSetRate = false;
-	var streamable:Streamable;
 
 	final voiceOverInput:InputElement = getEl("#voiceoverurl");
 	var audioTrack:Null<Audio>;
@@ -44,11 +44,11 @@ class Player {
 	public function new(main:Main):Void {
 		this.main = main;
 		youtube = new Youtube(main, this);
-		streamable = new Streamable(main, this);
 		players = [
 			youtube,
 			new Vk(main, this),
-			streamable,
+			new Streamable(main, this),
+			new Peertube(main, this),
 		];
 		iframePlayer = new Iframe(main, this);
 		rawPlayer = new Raw(main, this);
