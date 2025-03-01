@@ -28,6 +28,7 @@ import js.html.WebSocket;
 class Main {
 	public static var instance(default, null):Main;
 	static inline var SETTINGS_VERSION = 5;
+	static inline var MAX_CHAT_MESSAGES = 200;
 
 	public final settings:ClientSettings;
 	public var isSyncActive = true;
@@ -938,7 +939,7 @@ class Main {
 
 	function chatMessageConnected():Void {
 		if (isLastMessageConnectionStatus()) {
-			msgBuf.removeChild(msgBuf.lastChild);
+			msgBuf.removeChild(getLastMessageDiv());
 		}
 		final div = document.createDivElement();
 		div.className = "server-msg-reconnect";
@@ -949,7 +950,7 @@ class Main {
 
 	function chatMessageDisconnected():Void {
 		if (isLastMessageConnectionStatus()) {
-			msgBuf.removeChild(msgBuf.lastChild);
+			msgBuf.removeChild(getLastMessageDiv());
 		}
 		final div = document.createDivElement();
 		div.className = "server-msg-disconnect";
@@ -959,7 +960,7 @@ class Main {
 	}
 
 	function isLastMessageConnectionStatus():Bool {
-		return msgBuf.lastElementChild?.className.startsWith("server-msg");
+		return getLastMessageDiv()?.className.startsWith("server-msg");
 	}
 
 	public function serverMessage(text:String, isText = true, withTimestamp = true):Element {
@@ -1068,8 +1069,8 @@ class Main {
 		addMessageDiv(userDiv);
 
 		if (inChatEnd) {
-			while (msgBuf.children.length > 200) {
-				msgBuf.removeChild(msgBuf.firstChild);
+			while (msgBuf.children.length > MAX_CHAT_MESSAGES) {
+				msgBuf.removeChild(getFirstMessageDiv());
 			}
 		}
 		if (inChatEnd || name == personal.name) {
@@ -1078,6 +1079,14 @@ class Main {
 			showScrollToChatEndBtn();
 		}
 		if (onBlinkTab == null) blinkTabWithTitle('*${Lang.get("chat")}*');
+	}
+
+	function getFirstMessageDiv():Null<Element> {
+		return isMessageBufferReversed() ? msgBuf.lastElementChild : msgBuf.firstElementChild;
+	}
+
+	function getLastMessageDiv():Null<Element> {
+		return isMessageBufferReversed() ? msgBuf.firstElementChild : msgBuf.lastElementChild;
 	}
 
 	function addMessageDiv(userDiv:Element):Void {

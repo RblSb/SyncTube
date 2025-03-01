@@ -1679,7 +1679,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 459, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 460, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireEvents(data);
 		switch(data.type) {
@@ -2196,7 +2196,7 @@ client_Main.prototype = {
 	}
 	,chatMessageConnected: function() {
 		if(this.isLastMessageConnectionStatus()) {
-			this.msgBuf.removeChild(this.msgBuf.lastChild);
+			this.msgBuf.removeChild(this.getLastMessageDiv());
 		}
 		var div = window.document.createElement("div");
 		div.className = "server-msg-reconnect";
@@ -2206,7 +2206,7 @@ client_Main.prototype = {
 	}
 	,chatMessageDisconnected: function() {
 		if(this.isLastMessageConnectionStatus()) {
-			this.msgBuf.removeChild(this.msgBuf.lastChild);
+			this.msgBuf.removeChild(this.getLastMessageDiv());
 		}
 		var div = window.document.createElement("div");
 		div.className = "server-msg-disconnect";
@@ -2215,7 +2215,7 @@ client_Main.prototype = {
 		this.scrollChatToEnd();
 	}
 	,isLastMessageConnectionStatus: function() {
-		var tmp = this.msgBuf.lastElementChild;
+		var tmp = this.getLastMessageDiv();
 		if(tmp != null) {
 			return StringTools.startsWith(tmp.className,"server-msg");
 		} else {
@@ -2318,7 +2318,7 @@ client_Main.prototype = {
 		userDiv.appendChild(textDiv);
 		this.addMessageDiv(userDiv);
 		if(inChatEnd) {
-			while(this.msgBuf.children.length > 200) this.msgBuf.removeChild(this.msgBuf.firstChild);
+			while(this.msgBuf.children.length > 200) this.msgBuf.removeChild(this.getFirstMessageDiv());
 		}
 		if(inChatEnd || name == this.personal.name) {
 			this.scrollChatToEnd();
@@ -2327,6 +2327,20 @@ client_Main.prototype = {
 		}
 		if(this.onBlinkTab == null) {
 			this.blinkTabWithTitle("*" + Lang.get("chat") + "*");
+		}
+	}
+	,getFirstMessageDiv: function() {
+		if(this.isMessageBufferReversed()) {
+			return this.msgBuf.lastElementChild;
+		} else {
+			return this.msgBuf.firstElementChild;
+		}
+	}
+	,getLastMessageDiv: function() {
+		if(this.isMessageBufferReversed()) {
+			return this.msgBuf.firstElementChild;
+		} else {
+			return this.msgBuf.lastElementChild;
 		}
 	}
 	,addMessageDiv: function(userDiv) {
