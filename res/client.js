@@ -795,12 +795,18 @@ client_Buttons.init = function(main) {
 	};
 	window.document.querySelector("#mediaurl-upload").onclick = function(e) {
 		client_Utils.browseFile(function(buffer,name) {
-			if(name == null || name.length == 0) {
+			if(name == null) {
+				name = "";
+			}
+			var _this_r = new RegExp("[?#%/\\\\]","g".split("u").join(""));
+			name = StringTools.trim(name.replace(_this_r,""));
+			if(name.length == 0) {
 				name = "video";
 			}
+			name = window.encodeURIComponent(name);
 			var a = buffer.byteLength - 5242880;
 			var lastChunk = buffer.slice(a < 0 ? 0 : a);
-			var chunkReq = window.fetch("/upload-last-chunk",{ method : "POST", headers : { "content-name" : name, "client-name" : main.personal.name}, body : lastChunk});
+			var chunkReq = window.fetch("/upload-last-chunk",{ method : "POST", headers : { "content-name" : name}, body : lastChunk});
 			chunkReq.then(function(e) {
 				return e.json().then(function(data) {
 					if(data.errorId != null) {
@@ -813,7 +819,6 @@ client_Buttons.init = function(main) {
 			var request = new XMLHttpRequest();
 			request.open("POST","/upload",true);
 			request.setRequestHeader("content-name",name);
-			request.setRequestHeader("client-name",main.personal.name);
 			request.upload.onprogress = function(event) {
 				var ratio = 0.0;
 				if(event.lengthComputable) {
@@ -827,7 +832,7 @@ client_Buttons.init = function(main) {
 				try {
 					data = JSON.parse(request.responseText);
 				} catch( _g ) {
-					haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/Buttons.hx", lineNumber : 299, className : "client.Buttons", methodName : "init"});
+					haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/Buttons.hx", lineNumber : 300, className : "client.Buttons", methodName : "init"});
 					return;
 				}
 				if(data.errorId == null) {
@@ -3799,7 +3804,12 @@ client_players_Raw.prototype = {
 		var url = data.url;
 		var title = StringTools.trim(this.titleInput.value);
 		if(title.length == 0) {
-			var decodedUrl = decodeURIComponent(url.split("+").join(" "));
+			var decodedUrl;
+			try {
+				decodedUrl = decodeURIComponent(url.split("+").join(" "));
+			} catch( _g ) {
+				decodedUrl = url;
+			}
 			if(this.matchName.match(HxOverrides.substr(decodedUrl,decodedUrl.lastIndexOf("/") + 1,null))) {
 				title = this.matchName.matched(1);
 			} else {

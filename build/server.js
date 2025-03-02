@@ -4334,6 +4334,8 @@ server_HttpServer.prototype = {
 			if(js_node_Fs.existsSync(path)) {
 				filePath = path;
 			}
+			var ext1 = haxe_io_Path.extension(filePath).toLowerCase();
+			res.setHeader("content-type",this.getMimeType(ext1));
 		}
 		if(this.isMediaExtension(ext)) {
 			if(this.serveMedia(req,res,filePath)) {
@@ -4353,7 +4355,16 @@ server_HttpServer.prototype = {
 	}
 	,uploadFileLastChunk: function(req,res) {
 		var _gthis = this;
-		var name = this.cache.getFreeFileName(req.headers["content-name"]);
+		var fileName;
+		try {
+			fileName = decodeURIComponent(req.headers["content-name"]);
+		} catch( _g ) {
+			fileName = "";
+		}
+		if(StringTools.trim(fileName).length == 0) {
+			fileName = null;
+		}
+		var name = this.cache.getFreeFileName(fileName);
 		var filePath = this.cache.getFilePath(name);
 		var body = [];
 		req.on("data",function(chunk) {
@@ -4369,7 +4380,16 @@ server_HttpServer.prototype = {
 	}
 	,uploadFile: function(req,res) {
 		var _gthis = this;
-		var name = this.cache.getFreeFileName(req.headers["content-name"]);
+		var fileName;
+		try {
+			fileName = decodeURIComponent(req.headers["content-name"]);
+		} catch( _g ) {
+			fileName = "";
+		}
+		if(StringTools.trim(fileName).length == 0) {
+			fileName = null;
+		}
+		var name = this.cache.getFreeFileName(fileName);
 		var filePath = this.cache.getFilePath(name);
 		var tmp = Std.parseInt(req.headers["content-length"]);
 		if(tmp == null) {
@@ -4415,7 +4435,7 @@ server_HttpServer.prototype = {
 			}
 		});
 		stream.on("error",function(err) {
-			haxe_Log.trace(err,{ fileName : "src/server/HttpServer.hx", lineNumber : 196, className : "server.HttpServer", methodName : "uploadFile"});
+			haxe_Log.trace(err,{ fileName : "src/server/HttpServer.hx", lineNumber : 201, className : "server.HttpServer", methodName : "uploadFile"});
 			res.statusCode = 500;
 			res.end(JSON.stringify({ info : "File write stream error."}));
 			var _this = _gthis.uploadingFilesSizes;
@@ -4429,7 +4449,7 @@ server_HttpServer.prototype = {
 			_gthis.cache.remove(name);
 		});
 		req.on("error",function(err) {
-			haxe_Log.trace("Request Error:",{ fileName : "src/server/HttpServer.hx", lineNumber : 203, className : "server.HttpServer", methodName : "uploadFile", customParams : [err]});
+			haxe_Log.trace("Request Error:",{ fileName : "src/server/HttpServer.hx", lineNumber : 208, className : "server.HttpServer", methodName : "uploadFile", customParams : [err]});
 			stream.destroy();
 			res.statusCode = 500;
 			res.end(JSON.stringify({ info : "File request error."}));
@@ -4445,8 +4465,7 @@ server_HttpServer.prototype = {
 		});
 	}
 	,getPath: function(dir,url) {
-		var filePath = dir + url.pathname;
-		filePath = decodeURIComponent(filePath.split("+").join(" "));
+		var filePath = decodeURIComponent(dir.split("+").join(" ")) + decodeURIComponent(url.pathname);
 		if(!sys_FileSystem.isDirectory(filePath)) {
 			return filePath;
 		}

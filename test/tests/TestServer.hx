@@ -22,7 +22,7 @@ class TestServer extends Test {
 		server.onServerInited = () -> {
 			final url = 'http://${server.localIp}:${server.port}';
 			request('$url/你好，世界!@$^&*)_+-=', data -> {
-				Assert.equals("File 你好，世界!@$^&*)_ -= not found.", data);
+				Assert.equals("File 你好，世界!@$^&*)_+-= not found.", data);
 			});
 			request('$url/Привет%00мир!', data -> {
 				Assert.equals("File Приветмир! not found.", data);

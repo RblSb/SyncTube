@@ -54,7 +54,7 @@ class Raw implements IPlayer {
 
 		var title = titleInput.value.trim();
 		if (title.length == 0) {
-			final decodedUrl = url.urlDecode();
+			final decodedUrl = try url.urlDecode() catch (e) url;
 			final lastPart = decodedUrl.substr(decodedUrl.lastIndexOf("/") + 1);
 			if (matchName.match(lastPart)) title = matchName.matched(1);
 			else title = Lang.get("rawVideo");

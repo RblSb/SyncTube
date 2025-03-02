@@ -248,7 +248,10 @@ class Buttons {
 
 		getEl("#mediaurl-upload").onclick = e -> {
 			Utils.browseFile((buffer, name) -> {
-				if (name == null || name.length == 0) name = "video";
+				name ??= "";
+				name = ~/[?#%\/\\]/g.replace(name, "").trim();
+				if (name.length == 0) name = "video";
+				name = (window : Dynamic).encodeURIComponent(name);
 
 				// send last chunk separately to allow server file streaming while uploading
 				final chunkSize = 1024 * 1024 * 5; // 5 MB
@@ -258,7 +261,6 @@ class Buttons {
 					method: "POST",
 					headers: {
 						"content-name": name,
-						"client-name": main.getName(),
 					},
 					body: lastChunk,
 				});
@@ -276,7 +278,6 @@ class Buttons {
 				final request = new XMLHttpRequest();
 				request.open("POST", "/upload", true);
 				request.setRequestHeader("content-name", name);
-				request.setRequestHeader("client-name", main.getName());
 
 				request.upload.onprogress = (event:ProgressEvent) -> {
 					var ratio = 0.0;

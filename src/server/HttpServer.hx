@@ -113,6 +113,8 @@ class HttpServer {
 		if (hasCustomRes) {
 			final path = getPath(customDir, url);
 			if (Fs.existsSync(path)) filePath = path;
+			final ext = Path.extension(filePath).toLowerCase();
+			res.setHeader("content-type", getMimeType(ext));
 		}
 
 		if (isMediaExtension(ext)) {
@@ -133,7 +135,9 @@ class HttpServer {
 	}
 
 	function uploadFileLastChunk(req:IncomingMessage, res:ServerResponse) {
-		final name = cache.getFreeFileName(req.headers["content-name"]);
+		var fileName = try decodeURIComponent(req.headers["content-name"]) catch (e) "";
+		if (fileName.trim().length == 0) fileName = null;
+		final name = cache.getFreeFileName(fileName);
 		final filePath = cache.getFilePath(name);
 		final body:Array<Any> = [];
 		req.on("data", chunk -> body.push(chunk));
@@ -152,8 +156,9 @@ class HttpServer {
 	}
 
 	function uploadFile(req:IncomingMessage, res:ServerResponse) {
-		final name = cache.getFreeFileName(req.headers["content-name"]);
-		final clientName = req.headers["client-name"];
+		var fileName = try decodeURIComponent(req.headers["content-name"]) catch (e) "";
+		if (fileName.trim().length == 0) fileName = null;
+		final name = cache.getFreeFileName(fileName);
 		final filePath = cache.getFilePath(name);
 		final size = Std.parseInt(req.headers["content-length"]) ?? return;
 
@@ -210,8 +215,7 @@ class HttpServer {
 	}
 
 	function getPath(dir:String, url:URL):String {
-		var filePath = dir + url.pathname;
-		filePath = filePath.urlDecode();
+		final filePath = dir.urlDecode() + decodeURIComponent(url.pathname);
 		if (!FileSystem.isDirectory(filePath)) return filePath;
 		return Path.addTrailingSlash(filePath) + "index.html";
 	}
@@ -377,5 +381,9 @@ class HttpServer {
 
 	inline function decodeURI(data:String):String {
 		return js.Syntax.code("decodeURI({0})", data);
+	}
+
+	inline function decodeURIComponent(data:String):String {
+		return js.Syntax.code("decodeURIComponent({0})", data);
 	}
 }
