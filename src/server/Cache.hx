@@ -107,6 +107,16 @@ class Cache {
 				}
 			});
 		}
+		inline function checkEnoughSpace(contentLength:Int):Bool {
+			final hasSpace = removeOlderCache(contentLength + freeSpaceBlock);
+			if (!hasSpace) {
+				removeInputFiles();
+				cancelProgress();
+				log(client, notEnoughSpaceErrorText);
+			}
+			return hasSpace;
+		}
+
 		if (isFileExists(inVideoName)) {
 			log(client, 'Caching $outName already in progress');
 			return;
@@ -141,10 +151,22 @@ class Cache {
 				trace(info.formats.filter(item -> item.hasAudio));
 				return;
 			}
-			final videoFormat = getBestYoutubeVideoFormat(info.formats) ?? {
+			var videoFormat = getBestYoutubeVideoFormat(info.formats) ?? {
 				log(client, "Error: video format not found");
 				trace(info.formats.filter(item -> item.hasVideo));
 				return;
+			}
+			inline function getTotalFormatsSize():Int {
+				final videoSize = Std.parseInt(videoFormat.contentLength) ?? 0;
+				final audioSize = Std.parseInt(audioFormat.contentLength) ?? 0;
+				return videoSize + audioSize;
+			}
+			// check if we have space for formats and video build
+			final hasSpace = removeOlderCache(getTotalFormatsSize() * 2 + freeSpaceBlock);
+			if (!hasSpace) {
+				// try fallback to worse video quality
+				videoFormat = getBestYoutubeVideoFormat(info.formats, videoFormat.qualityLabel);
+				if (!checkEnoughSpace(getTotalFormatsSize() * 2)) return;
 			}
 
 			final dlVideo:Readable<Dynamic> = ytdl(url, {
@@ -183,13 +205,7 @@ class Cache {
 				var size = FileSystem.stat('$cacheDir/$inVideoName').size;
 				size += FileSystem.stat('$cacheDir/$inAudioName').size;
 				// clean some space for full mp4
-				final hasSpace = removeOlderCache(size + freeSpaceBlock);
-				if (!hasSpace) {
-					removeInputFiles();
-					cancelProgress();
-					log(client, notEnoughSpaceErrorText);
-					return;
-				}
+				if (!checkEnoughSpace(size)) return;
 
 				final args = '-y -i ./$inVideoName -i ./$inAudioName -c copy -map 0:v -map 1:a ./$outName'.split(" ");
 				final process = ChildProcess.spawn("ffmpeg", args, {
@@ -218,29 +234,7 @@ class Cache {
 			}
 			dlVideo.on("finish", () -> onComplete("Video"));
 			dlAudio.on("finish", () -> onComplete("Audio"));
-			inline function checkEnoughSpace(contentLength:Int):Void {
-				final hasSpace = removeOlderCache(contentLength + freeSpaceBlock);
-				if (!hasSpace) {
-					dlVideo.destroy();
-					dlAudio.destroy();
-					removeInputFiles();
-					cancelProgress();
-					main.serverMessage(client, notEnoughSpaceErrorText);
-				}
-			}
-			var isAudioStart = true;
-			dlAudio.on("progress", (chunkLength:Int, downloaded:Int, contentLength:Int) -> {
-				if (isAudioStart) {
-					isAudioStart = false;
-					checkEnoughSpace(contentLength);
-				}
-			});
-			var isVideoStart = true;
 			dlVideo.on("progress", (chunkLength:Int, downloaded:Int, contentLength:Int) -> {
-				if (isVideoStart) {
-					isVideoStart = false;
-					checkEnoughSpace(contentLength);
-				}
 				final ratio = (downloaded / contentLength).clamp(0, 1);
 				main.send(client, {
 					type: Progress,
@@ -358,10 +352,11 @@ class Cache {
 		return total;
 	}
 
-	function getBestYoutubeVideoFormat(formats:Array<YoutubeVideoFormat>):Null<YoutubeVideoFormat> {
+	function getBestYoutubeVideoFormat(formats:Array<YoutubeVideoFormat>, ?ignoreQuality:String):Null<YoutubeVideoFormat> {
 		final qPriority = [1080, 720, 480, 360, 240, 144];
 		for (q in qPriority) {
 			final quality = '${q}p';
+			if (quality == ignoreQuality) continue;
 			for (format in formats) {
 				if (format.videoCodec == null) continue;
 				if (format.qualityLabel == quality) return format;

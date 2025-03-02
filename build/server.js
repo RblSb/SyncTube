@@ -3773,7 +3773,7 @@ server_Cache.prototype = {
 			return;
 		}
 		var ytdl = require("@distube/ytdl-core");
-		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/Cache.hx", lineNumber : 115, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/Cache.hx", lineNumber : 125, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 		this.main.send(client,{ type : "Progress", progress : { type : "Caching", ratio : 0, data : outName}});
 		var agent = null;
 		var cookiesPath = "" + this.main.userDir + "/cookies.json";
@@ -3782,7 +3782,7 @@ server_Cache.prototype = {
 		}
 		var promise = ytdl.getInfo(url,{ agent : agent});
 		promise.then(function(info) {
-			haxe_Log.trace("Get info with " + info.formats.length + " formats",{ fileName : "src/server/Cache.hx", lineNumber : 133, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+			haxe_Log.trace("Get info with " + info.formats.length + " formats",{ fileName : "src/server/Cache.hx", lineNumber : 143, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 			var audioFormat;
 			try {
 				var ytdl1 = ytdl.chooseFormat;
@@ -3801,7 +3801,7 @@ server_Cache.prototype = {
 			} catch( _g ) {
 				var e = haxe_Exception.caught(_g);
 				_gthis.log(client,"Error: audio format not found");
-				haxe_Log.trace(e,{ fileName : "src/server/Cache.hx", lineNumber : 140, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+				haxe_Log.trace(e,{ fileName : "src/server/Cache.hx", lineNumber : 150, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 				var _g1 = [];
 				var _g2 = 0;
 				var _g3 = info.formats;
@@ -3812,7 +3812,7 @@ server_Cache.prototype = {
 						_g1.push(v);
 					}
 				}
-				haxe_Log.trace(_g1,{ fileName : "src/server/Cache.hx", lineNumber : 141, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+				haxe_Log.trace(_g1,{ fileName : "src/server/Cache.hx", lineNumber : 151, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 				return;
 			}
 			var videoFormat;
@@ -3831,8 +3831,30 @@ server_Cache.prototype = {
 						_g.push(v);
 					}
 				}
-				haxe_Log.trace(_g,{ fileName : "src/server/Cache.hx", lineNumber : 146, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+				haxe_Log.trace(_g,{ fileName : "src/server/Cache.hx", lineNumber : 156, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 				return;
+			}
+			var tmp = Std.parseInt(videoFormat.contentLength);
+			var videoSize = tmp != null ? tmp : 0;
+			var tmp = Std.parseInt(audioFormat.contentLength);
+			var audioSize = tmp != null ? tmp : 0;
+			var hasSpace = _gthis.removeOlderCache((videoSize + audioSize) * 2 + _gthis.freeSpaceBlock);
+			if(!hasSpace) {
+				videoFormat = _gthis.getBestYoutubeVideoFormat(info.formats,videoFormat.qualityLabel);
+				var tmp = Std.parseInt(videoFormat.contentLength);
+				var videoSize = tmp != null ? tmp : 0;
+				var tmp = Std.parseInt(audioFormat.contentLength);
+				var audioSize = tmp != null ? tmp : 0;
+				var hasSpace = _gthis.removeOlderCache((videoSize + audioSize) * 2 + _gthis.freeSpaceBlock);
+				if(!hasSpace) {
+					_gthis.remove(inVideoName);
+					_gthis.remove(inAudioName);
+					_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
+					_gthis.log(client,_gthis.notEnoughSpaceErrorText);
+				}
+				if(!hasSpace) {
+					return;
+				}
 			}
 			var dlVideo = ytdl(url,{ format : videoFormat, agent : agent});
 			dlVideo.pipe(js_node_Fs.createWriteStream("" + _gthis.cacheDir + "/" + inVideoName));
@@ -3853,7 +3875,7 @@ server_Cache.prototype = {
 			var count = 0;
 			var onComplete = function(type) {
 				count += 1;
-				haxe_Log.trace("" + type + " track downloaded (" + count + "/2)",{ fileName : "src/server/Cache.hx", lineNumber : 175, className : "server.Cache", methodName : "cacheYoutubeVideo"});
+				haxe_Log.trace("" + type + " track downloaded (" + count + "/2)",{ fileName : "src/server/Cache.hx", lineNumber : 197, className : "server.Cache", methodName : "cacheYoutubeVideo"});
 				if(count < 2) {
 					return;
 				}
@@ -3872,6 +3894,8 @@ server_Cache.prototype = {
 					_gthis.remove(inAudioName);
 					_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
 					_gthis.log(client,_gthis.notEnoughSpaceErrorText);
+				}
+				if(!hasSpace) {
 					return;
 				}
 				var args = ("-y -i ./" + inVideoName + " -i ./" + inAudioName + " -c copy -map 0:v -map 1:a ./" + outName).split(" ");
@@ -3919,35 +3943,7 @@ server_Cache.prototype = {
 			dlAudio.on("finish",function() {
 				onComplete("Audio");
 			});
-			var isAudioStart = true;
-			dlAudio.on("progress",function(chunkLength,downloaded,contentLength) {
-				if(isAudioStart) {
-					isAudioStart = false;
-					var hasSpace = _gthis.removeOlderCache(contentLength + _gthis.freeSpaceBlock);
-					if(!hasSpace) {
-						dlVideo.destroy();
-						dlAudio.destroy();
-						_gthis.remove(inVideoName);
-						_gthis.remove(inAudioName);
-						_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-						_gthis.main.serverMessage(client,_gthis.notEnoughSpaceErrorText);
-					}
-				}
-			});
-			var isVideoStart = true;
 			dlVideo.on("progress",function(chunkLength,downloaded,contentLength) {
-				if(isVideoStart) {
-					isVideoStart = false;
-					var hasSpace = _gthis.removeOlderCache(contentLength + _gthis.freeSpaceBlock);
-					if(!hasSpace) {
-						dlVideo.destroy();
-						dlAudio.destroy();
-						_gthis.remove(inVideoName);
-						_gthis.remove(inAudioName);
-						_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-						_gthis.main.serverMessage(client,_gthis.notEnoughSpaceErrorText);
-					}
-				}
 				var v = downloaded / contentLength;
 				var ratio = v < 0 ? 0 : v > 1 ? 1 : v;
 				_gthis.main.send(client,{ type : "Progress", progress : { type : "Downloading", ratio : ratio}});
@@ -3980,13 +3976,13 @@ server_Cache.prototype = {
 		var _gthis = this;
 		var tmp = js_node_Fs.statfs;
 		if(tmp == null) {
-			haxe_Log.trace("Warning: no fs.statfs support in current nodejs version (needs v18+)",{ fileName : "src/server/Cache.hx", lineNumber : 278, className : "server.Cache", methodName : "getFreeDiskSpace"});
+			haxe_Log.trace("Warning: no fs.statfs support in current nodejs version (needs v18+)",{ fileName : "src/server/Cache.hx", lineNumber : 272, className : "server.Cache", methodName : "getFreeDiskSpace"});
 			callback(this.storageLimit);
 			return;
 		}
 		tmp("/",function(err,stats) {
 			if(err != null) {
-				haxe_Log.trace(err,{ fileName : "src/server/Cache.hx", lineNumber : 284, className : "server.Cache", methodName : "getFreeDiskSpace"});
+				haxe_Log.trace(err,{ fileName : "src/server/Cache.hx", lineNumber : 278, className : "server.Cache", methodName : "getFreeDiskSpace"});
 				callback(_gthis.storageLimit);
 				return;
 			}
@@ -4068,11 +4064,14 @@ server_Cache.prototype = {
 		}
 		return total;
 	}
-	,getBestYoutubeVideoFormat: function(formats) {
+	,getBestYoutubeVideoFormat: function(formats,ignoreQuality) {
 		var qPriority = [1080,720,480,360,240,144];
 		var _g = 0;
 		while(_g < qPriority.length) {
 			var quality = "" + qPriority[_g++] + "p";
+			if(quality == ignoreQuality) {
+				continue;
+			}
 			var _g1 = 0;
 			while(_g1 < formats.length) {
 				var format = formats[_g1];
