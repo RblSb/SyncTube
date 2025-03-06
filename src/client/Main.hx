@@ -506,6 +506,15 @@ class Main {
 				final text = switch (id) {
 					case "usernameError":
 						Lang.get(id).replace("$MAX", '${config.maxLoginLength}');
+					case id if (id.startsWith("accessError")):
+						final args = id.split("|");
+						final err = Lang.get(args[0]);
+						if (args[1] == null) {
+							'$err.';
+						} else {
+							final permErr = Lang.get("noPermission").replace("$PERMISSION", args[1]);
+							'$err: $permErr';
+						}
 					default:
 						Lang.get(id);
 				}

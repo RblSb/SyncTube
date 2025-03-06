@@ -691,11 +691,18 @@ class Main {
 				if (!item.doCache) {
 					addVideo();
 				} else {
-					cache.cacheYoutubeVideo(client, item.url, (name) -> {
-						item = item.withUrl(cache.getFileUrl(name));
-						if (item.duration > 1) item.duration -= 1;
-						addVideo();
-					});
+					switch item.playerType {
+						case YoutubeType:
+							cache.cacheYoutubeVideo(client, item.url, (name) -> {
+								item = item.withUrl(cache.getFileUrl(name));
+								if (item.duration > 1) item.duration -= 1;
+								addVideo();
+							});
+						case type:
+							final name = '$type'.replace("Type", "");
+							serverMessage(client, 'No cache support for $name player.');
+							addVideo();
+					}
 				}
 
 			case VideoLoaded:
@@ -942,12 +949,9 @@ class Main {
 					logs: logger.getLogs()
 				}
 				final json = jsonStringify(data, "\t");
-				send(client, {
-					type: ServerMessage,
-					serverMessage: {
-						textId: "Free space: " + (cache.getFreeSpace() / 1024).toFixed() + "KiB"
-					}
-				});
+				serverMessage(client, "Free space: "
+					+ (cache.getFreeSpace() / 1024).toFixed()
+					+ "KiB");
 				send(client, {
 					type: Dump,
 					dump: {
@@ -1037,12 +1041,7 @@ class Main {
 		if (client.isBanned) checkBan(client);
 		final state = client.hasPermission(perm, config.permissions);
 		if (!state) {
-			send(client, {
-				type: ServerMessage,
-				serverMessage: {
-					textId: "accessError"
-				}
-			});
+			serverMessage(client, 'accessError|$perm');
 		}
 		return state;
 	}

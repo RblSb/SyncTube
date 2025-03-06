@@ -1847,7 +1847,17 @@ client_Main.prototype = {
 			break;
 		case "ServerMessage":
 			var id = data.serverMessage.textId;
-			this.serverMessage(id == "usernameError" ? StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength) : Lang.get(id));
+			var text;
+			if(id == "usernameError") {
+				text = StringTools.replace(Lang.get(id),"$MAX","" + this.config.maxLoginLength);
+			} else if(StringTools.startsWith(id,"accessError")) {
+				var args = id.split("|");
+				var err = Lang.get(args[0]);
+				text = args[1] == null ? "" + err + "." : "" + err + ": " + StringTools.replace(Lang.get("noPermission"),"$PERMISSION",args[1]);
+			} else {
+				text = Lang.get(id);
+			}
+			this.serverMessage(text);
 			break;
 		case "SetLeader":
 			ClientTools.setLeader(this.clients,data.setLeader.clientName);
