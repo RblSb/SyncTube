@@ -4728,7 +4728,6 @@ var server_Main = function(opts) {
 	this.loadedClientsCount = 0;
 	this.matchGuestName = new EReg("guest [0-9]+","");
 	this.matchHtmlChars = new EReg("[&^<>'\"]","");
-	this.isHeroku = false;
 	this.isServerPause = false;
 	this.flashbacks = [];
 	this.messages = [];
@@ -5017,24 +5016,27 @@ server_Main.prototype = {
 	}
 	,initIntergationHandlers: function() {
 		var _gthis = this;
-		this.isHeroku = process.env["_"] != null && process.env["_"].indexOf("heroku") != -1;
-		if(this.isHeroku && process.env["APP_URL"] != null) {
-			var url = process.env["APP_URL"];
-			if(!StringTools.startsWith(url,"http")) {
-				url = "http://" + url;
-			}
-			new haxe_Timer(600000).run = function() {
-				if(_gthis.clients.length == 0) {
-					return;
-				}
-				haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 345, className : "server.Main", methodName : "initIntergationHandlers"});
-				js_node_Http.get(url,null,function(r) {
-				});
-			};
+		var url;
+		var tmp = process.env["APP_URL"];
+		if(tmp != null) {
+			url = tmp;
+		} else {
+			return;
 		}
+		if(!StringTools.startsWith(url,"http")) {
+			url = "http://" + url;
+		}
+		new haxe_Timer(600000).run = function() {
+			if(_gthis.clients.length == 0) {
+				return;
+			}
+			haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 341, className : "server.Main", methodName : "initIntergationHandlers"});
+			js_node_Http.get(url,null,function(r) {
+			});
+		};
 	}
 	,clientIp: function(req) {
-		if(this.config.allowProxyIps || this.isHeroku) {
+		if(this.config.allowProxyIps) {
 			var forwarded = req.headers["x-forwarded-for"];
 			if(forwarded == null || forwarded.length == 0) {
 				return req.socket.remoteAddress;
@@ -5047,13 +5049,13 @@ server_Main.prototype = {
 		password += this.config.salt;
 		var hash = haxe_crypto_Sha256.encode(password);
 		this.userList.admins.push({ name : name, hash : hash});
-		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 368, className : "server.Main", methodName : "addAdmin"});
+		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 362, className : "server.Main", methodName : "addAdmin"});
 	}
 	,removeAdmin: function(name) {
 		HxOverrides.remove(this.userList.admins,Lambda.find(this.userList.admins,function(item) {
 			return item.name == name;
 		}));
-		haxe_Log.trace("Admin " + name + " removed.",{ fileName : "src/server/Main.hx", lineNumber : 375, className : "server.Main", methodName : "removeAdmin"});
+		haxe_Log.trace("Admin " + name + " removed.",{ fileName : "src/server/Main.hx", lineNumber : 369, className : "server.Main", methodName : "removeAdmin"});
 	}
 	,replayLog: function(events) {
 		var _gthis = this;
@@ -5120,7 +5122,7 @@ server_Main.prototype = {
 		var ip = this.clientIp(req);
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 434, className : "server.Main", methodName : "onConnect", customParams : ["" + name + " connected (" + ip + ")"]});
+		haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 428, className : "server.Main", methodName : "onConnect", customParams : ["" + name + " connected (" + ip + ")"]});
 		var isAdmin = this.config.localAdmins && req.socket.localAddress == ip;
 		var client = new Client(ws,req,id,name,0);
 		client.uuid = uuid;
@@ -5134,7 +5136,7 @@ server_Main.prototype = {
 			var obj = _gthis.wsEventParser.fromJson(data.toString());
 			if(_gthis.wsEventParser.errors.length > 0 || _gthis.noTypeObj(obj)) {
 				var errors = "" + ("Wrong request for type \"" + obj.type + "\":") + "\n" + json2object_ErrorUtils.convertErrorArray(_gthis.wsEventParser.errors);
-				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 451, className : "server.Main", methodName : "onConnect"});
+				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 445, className : "server.Main", methodName : "onConnect"});
 				_gthis.serverMessage(client,errors);
 				return;
 			}
@@ -5314,7 +5316,7 @@ server_Main.prototype = {
 			if(!internal) {
 				return;
 			}
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 516, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " disconnected"]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 510, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " disconnected"]});
 			server_Utils.sortedPush(this.freeIds,client.id);
 			HxOverrides.remove(this.clients,client);
 			this.sendClientList();
@@ -5454,7 +5456,7 @@ server_Main.prototype = {
 				this.send(client,{ type : "LoginError"});
 				return;
 			}
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 607, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " logged as " + name]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 601, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " logged as " + name]});
 			client.name = name;
 			client.setGroupFlag(ClientGroup.User,true);
 			this.checkBan(client);
@@ -5467,7 +5469,7 @@ server_Main.prototype = {
 			var oldName = client.name;
 			client.name = "Guest " + (this.clients.indexOf(client) + 1);
 			client.setGroupFlag(ClientGroup.User,false);
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 628, className : "server.Main", methodName : "onMessage", customParams : ["Client " + oldName + " logout to " + client.name]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 622, className : "server.Main", methodName : "onMessage", customParams : ["Client " + oldName + " logout to " + client.name]});
 			this.send(client,{ type : data.type, logout : { oldClientName : oldName, clientName : client.name, clients : this.clientList()}});
 			this.sendClientListExcept(client);
 			break;
@@ -5797,7 +5799,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1062, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1056, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;

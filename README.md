@@ -59,7 +59,7 @@ npm i @distube/ytdl-core@latest
 And install `ffmpeg` on your server system, it's only used to build single mp4 from downloaded audio/video tracks. Default cache size is 3.0 GiB.
 
 ## Configuration
-It's just works, but you can also check [user/ folder](/user/README.md) for server settings and additional customization.
+It just works, but you can also check [user/ folder](/user/README.md) for server settings and additional customization.
 
 ## How to use
 - Login with any nickname
@@ -89,10 +89,10 @@ It's just works, but you can also check [user/ folder](/user/README.md) for serv
 - [qswitcher](https://github.com/aNNiMON/SyncTube-QSwitcher) - Raw video quality switcher
 
 ## Integrations
-### Heroku:
+### Platform services without permanent storage:
 - Create app and commit repo to get build
 - Remove `user/` folder from `.gitignore` and commit it to change default configuration
-- Add `APP_URL` config var with `your-app-link.herokuapp.com` value to prevent sleeping when clients online
+- Add `APP_URL` config var with `your-app-link.herokuapp.com` value if you need to prevent sleeping when clients online
 
 ## Development
 - Install [Haxe 4.3](https://haxe.org/download/), [VSCode](https://code.visualstudio.com) and [Haxe extension](https://marketplace.visualstudio.com/items?itemName=nadako.vshaxe)

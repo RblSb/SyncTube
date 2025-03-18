@@ -332,25 +332,19 @@ class Main {
 		File.saveContent('$crashesFolder/$name.json', Json.stringify(data, "\t"));
 	}
 
-	var isHeroku = false;
-
 	function initIntergationHandlers():Void {
-		isHeroku = process.env["_"] != null && process.env["_"].contains("heroku");
-		// Prevent heroku idle when clients online (needs APP_URL env var)
-		if (isHeroku && process.env["APP_URL"] != null) {
-			var url = process.env["APP_URL"];
-			if (!url.startsWith("http")) url = 'http://$url';
-			new Timer(10 * 60 * 1000).run = () -> {
-				if (clients.length == 0) return;
-				trace('Ping $url');
-				Http.get(url, r -> {});
-			}
+		// Prevent heroku-like services to sleep when clients online
+		var url = process.env["APP_URL"] ?? return;
+		if (!url.startsWith("http")) url = 'http://$url';
+		new Timer(10 * 60 * 1000).run = () -> {
+			if (clients.length == 0) return;
+			trace('Ping $url');
+			Http.get(url, r -> {});
 		}
 	}
 
 	function clientIp(req:IncomingMessage):String {
-		// Heroku uses internal proxy, so header cannot be spoofed
-		if (config.allowProxyIps || isHeroku) {
+		if (config.allowProxyIps) {
 			final forwarded:String = req.headers["x-forwarded-for"];
 			if (forwarded == null || forwarded.length == 0) return req.socket.remoteAddress;
 			return forwarded.split(",")[0].trim();
