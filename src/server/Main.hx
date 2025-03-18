@@ -705,9 +705,9 @@ class Main {
 				prepareVideoPlayback();
 
 			case RemoveVideo:
+				if (videoList.length == 0) return;
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, RemoveVideoPerm)) return;
-				if (videoList.length == 0) return;
 				final url = data.removeVideo.url;
 				final index = videoList.findIndex(item -> item.url == url);
 				if (index == -1) return;
@@ -804,8 +804,8 @@ class Main {
 				});
 
 			case Rewind:
-				if (!checkPermission(client, RewindPerm)) return;
 				if (videoList.length == 0) return;
+				if (!checkPermission(client, RewindPerm)) return;
 				data.rewind.time += videoTimer.getTime();
 				if (data.rewind.time < 0) data.rewind.time = 0;
 				saveFlashbackTime(videoList.currentItem);
@@ -816,8 +816,8 @@ class Main {
 				});
 
 			case Flashback:
-				if (!checkPermission(client, RewindPerm)) return;
 				if (videoList.length == 0) return;
+				if (!checkPermission(client, RewindPerm)) return;
 				loadFlashbackTime(videoList.currentItem);
 				broadcast({
 					type: Rewind,
@@ -890,17 +890,19 @@ class Main {
 			case ClearPlaylist:
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, RemoveVideoPerm)) return;
-				if (videoTimer.getTime() > FLASHBACK_DIST) {
-					saveFlashbackTime(videoList.currentItem);
+				if (videoList.length != 0) {
+					if (videoTimer.getTime() > FLASHBACK_DIST) {
+						saveFlashbackTime(videoList.currentItem);
+					}
 				}
 				videoTimer.stop();
 				videoList.clear();
 				broadcast(data);
 
 			case ShufflePlaylist:
+				if (videoList.length == 0) return;
 				if (isPlaylistLockedFor(client)) return;
 				if (!checkPermission(client, ChangeOrderPerm)) return;
-				if (videoList.length == 0) return;
 				videoList.shuffle();
 				broadcast({
 					type: UpdatePlaylist,

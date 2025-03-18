@@ -5283,9 +5283,11 @@ server_Main.prototype = {
 			if(!this.checkPermission(client,"removeVideo")) {
 				return;
 			}
-			if(this.videoTimer.getTime() > 30) {
-				var _this = this.videoList;
-				this.saveFlashbackTime(_this.items[_this.pos]);
+			if(this.videoList.items.length != 0) {
+				if(this.videoTimer.getTime() > 30) {
+					var _this = this.videoList;
+					this.saveFlashbackTime(_this.items[_this.pos]);
+				}
 			}
 			this.videoTimer.stop();
 			var _this = this.videoList;
@@ -5370,10 +5372,10 @@ server_Main.prototype = {
 			this.send(client,{ type : "Dump", dump : { data : json}});
 			break;
 		case "Flashback":
-			if(!this.checkPermission(client,"rewind")) {
+			if(this.videoList.items.length == 0) {
 				return;
 			}
-			if(this.videoList.items.length == 0) {
+			if(!this.checkPermission(client,"rewind")) {
 				return;
 			}
 			var _this = this.videoList;
@@ -5547,13 +5549,13 @@ server_Main.prototype = {
 		case "Progress":
 			break;
 		case "RemoveVideo":
+			if(this.videoList.items.length == 0) {
+				return;
+			}
 			if(this.isPlaylistLockedFor(client)) {
 				return;
 			}
 			if(!this.checkPermission(client,"removeVideo")) {
-				return;
-			}
-			if(this.videoList.items.length == 0) {
 				return;
 			}
 			var url = data.removeVideo.url;
@@ -5576,10 +5578,10 @@ server_Main.prototype = {
 			}
 			break;
 		case "Rewind":
-			if(!this.checkPermission(client,"rewind")) {
+			if(this.videoList.items.length == 0) {
 				return;
 			}
-			if(this.videoList.items.length == 0) {
+			if(!this.checkPermission(client,"rewind")) {
 				return;
 			}
 			data.rewind.time += this.videoTimer.getTime();
@@ -5660,13 +5662,13 @@ server_Main.prototype = {
 			this.broadcastExcept(client,{ type : data.type, setTime : data.setTime});
 			break;
 		case "ShufflePlaylist":
+			if(this.videoList.items.length == 0) {
+				return;
+			}
 			if(this.isPlaylistLockedFor(client)) {
 				return;
 			}
 			if(!this.checkPermission(client,"changeOrder")) {
-				return;
-			}
-			if(this.videoList.items.length == 0) {
 				return;
 			}
 			this.videoList.shuffle();
@@ -5799,7 +5801,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1056, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1058, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;
