@@ -4875,6 +4875,7 @@ client_players_Youtube.prototype = {
 			return;
 		}
 		var video = window.document.createElement("div");
+		video.id = "temp-videoplayer" + window.document.getElementsByClassName("temp-videoplayer").length;
 		video.className = "temp-videoplayer";
 		this.playerEl.prepend(video);
 		var tempYoutube = null;
@@ -4882,10 +4883,10 @@ client_players_Youtube.prototype = {
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
-			callback({ duration : tempYoutube.getDuration()});
+			callback({ title : "YouTube video", duration : tempYoutube.getDuration()});
 			tempYoutube.destroy();
 		}, onError : function(e) {
-			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 197, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 200, className : "client.players.Youtube", methodName : "getRemoteDataFallback"});
 			if(_gthis.playerEl.contains(video)) {
 				_gthis.playerEl.removeChild(video);
 			}
@@ -4939,7 +4940,7 @@ client_players_Youtube.prototype = {
 		}, onPlaybackRateChange : function(e) {
 			_gthis.player.onRateChange();
 		}, onError : function(e) {
-			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 256, className : "client.players.Youtube", methodName : "loadVideo"});
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 259, className : "client.players.Youtube", methodName : "loadVideo"});
 		}}});
 	}
 	,removeVideo: function() {

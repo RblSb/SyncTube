@@ -174,7 +174,9 @@ class Youtube implements IPlayer {
 			return;
 		}
 		final video = document.createDivElement();
-		video.className = "temp-videoplayer";
+		final className = "temp-videoplayer";
+		video.id = className + document.getElementsByClassName(className).length;
+		video.className = className;
 		playerEl.prepend(video);
 		var tempYoutube:YoutubePlayer = null;
 		tempYoutube = new YoutubePlayer(video.id, {
@@ -188,6 +190,7 @@ class Youtube implements IPlayer {
 				onReady: e -> {
 					if (playerEl.contains(video)) playerEl.removeChild(video);
 					callback({
+						title: "YouTube video",
 						duration: tempYoutube.getDuration()
 					});
 					tempYoutube.destroy();
