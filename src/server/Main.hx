@@ -22,6 +22,7 @@ import js.npm.ws.Server as WSServer;
 import js.npm.ws.WebSocket;
 import json2object.ErrorUtils;
 import json2object.JsonParser;
+import server.cache.Cache;
 import sys.FileSystem;
 import sys.io.File;
 
@@ -48,7 +49,7 @@ class Main {
 	var wss:WSServer;
 	final localIp:String;
 	var globalIp:String;
-	final playersCacheSupport:Array<PlayerType> = [];
+	final playersCacheSupport:Array<PlayerType> = [RawType];
 	var port:Int;
 	final userList:UserList;
 
@@ -577,7 +578,7 @@ class Main {
 			case Login:
 				final name = data.login.clientName.trim();
 				final lcName = name.toLowerCase();
-				if (badNickName(lcName)) {
+				if (isBadClientName(lcName)) {
 					serverMessage(client, "usernameError");
 					send(client, {type: LoginError});
 					return;
@@ -686,6 +687,11 @@ class Main {
 					addVideo();
 				} else {
 					switch item.playerType {
+						case RawType:
+							cache.cacheRawVideo(client, item.url, (name) -> {
+								item = item.withUrl(cache.getFileUrl(name));
+								addVideo();
+							});
 						case YoutubeType:
 							cache.cacheYoutubeVideo(client, item.url, (name) -> {
 								item = item.withUrl(cache.getFileUrl(name));
@@ -1065,7 +1071,7 @@ class Main {
 	final matchHtmlChars = ~/[&^<>'"]/;
 	final matchGuestName = ~/guest [0-9]+/;
 
-	public function badNickName(name:String):Bool {
+	public function isBadClientName(name:String):Bool {
 		if (name.length > config.maxLoginLength) return true;
 		if (name.length == 0) return true;
 		if (matchHtmlChars.match(name)) return true;
@@ -1146,5 +1152,9 @@ class Main {
 			if (!checkPermission(client, LockPlaylistPerm)) return true;
 		}
 		return false;
+	}
+
+	public function hasPlaylistUrl(url:String):Bool {
+		return videoList.exists(item -> item.url == url);
 	}
 }

@@ -12,6 +12,7 @@ import js.node.http.ClientRequest;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import js.node.url.URL;
+import server.cache.Cache;
 import sys.FileSystem;
 
 @:structInit

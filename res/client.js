@@ -242,6 +242,17 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+Lambda.findIndex = function(it,f) {
+	var i = 0;
+	var v = $getIterator(it);
+	while(v.hasNext()) {
+		if(f(v.next())) {
+			return i;
+		}
+		++i;
+	}
+	return -1;
+};
 var Lang = function() { };
 Lang.__name__ = true;
 Lang.request = function(path,callback) {
@@ -326,6 +337,13 @@ Reflect.fields = function(o) {
 		}
 	}
 	return a;
+};
+Reflect.deleteField = function(o,field) {
+	if(!Object.prototype.hasOwnProperty.call(o,field)) {
+		return false;
+	}
+	delete(o[field]);
+	return true;
 };
 Reflect.copy = function(o) {
 	if(o == null) {
@@ -499,16 +517,7 @@ VideoList.prototype = {
 		this.pos = i;
 	}
 	,findIndex: function(f) {
-		var i = 0;
-		var _g = 0;
-		var _g1 = this.items;
-		while(_g < _g1.length) {
-			if(f(_g1[_g++])) {
-				return i;
-			}
-			++i;
-		}
-		return -1;
+		return Lambda.findIndex(this.items,f);
 	}
 	,addItem: function(item,atEnd) {
 		if(atEnd) {
@@ -768,6 +777,7 @@ client_Buttons.init = function(main) {
 		}
 	};
 	var mediaUrl = window.document.querySelector("#mediaurl");
+	var checkboxCache = window.document.querySelector("#cache-on-server");
 	mediaUrl.oninput = function() {
 		var url = mediaUrl.value;
 		var playerType = main.getLinkPlayerType(url);
@@ -777,8 +787,9 @@ client_Buttons.init = function(main) {
 		window.document.querySelector("#subsurlblock").style.display = isSingleRawVideo ? "" : "none";
 		var tmp = url.length > 0 && isSingle;
 		window.document.querySelector("#voiceoverblock").style.display = tmp ? "" : "none";
-		var tmp = isSingle && main.playersCacheSupport.indexOf(playerType) != -1 ? "" : "none";
-		window.document.querySelector("#cache-on-server").parentElement.style.display = tmp;
+		var isExternal = main.isExternalVideoUrl(url);
+		checkboxCache.parentElement.style.display = isSingle && isExternal && main.playersCacheSupport.indexOf(playerType) != -1 ? "" : "none";
+		checkboxCache.checked = client_Buttons.settings.checkedCache.indexOf(playerType) != -1;
 		var panel = window.document.querySelector("#addfromurl");
 		var oldH = panel.style.height;
 		panel.style.height = "";
@@ -789,6 +800,16 @@ client_Buttons.init = function(main) {
 		},0);
 	};
 	mediaUrl.onfocus = mediaUrl.oninput;
+	checkboxCache.addEventListener("change",function() {
+		var url = mediaUrl.value;
+		var playerType = main.getLinkPlayerType(url);
+		var checked = checkboxCache.checked;
+		HxOverrides.remove(client_Buttons.settings.checkedCache,playerType);
+		if(checked) {
+			client_Buttons.settings.checkedCache.push(playerType);
+		}
+		client_Settings.write(client_Buttons.settings);
+	});
 	window.document.querySelector("#insert_template").onclick = function(e) {
 		mediaUrl.value = main.getTemplateUrl();
 		mediaUrl.focus();
@@ -832,7 +853,7 @@ client_Buttons.init = function(main) {
 				try {
 					data = JSON.parse(request.responseText);
 				} catch( _g ) {
-					haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/Buttons.hx", lineNumber : 300, className : "client.Buttons", methodName : "init"});
+					haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/Buttons.hx", lineNumber : 316, className : "client.Buttons", methodName : "init"});
 					return;
 				}
 				if(data.errorId == null) {
@@ -1070,7 +1091,7 @@ client_Buttons.initChatInputs = function(main) {
 		}
 		return true;
 	});
-	var checkboxes = [window.document.querySelector("#add-temp"),window.document.querySelector("#cache-on-server")];
+	var checkboxes = [window.document.querySelector("#add-temp")];
 	var _g = 0;
 	while(_g < checkboxes.length) {
 		var checkbox = [checkboxes[_g]];
@@ -1352,7 +1373,7 @@ var client_Main = function() {
 	if(this.host == "") {
 		this.host = "localhost";
 	}
-	client_Settings.init({ version : 5, uuid : null, name : "", hash : "", isExtendedPlayer : false, playerSize : 1, chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], latestSubs : [], hotkeysEnabled : true, showHintList : true, checkboxes : []},$bind(this,this.settingsPatcher));
+	client_Settings.init({ version : 6, uuid : null, name : "", hash : "", chatSize : 300, synchThreshold : 2, isSwapped : false, isUserListHidden : true, latestLinks : [], latestSubs : [], hotkeysEnabled : true, showHintList : true, checkboxes : [], checkedCache : []},$bind(this,this.settingsPatcher));
 	this.settings = client_Settings.read();
 	this.initListeners();
 	this.onTimeGet = new haxe_Timer(this.settings.synchThreshold * 1000);
@@ -1406,6 +1427,19 @@ client_Main.prototype = {
 			data.checkboxes = [];
 			break;
 		case 5:
+			var data1 = data;
+			data1.checkedCache = [];
+			Reflect.deleteField(data1,"playerSize");
+			Reflect.deleteField(data1,"isExtendedPlayer");
+			var oldCheck = Lambda.find(data1.checkboxes,function(item) {
+				return item.id == "cache-on-server";
+			});
+			if(oldCheck != null) {
+				HxOverrides.remove(data1.checkboxes,oldCheck);
+				data1.checkedCache.push("YoutubeType");
+			}
+			break;
+		case 6:
 			throw haxe_Exception.thrown("skipped version " + version);
 		default:
 			throw haxe_Exception.thrown("skipped version " + version);
@@ -1573,6 +1607,17 @@ client_Main.prototype = {
 	,isSingleVideoUrl: function(url) {
 		return this.player.isSingleVideoUrl(url);
 	}
+	,isExternalVideoUrl: function(url) {
+		url = StringTools.ltrim(url);
+		if(StringTools.startsWith(url,"/")) {
+			return false;
+		}
+		var host = $global.location.hostname;
+		if(url.indexOf(host) != -1) {
+			return false;
+		}
+		return true;
+	}
 	,sortItemsForQueueNext: function(items) {
 		if(items.length == 0) {
 			return;
@@ -1684,7 +1729,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 460, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 477, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireEvents(data);
 		switch(data.type) {

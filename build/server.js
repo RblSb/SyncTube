@@ -2237,6 +2237,17 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+Lambda.findIndex = function(it,f) {
+	var i = 0;
+	var v = $getIterator(it);
+	while(v.hasNext()) {
+		if(f(v.next())) {
+			return i;
+		}
+		++i;
+	}
+	return -1;
+};
 var haxe_IMap = function() { };
 haxe_IMap.__name__ = true;
 haxe_IMap.__isInterface__ = true;
@@ -2454,16 +2465,7 @@ VideoList.prototype = {
 		return Lambda.exists(this.items,f);
 	}
 	,findIndex: function(f) {
-		var i = 0;
-		var _g = 0;
-		var _g1 = this.items;
-		while(_g < _g1.length) {
-			if(f(_g1[_g++])) {
-				return i;
-			}
-			++i;
-		}
-		return -1;
+		return Lambda.findIndex(this.items,f);
 	}
 	,addItem: function(item,atEnd) {
 		if(atEnd) {
@@ -3679,415 +3681,6 @@ json2object_PositionUtils.prototype = {
 	}
 	,__class__: json2object_PositionUtils
 };
-var server_Cache = function(main,cacheDir) {
-	this.freeSpaceBlock = 10485760;
-	this.cachedFiles = [];
-	this.storageLimit = 3145728 * 1024;
-	this.isYtReady = false;
-	this.notEnoughSpaceErrorText = "Error: Not enough free space on server or file size is out of cache storage limit.";
-	this.main = main;
-	this.cacheDir = cacheDir;
-	server_Utils.ensureDir(cacheDir);
-	this.isYtReady = this.checkYtDeps();
-	if(this.isYtReady) {
-		this.cleanYtInputFiles();
-	}
-};
-server_Cache.__name__ = true;
-server_Cache.prototype = {
-	checkYtDeps: function() {
-		var ytdl;
-		try {
-			ytdl = require("@distube/ytdl-core");
-		} catch( _g ) {
-			return false;
-		}
-		try {
-			js_node_ChildProcess.execSync("ffmpeg -version",{ stdio : "ignore", timeout : 3000});
-			return true;
-		} catch( _g ) {
-			return false;
-		}
-	}
-	,cleanYtInputFiles: function() {
-		var names = js_node_Fs.readdirSync(this.cacheDir);
-		var _g = 0;
-		while(_g < names.length) {
-			var name = names[_g];
-			++_g;
-			if(!StringTools.startsWith(name,"__tmp")) {
-				continue;
-			}
-			this.remove(name);
-		}
-	}
-	,getCachedFiles: function() {
-		return this.cachedFiles;
-	}
-	,setCachedFiles: function(names) {
-		this.cachedFiles.length = 0;
-		var _g = 0;
-		while(_g < names.length) this.cachedFiles.push(names[_g++]);
-		var names = js_node_Fs.readdirSync(this.cacheDir);
-		var _g = 0;
-		while(_g < names.length) {
-			var name = names[_g];
-			++_g;
-			if(StringTools.startsWith(name,".")) {
-				continue;
-			}
-			if(sys_FileSystem.isDirectory("" + this.cacheDir + "/" + name)) {
-				continue;
-			}
-			if(this.cachedFiles.indexOf(name) != -1) {
-				continue;
-			}
-			haxe_Log.trace("Remove non-tracked cache " + name,{ fileName : "src/server/Cache.hx", lineNumber : 70, className : "server.Cache", methodName : "setCachedFiles"});
-			this.remove(name);
-		}
-	}
-	,log: function(client,msg) {
-		this.main.serverMessage(client,msg);
-		haxe_Log.trace(msg,{ fileName : "src/server/Cache.hx", lineNumber : 77, className : "server.Cache", methodName : "log"});
-	}
-	,cacheYoutubeVideo: function(client,url,callback) {
-		var _gthis = this;
-		if(!this.isYtReady) {
-			haxe_Log.trace("Do `npm i @distube/ytdl-core@latest` to use cache feature (you also need to install `ffmpeg` to build mp4 from downloaded audio/video tracks).",{ fileName : "src/server/Cache.hx", lineNumber : 82, className : "server.Cache", methodName : "cacheYoutubeVideo"});
-			return;
-		}
-		var videoId = utils_YoutubeUtils.extractVideoId(url);
-		if(videoId == "") {
-			this.log(client,"Error: youtube video id not found in url: " + url);
-			return;
-		}
-		var outName = videoId + ".mp4";
-		if(this.cachedFiles.indexOf(outName) != -1 && this.isFileExists(outName)) {
-			callback(outName);
-			return;
-		}
-		var inVideoName = "__tmp-video-" + videoId;
-		var inAudioName = "__tmp-audio-" + videoId;
-		if(this.isFileExists(inVideoName)) {
-			this.log(client,"Caching " + outName + " already in progress");
-			return;
-		}
-		var ytdl = require("@distube/ytdl-core");
-		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/Cache.hx", lineNumber : 125, className : "server.Cache", methodName : "cacheYoutubeVideo"});
-		this.main.send(client,{ type : "Progress", progress : { type : "Caching", ratio : 0, data : outName}});
-		var agent = null;
-		var cookiesPath = "" + this.main.userDir + "/cookies.json";
-		if(sys_FileSystem.exists(cookiesPath)) {
-			agent = ytdl.createAgent(JSON.parse(js_node_Fs.readFileSync(cookiesPath,{ encoding : "utf8"})));
-		}
-		var promise = ytdl.getInfo(url,{ agent : agent});
-		promise.then(function(info) {
-			haxe_Log.trace("Get info with " + info.formats.length + " formats",{ fileName : "src/server/Cache.hx", lineNumber : 143, className : "server.Cache", methodName : "cacheYoutubeVideo"});
-			var audioFormat;
-			try {
-				var ytdl1 = ytdl.chooseFormat;
-				var _g = [];
-				var _g1 = 0;
-				var _g2 = info.formats;
-				while(_g1 < _g2.length) {
-					var v = _g2[_g1];
-					++_g1;
-					var tmp = v.audioCodec;
-					if(tmp != null ? StringTools.startsWith(tmp,"mp4a") : null) {
-						_g.push(v);
-					}
-				}
-				audioFormat = ytdl1(_g,{ quality : "highestaudio"});
-			} catch( _g ) {
-				var e = haxe_Exception.caught(_g);
-				_gthis.log(client,"Error: audio format not found");
-				haxe_Log.trace(e,{ fileName : "src/server/Cache.hx", lineNumber : 150, className : "server.Cache", methodName : "cacheYoutubeVideo"});
-				var _g1 = [];
-				var _g2 = 0;
-				var _g3 = info.formats;
-				while(_g2 < _g3.length) {
-					var v = _g3[_g2];
-					++_g2;
-					if(v.hasAudio) {
-						_g1.push(v);
-					}
-				}
-				haxe_Log.trace(_g1,{ fileName : "src/server/Cache.hx", lineNumber : 151, className : "server.Cache", methodName : "cacheYoutubeVideo"});
-				return;
-			}
-			var videoFormat;
-			var tmp = _gthis.getBestYoutubeVideoFormat(info.formats);
-			if(tmp != null) {
-				videoFormat = tmp;
-			} else {
-				_gthis.log(client,"Error: video format not found");
-				var _g = [];
-				var _g1 = 0;
-				var _g2 = info.formats;
-				while(_g1 < _g2.length) {
-					var v = _g2[_g1];
-					++_g1;
-					if(v.hasVideo) {
-						_g.push(v);
-					}
-				}
-				haxe_Log.trace(_g,{ fileName : "src/server/Cache.hx", lineNumber : 156, className : "server.Cache", methodName : "cacheYoutubeVideo"});
-				return;
-			}
-			var tmp = Std.parseInt(videoFormat.contentLength);
-			var videoSize = tmp != null ? tmp : 0;
-			var tmp = Std.parseInt(audioFormat.contentLength);
-			var audioSize = tmp != null ? tmp : 0;
-			var hasSpace = _gthis.removeOlderCache((videoSize + audioSize) * 2 + _gthis.freeSpaceBlock);
-			if(!hasSpace) {
-				videoFormat = _gthis.getBestYoutubeVideoFormat(info.formats,videoFormat.qualityLabel);
-				var tmp = Std.parseInt(videoFormat.contentLength);
-				var videoSize = tmp != null ? tmp : 0;
-				var tmp = Std.parseInt(audioFormat.contentLength);
-				var audioSize = tmp != null ? tmp : 0;
-				var hasSpace = _gthis.removeOlderCache((videoSize + audioSize) * 2 + _gthis.freeSpaceBlock);
-				if(!hasSpace) {
-					_gthis.remove(inVideoName);
-					_gthis.remove(inAudioName);
-					_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-					_gthis.log(client,_gthis.notEnoughSpaceErrorText);
-				}
-				if(!hasSpace) {
-					return;
-				}
-			}
-			var dlVideo = ytdl(url,{ format : videoFormat, agent : agent});
-			dlVideo.pipe(js_node_Fs.createWriteStream("" + _gthis.cacheDir + "/" + inVideoName));
-			dlVideo.on("error",function(err) {
-				_gthis.log(client,"Error during video download: " + err);
-				_gthis.remove(inVideoName);
-				_gthis.remove(inAudioName);
-				_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-			});
-			var dlAudio = ytdl(url,{ format : audioFormat, agent : agent});
-			dlAudio.pipe(js_node_Fs.createWriteStream("" + _gthis.cacheDir + "/" + inAudioName));
-			dlAudio.on("error",function(err) {
-				_gthis.log(client,"Error during audio download: " + err);
-				_gthis.remove(inVideoName);
-				_gthis.remove(inAudioName);
-				_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-			});
-			var count = 0;
-			var onComplete = function(type) {
-				count += 1;
-				haxe_Log.trace("" + type + " track downloaded (" + count + "/2)",{ fileName : "src/server/Cache.hx", lineNumber : 197, className : "server.Cache", methodName : "cacheYoutubeVideo"});
-				if(count < 2) {
-					return;
-				}
-				if(!_gthis.isFileExists(inVideoName) || !_gthis.isFileExists(inAudioName)) {
-					_gthis.log(client,"Input files not found for making final video");
-					_gthis.remove(inVideoName);
-					_gthis.remove(inAudioName);
-					_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-					return;
-				}
-				var size = js_node_Fs.statSync("" + _gthis.cacheDir + "/" + inVideoName).size;
-				size += js_node_Fs.statSync("" + _gthis.cacheDir + "/" + inAudioName).size;
-				var hasSpace = _gthis.removeOlderCache(size + _gthis.freeSpaceBlock);
-				if(!hasSpace) {
-					_gthis.remove(inVideoName);
-					_gthis.remove(inAudioName);
-					_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-					_gthis.log(client,_gthis.notEnoughSpaceErrorText);
-				}
-				if(!hasSpace) {
-					return;
-				}
-				var args = ("-y -i ./" + inVideoName + " -i ./" + inAudioName + " -c copy -map 0:v -map 1:a ./" + outName).split(" ");
-				var $process = js_node_ChildProcess.spawn("ffmpeg",args,{ cwd : _gthis.cacheDir});
-				var outputData = [];
-				$process.stderr.on("data",function(data) {
-					return outputData.push(data);
-				});
-				$process.on("close",function(code) {
-					_gthis.remove(inVideoName);
-					_gthis.remove(inAudioName);
-					if(code != 0) {
-						_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-						var errCodeMsg = "Error: ffmpeg closed with code " + code;
-						var _g = [];
-						var _g1 = 0;
-						var _g2 = _gthis.main.clients;
-						while(_g1 < _g2.length) {
-							var v = _g2[_g1];
-							++_g1;
-							if((v.group & 1 << ClientGroup.Admin._hx_index) != 0) {
-								_g.push(v);
-							}
-						}
-						var admins = _g;
-						var _g = 0;
-						while(_g < admins.length) {
-							var client1 = admins[_g];
-							++_g;
-							_gthis.log(client1,js_node_buffer_Buffer.concat(outputData).toString());
-							_gthis.log(client1,errCodeMsg);
-						}
-						if(admins.indexOf(client) == -1) {
-							_gthis.log(client,errCodeMsg);
-						}
-						return;
-					}
-					_gthis.add(outName);
-					callback(outName);
-				});
-			};
-			dlVideo.on("finish",function() {
-				onComplete("Video");
-			});
-			dlAudio.on("finish",function() {
-				onComplete("Audio");
-			});
-			dlVideo.on("progress",function(chunkLength,downloaded,contentLength) {
-				var v = downloaded / contentLength;
-				var ratio = v < 0 ? 0 : v > 1 ? 1 : v;
-				_gthis.main.send(client,{ type : "Progress", progress : { type : "Downloading", ratio : ratio}});
-			});
-		}).catch(function(err) {
-			_gthis.remove(inVideoName);
-			_gthis.remove(inAudioName);
-			_gthis.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 1}});
-			_gthis.log(client,"" + err);
-		});
-	}
-	,setStorageLimit: function(bytes) {
-		var _gthis = this;
-		this.storageLimit = bytes;
-		var a = this.storageLimit;
-		this.storageLimit = a < 0 ? 0 : a;
-		this.getFreeDiskSpace(function(availSpace) {
-			var a = availSpace - _gthis.freeSpaceBlock;
-			var availSpace = a < 0 ? 0 : a;
-			_gthis.removeOlderCache();
-			var freeSpace = _gthis.getFreeSpace();
-			if(availSpace < freeSpace) {
-				var a = _gthis.storageLimit += availSpace - freeSpace;
-				_gthis.storageLimit = a < 0 ? 0 : a;
-				_gthis.removeOlderCache();
-			}
-		});
-	}
-	,getFreeDiskSpace: function(callback) {
-		var _gthis = this;
-		var tmp = js_node_Fs.statfs;
-		if(tmp == null) {
-			haxe_Log.trace("Warning: no fs.statfs support in current nodejs version (needs v18+)",{ fileName : "src/server/Cache.hx", lineNumber : 272, className : "server.Cache", methodName : "getFreeDiskSpace"});
-			callback(this.storageLimit);
-			return;
-		}
-		tmp("/",function(err,stats) {
-			if(err != null) {
-				haxe_Log.trace(err,{ fileName : "src/server/Cache.hx", lineNumber : 278, className : "server.Cache", methodName : "getFreeDiskSpace"});
-				callback(_gthis.storageLimit);
-				return;
-			}
-			callback(stats.bsize * stats.bavail);
-		});
-	}
-	,add: function(name) {
-		if(this.cachedFiles.indexOf(name) == -1) {
-			this.cachedFiles.unshift(name);
-		}
-	}
-	,remove: function(name) {
-		HxOverrides.remove(this.cachedFiles,name);
-		this.removeFile(name);
-	}
-	,removeOlderCache: function(addFileSize) {
-		if(addFileSize == null) {
-			addFileSize = 0;
-		}
-		var space = this.getUsedSpace(addFileSize);
-		while(space > this.storageLimit) {
-			var tmp = this.cachedFiles.pop();
-			if(tmp == null) {
-				break;
-			}
-			this.removeFile(tmp);
-			space = this.getUsedSpace(addFileSize);
-		}
-		return space < this.storageLimit;
-	}
-	,removeFile: function(name) {
-		var path = this.getFilePath(name);
-		if(sys_FileSystem.exists(path)) {
-			js_node_Fs.unlinkSync(path);
-		}
-	}
-	,getFreeFileName: function(fullName) {
-		if(fullName == null) {
-			fullName = "video.mp4";
-		}
-		var baseName = haxe_io_Path.withoutDirectory(haxe_io_Path.withoutExtension(fullName));
-		var ext = haxe_io_Path.extension(fullName);
-		var i = 1;
-		while(true) {
-			var name = "" + baseName + (i == 1 ? "" : "" + i) + "." + ext;
-			if(!this.isFileExists(name)) {
-				return name;
-			}
-			++i;
-		}
-	}
-	,getFilePath: function(name) {
-		return "" + this.cacheDir + "/" + name;
-	}
-	,getFileUrl: function(name) {
-		return "/" + haxe_io_Path.withoutDirectory(this.cacheDir) + "/" + name;
-	}
-	,isFileExists: function(name) {
-		return sys_FileSystem.exists(this.getFilePath(name));
-	}
-	,getFreeSpace: function() {
-		return this.storageLimit - this.getUsedSpace();
-	}
-	,getUsedSpace: function(addFileSize) {
-		if(addFileSize == null) {
-			addFileSize = 0;
-		}
-		var total = addFileSize < 0 ? 0 : addFileSize;
-		var arr = this.cachedFiles;
-		var _g_i = arr.length - 1;
-		while(_g_i > -1) {
-			var name = arr[_g_i--];
-			var path = this.getFilePath(name);
-			if(!sys_FileSystem.exists(path)) {
-				HxOverrides.remove(this.cachedFiles,name);
-				continue;
-			}
-			total += js_node_Fs.statSync(path).size;
-		}
-		return total;
-	}
-	,getBestYoutubeVideoFormat: function(formats,ignoreQuality) {
-		var qPriority = [1080,720,480,360,240,144];
-		var _g = 0;
-		while(_g < qPriority.length) {
-			var quality = "" + qPriority[_g++] + "p";
-			if(quality == ignoreQuality) {
-				continue;
-			}
-			var _g1 = 0;
-			while(_g1 < formats.length) {
-				var format = formats[_g1];
-				++_g1;
-				if(format.videoCodec == null) {
-					continue;
-				}
-				if(format.qualityLabel == quality) {
-					return format;
-				}
-			}
-		}
-		return null;
-	}
-	,__class__: server_Cache
-};
 var server_ConsoleInput = function(main) {
 	var _g = new haxe_ds_StringMap();
 	_g.h["addAdmin"] = { args : ["name","password"], desc : "Adds channel admin"};
@@ -4165,7 +3758,7 @@ server_ConsoleInput.prototype = {
 		case "addAdmin":
 			var name = args[0];
 			var password = args[1];
-			if(this.main.badNickName(name)) {
+			if(this.main.isBadClientName(name)) {
 				haxe_Log.trace(StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.main.config.maxLoginLength),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 113, className : "server.ConsoleInput", methodName : "parseLine"});
 				return;
 			}
@@ -4434,7 +4027,7 @@ server_HttpServer.prototype = {
 			}
 		});
 		stream.on("error",function(err) {
-			haxe_Log.trace(err,{ fileName : "src/server/HttpServer.hx", lineNumber : 201, className : "server.HttpServer", methodName : "uploadFile"});
+			haxe_Log.trace(err,{ fileName : "src/server/HttpServer.hx", lineNumber : 202, className : "server.HttpServer", methodName : "uploadFile"});
 			res.statusCode = 500;
 			res.end(JSON.stringify({ info : "File write stream error."}));
 			var _this = _gthis.uploadingFilesSizes;
@@ -4448,7 +4041,7 @@ server_HttpServer.prototype = {
 			_gthis.cache.remove(name);
 		});
 		req.on("error",function(err) {
-			haxe_Log.trace("Request Error:",{ fileName : "src/server/HttpServer.hx", lineNumber : 208, className : "server.HttpServer", methodName : "uploadFile", customParams : [err]});
+			haxe_Log.trace("Request Error:",{ fileName : "src/server/HttpServer.hx", lineNumber : 209, className : "server.HttpServer", methodName : "uploadFile", customParams : [err]});
 			stream.destroy();
 			res.statusCode = 500;
 			res.end(JSON.stringify({ info : "File request error."}));
@@ -4736,7 +4329,7 @@ var server_Main = function(opts) {
 	this.wsEventParser = new JsonParser_$1();
 	this.freeIds = [];
 	this.clients = [];
-	this.playersCacheSupport = [];
+	this.playersCacheSupport = ["RawType"];
 	this.rootDir = "" + __dirname + "/..";
 	var _gthis = this;
 	this.isNoState = !opts.loadState;
@@ -4761,7 +4354,7 @@ var server_Main = function(opts) {
 	this.logger = new server_Logger(this.logsDir,10,this.verbose);
 	this.consoleInput = new server_ConsoleInput(this);
 	this.consoleInput.initConsoleInput();
-	this.cache = new server_Cache(this,this.cacheDir);
+	this.cache = new server_cache_Cache(this,this.cacheDir);
 	if(this.cache.isYtReady) {
 		this.playersCacheSupport.push("YoutubeType");
 	}
@@ -4795,7 +4388,7 @@ var server_Main = function(opts) {
 	preparePort = function() {
 		server_Utils.isPortFree(_gthis.port,function(isFree) {
 			if(!isFree && attempts > 0) {
-				haxe_Log.trace("Warning: port " + _gthis.port + " is already in use. Changed to " + (_gthis.port + 1),{ fileName : "src/server/Main.hx", lineNumber : 137, className : "server.Main", methodName : "new"});
+				haxe_Log.trace("Warning: port " + _gthis.port + " is already in use. Changed to " + (_gthis.port + 1),{ fileName : "src/server/Main.hx", lineNumber : 138, className : "server.Main", methodName : "new"});
 				attempts -= 1;
 				_gthis.port++;
 				preparePort();
@@ -4822,16 +4415,16 @@ server_Main.jsonFilterNulls = function(key,value) {
 server_Main.prototype = {
 	runServer: function() {
 		var _gthis = this;
-		haxe_Log.trace("Local: http://" + this.localIp + ":" + this.port,{ fileName : "src/server/Main.hx", lineNumber : 150, className : "server.Main", methodName : "runServer"});
+		haxe_Log.trace("Local: http://" + this.localIp + ":" + this.port,{ fileName : "src/server/Main.hx", lineNumber : 151, className : "server.Main", methodName : "runServer"});
 		if(this.config.localNetworkOnly) {
-			haxe_Log.trace("Global network is disabled in config",{ fileName : "src/server/Main.hx", lineNumber : 152, className : "server.Main", methodName : "runServer"});
+			haxe_Log.trace("Global network is disabled in config",{ fileName : "src/server/Main.hx", lineNumber : 153, className : "server.Main", methodName : "runServer"});
 		} else if(!this.isNoState) {
 			server_Utils.getGlobalIp(function(ip) {
 				if(ip.indexOf(":") != -1) {
 					ip = "[" + ip + "]";
 				}
 				_gthis.globalIp = ip;
-				haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 158, className : "server.Main", methodName : "runServer"});
+				haxe_Log.trace("Global: http://" + _gthis.globalIp + ":" + _gthis.port,{ fileName : "src/server/Main.hx", lineNumber : 159, className : "server.Main", methodName : "runServer"});
 			});
 		}
 		var dir = "" + this.rootDir + "/res";
@@ -4916,7 +4509,7 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 232, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 233, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
@@ -4927,14 +4520,14 @@ server_Main.prototype = {
 			var emote = _g1[_g];
 			++_g;
 			if(emoteCopies_h[emote.name]) {
-				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 238, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 239, className : "server.Main", methodName : "getUserConfig"});
 			}
 			emoteCopies_h[emote.name] = true;
 			if(!this.verbose) {
 				continue;
 			}
 			if(emoteCopies_h[emote.image]) {
-				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 242, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 243, className : "server.Main", methodName : "getUserConfig"});
 			}
 			emoteCopies_h[emote.image] = true;
 		}
@@ -4971,7 +4564,7 @@ server_Main.prototype = {
 		js_node_Fs.writeFileSync("" + this.userDir + "/users.json",JSON.stringify({ admins : users1, bans : _g, salt : users.salt},null,"\t"));
 	}
 	,saveState: function() {
-		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 280, className : "server.Main", methodName : "saveState"});
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 281, className : "server.Main", methodName : "saveState"});
 		var json = JSON.stringify(this.getCurrentState(),null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 		this.writeUsers(this.userList);
@@ -4986,7 +4579,7 @@ server_Main.prototype = {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
-		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 304, className : "server.Main", methodName : "loadState"});
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 305, className : "server.Main", methodName : "loadState"});
 		var state = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		state.flashbacks = state.flashbacks != null ? state.flashbacks : [];
 		state.cachedFiles = state.cachedFiles != null ? state.cachedFiles : [];
@@ -5008,7 +4601,7 @@ server_Main.prototype = {
 	}
 	,logError: function(type,data) {
 		this.cache.removeOlderCache(1048576);
-		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 328, className : "server.Main", methodName : "logError", customParams : [data]});
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 329, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.userDir + "/crashes";
 		server_Utils.ensureDir(crashesFolder);
 		var name = DateTools.format(new Date(),"%Y-%m-%d_%H_%M_%S") + "-" + type;
@@ -5030,7 +4623,7 @@ server_Main.prototype = {
 			if(_gthis.clients.length == 0) {
 				return;
 			}
-			haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 341, className : "server.Main", methodName : "initIntergationHandlers"});
+			haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 342, className : "server.Main", methodName : "initIntergationHandlers"});
 			js_node_Http.get(url,null,function(r) {
 			});
 		};
@@ -5049,13 +4642,13 @@ server_Main.prototype = {
 		password += this.config.salt;
 		var hash = haxe_crypto_Sha256.encode(password);
 		this.userList.admins.push({ name : name, hash : hash});
-		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 362, className : "server.Main", methodName : "addAdmin"});
+		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 363, className : "server.Main", methodName : "addAdmin"});
 	}
 	,removeAdmin: function(name) {
 		HxOverrides.remove(this.userList.admins,Lambda.find(this.userList.admins,function(item) {
 			return item.name == name;
 		}));
-		haxe_Log.trace("Admin " + name + " removed.",{ fileName : "src/server/Main.hx", lineNumber : 369, className : "server.Main", methodName : "removeAdmin"});
+		haxe_Log.trace("Admin " + name + " removed.",{ fileName : "src/server/Main.hx", lineNumber : 370, className : "server.Main", methodName : "removeAdmin"});
 	}
 	,replayLog: function(events) {
 		var _gthis = this;
@@ -5122,7 +4715,7 @@ server_Main.prototype = {
 		var ip = this.clientIp(req);
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 428, className : "server.Main", methodName : "onConnect", customParams : ["" + name + " connected (" + ip + ")"]});
+		haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 429, className : "server.Main", methodName : "onConnect", customParams : ["" + name + " connected (" + ip + ")"]});
 		var isAdmin = this.config.localAdmins && req.socket.localAddress == ip;
 		var client = new Client(ws,req,id,name,0);
 		client.uuid = uuid;
@@ -5136,7 +4729,7 @@ server_Main.prototype = {
 			var obj = _gthis.wsEventParser.fromJson(data.toString());
 			if(_gthis.wsEventParser.errors.length > 0 || _gthis.noTypeObj(obj)) {
 				var errors = "" + ("Wrong request for type \"" + obj.type + "\":") + "\n" + json2object_ErrorUtils.convertErrorArray(_gthis.wsEventParser.errors);
-				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 445, className : "server.Main", methodName : "onConnect"});
+				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 446, className : "server.Main", methodName : "onConnect"});
 				_gthis.serverMessage(client,errors);
 				return;
 			}
@@ -5212,7 +4805,19 @@ server_Main.prototype = {
 				}
 			} else {
 				var _g = item.playerType;
-				if(_g == "YoutubeType") {
+				switch(_g) {
+				case "RawType":
+					this.cache.cacheRawVideo(client,item.url,function(name) {
+						item = _$Types_VideoItemTools.withUrl(item,_gthis.cache.getFileUrl(name));
+						data.addVideo.item = item;
+						_gthis.videoList.addItem(item,data.addVideo.atEnd);
+						_gthis.broadcast(data);
+						if(_gthis.videoList.items.length == 1) {
+							_gthis.restartWaitTimer();
+						}
+					});
+					break;
+				case "YoutubeType":
 					this.cache.cacheYoutubeVideo(client,item.url,function(name) {
 						item = _$Types_VideoItemTools.withUrl(item,_gthis.cache.getFileUrl(name));
 						if(item.duration > 1) {
@@ -5225,7 +4830,8 @@ server_Main.prototype = {
 							_gthis.restartWaitTimer();
 						}
 					});
-				} else {
+					break;
+				default:
 					var name = StringTools.replace("" + _g,"Type","");
 					this.serverMessage(client,"No cache support for " + name + " player.");
 					data.addVideo.item = item;
@@ -5318,7 +4924,7 @@ server_Main.prototype = {
 			if(!internal) {
 				return;
 			}
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 510, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " disconnected"]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 511, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " disconnected"]});
 			server_Utils.sortedPush(this.freeIds,client.id);
 			HxOverrides.remove(this.clients,client);
 			this.sendClientList();
@@ -5432,7 +5038,7 @@ server_Main.prototype = {
 		case "Login":
 			var name = StringTools.trim(data.login.clientName);
 			var lcName = name.toLowerCase();
-			if(this.badNickName(lcName)) {
+			if(this.isBadClientName(lcName)) {
 				this.serverMessage(client,"usernameError");
 				this.send(client,{ type : "LoginError"});
 				return;
@@ -5458,7 +5064,7 @@ server_Main.prototype = {
 				this.send(client,{ type : "LoginError"});
 				return;
 			}
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 601, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " logged as " + name]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 602, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " logged as " + name]});
 			client.name = name;
 			client.setGroupFlag(ClientGroup.User,true);
 			this.checkBan(client);
@@ -5471,7 +5077,7 @@ server_Main.prototype = {
 			var oldName = client.name;
 			client.name = "Guest " + (this.clients.indexOf(client) + 1);
 			client.setGroupFlag(ClientGroup.User,false);
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 622, className : "server.Main", methodName : "onMessage", customParams : ["Client " + oldName + " logout to " + client.name]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 623, className : "server.Main", methodName : "onMessage", customParams : ["Client " + oldName + " logout to " + client.name]});
 			this.send(client,{ type : data.type, logout : { oldClientName : oldName, clientName : client.name, clients : this.clientList()}});
 			this.sendClientListExcept(client);
 			break;
@@ -5801,13 +5407,13 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1058, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1064, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;
 		}
 	}
-	,badNickName: function(name) {
+	,isBadClientName: function(name) {
 		if(name.length > this.config.maxLoginLength) {
 			return true;
 		}
@@ -5906,6 +5512,11 @@ server_Main.prototype = {
 			}
 		}
 		return false;
+	}
+	,hasPlaylistUrl: function(url) {
+		return this.videoList.exists(function(item) {
+			return item.url == url;
+		});
 	}
 	,__class__: server_Main
 };
@@ -6109,6 +5720,705 @@ server_VideoTimer.prototype = {
 		return hrtime[0] + hrtime[1] / 1e9 - this.rateStartTime - this.pauseTime();
 	}
 	,__class__: server_VideoTimer
+};
+var server_cache_Cache = function(main,cacheDir) {
+	this.cachedFiles = [];
+	this.freeSpaceBlock = 10485760;
+	this.storageLimit = 3145728 * 1024;
+	this.isYtReady = false;
+	this.notEnoughSpaceErrorText = "Error: Not enough free space on server or file size is out of cache storage limit.";
+	this.main = main;
+	this.cacheDir = cacheDir;
+	server_Utils.ensureDir(cacheDir);
+	this.youtubeCache = new server_cache_YoutubeCache(main,this);
+	this.rawCache = new server_cache_RawCache(main,this);
+	this.isYtReady = this.youtubeCache.checkYtDeps();
+	if(this.isYtReady) {
+		this.youtubeCache.cleanYtInputFiles();
+	}
+};
+server_cache_Cache.__name__ = true;
+server_cache_Cache.prototype = {
+	getCachedFiles: function() {
+		return this.cachedFiles;
+	}
+	,setCachedFiles: function(names) {
+		this.cachedFiles.length = 0;
+		var _g = 0;
+		while(_g < names.length) this.cachedFiles.push(names[_g++]);
+		var names = js_node_Fs.readdirSync(this.cacheDir);
+		var _g = 0;
+		while(_g < names.length) {
+			var name = names[_g];
+			++_g;
+			if(StringTools.startsWith(name,".")) {
+				continue;
+			}
+			if(sys_FileSystem.isDirectory("" + this.cacheDir + "/" + name)) {
+				continue;
+			}
+			if(this.cachedFiles.indexOf(name) != -1) {
+				continue;
+			}
+			haxe_Log.trace("Remove non-tracked cache " + name,{ fileName : "src/server/cache/Cache.hx", lineNumber : 47, className : "server.cache.Cache", methodName : "setCachedFiles"});
+			this.remove(name);
+		}
+	}
+	,log: function(client,msg) {
+		this.main.serverMessage(client,msg);
+		haxe_Log.trace(msg,{ fileName : "src/server/cache/Cache.hx", lineNumber : 54, className : "server.cache.Cache", methodName : "log"});
+	}
+	,cacheYoutubeVideo: function(client,url,callback) {
+		this.youtubeCache.cacheYoutubeVideo(client,url,callback);
+	}
+	,cacheRawVideo: function(client,url,callback) {
+		this.rawCache.cacheRawVideo(client,url,callback);
+	}
+	,setStorageLimit: function(bytes) {
+		var _gthis = this;
+		this.storageLimit = bytes;
+		var a = this.storageLimit;
+		this.storageLimit = a < 0 ? 0 : a;
+		this.getFreeDiskSpace(function(availSpace) {
+			var a = availSpace - _gthis.freeSpaceBlock;
+			var availSpace = a < 0 ? 0 : a;
+			_gthis.removeOlderCache();
+			var freeSpace = _gthis.getFreeSpace();
+			if(availSpace < freeSpace) {
+				var a = _gthis.storageLimit += availSpace - freeSpace;
+				_gthis.storageLimit = a < 0 ? 0 : a;
+				_gthis.removeOlderCache();
+			}
+		});
+	}
+	,getFreeDiskSpace: function(callback) {
+		var _gthis = this;
+		var tmp = js_node_Fs.statfs;
+		if(tmp == null) {
+			haxe_Log.trace("Warning: no fs.statfs support in current nodejs version (needs v18+)",{ fileName : "src/server/cache/Cache.hx", lineNumber : 83, className : "server.cache.Cache", methodName : "getFreeDiskSpace"});
+			callback(this.storageLimit);
+			return;
+		}
+		tmp("/",function(err,stats) {
+			if(err != null) {
+				haxe_Log.trace(err,{ fileName : "src/server/cache/Cache.hx", lineNumber : 89, className : "server.cache.Cache", methodName : "getFreeDiskSpace"});
+				callback(_gthis.storageLimit);
+				return;
+			}
+			callback(stats.bsize * stats.bavail);
+		});
+	}
+	,add: function(name) {
+		if(this.cachedFiles.indexOf(name) == -1) {
+			this.cachedFiles.unshift(name);
+		}
+	}
+	,remove: function(name) {
+		HxOverrides.remove(this.cachedFiles,name);
+		this.removeFile(name);
+	}
+	,exists: function(name) {
+		if(this.cachedFiles.indexOf(name) != -1) {
+			return this.isFileExists(name);
+		} else {
+			return false;
+		}
+	}
+	,removeOlderCache: function(addFileSize) {
+		if(addFileSize == null) {
+			addFileSize = 0;
+		}
+		var space = this.getUsedSpace(addFileSize);
+		var arr = this.cachedFiles;
+		var _g_i = arr.length - 1;
+		while(_g_i > -1) {
+			var name = arr[_g_i--];
+			if(space <= this.storageLimit) {
+				break;
+			}
+			if(this.main.hasPlaylistUrl(this.getFileUrl(name))) {
+				continue;
+			}
+			this.remove(name);
+			space = this.getUsedSpace(addFileSize);
+		}
+		return space < this.storageLimit;
+	}
+	,removeFile: function(name) {
+		var path = this.getFilePath(name);
+		if(sys_FileSystem.exists(path)) {
+			js_node_Fs.unlinkSync(path);
+		}
+	}
+	,getFreeFileName: function(fullName) {
+		if(fullName == null) {
+			fullName = "video.mp4";
+		}
+		var baseName = haxe_io_Path.withoutDirectory(haxe_io_Path.withoutExtension(fullName));
+		var ext = haxe_io_Path.extension(fullName);
+		var i = 1;
+		while(true) {
+			var name = "" + baseName + (i == 1 ? "" : "" + i) + "." + ext;
+			if(!this.isFileExists(name)) {
+				return name;
+			}
+			++i;
+		}
+	}
+	,getFilePath: function(name) {
+		return "" + this.cacheDir + "/" + name;
+	}
+	,getFileUrl: function(name) {
+		return "/" + haxe_io_Path.withoutDirectory(this.cacheDir) + "/" + name;
+	}
+	,isFileExists: function(name) {
+		return sys_FileSystem.exists(this.getFilePath(name));
+	}
+	,getFreeSpace: function() {
+		return this.storageLimit - this.getUsedSpace();
+	}
+	,getUsedSpace: function(addFileSize) {
+		if(addFileSize == null) {
+			addFileSize = 0;
+		}
+		var total = addFileSize < 0 ? 0 : addFileSize;
+		var arr = this.cachedFiles;
+		var _g_i = arr.length - 1;
+		while(_g_i > -1) {
+			var name = arr[_g_i--];
+			var path = this.getFilePath(name);
+			if(!sys_FileSystem.exists(path)) {
+				HxOverrides.remove(this.cachedFiles,name);
+				continue;
+			}
+			total += js_node_Fs.statSync(path).size;
+		}
+		return total;
+	}
+	,__class__: server_cache_Cache
+};
+var server_cache_RawCache = function(main,cache) {
+	this.main = main;
+	this.cache = cache;
+};
+server_cache_RawCache.__name__ = true;
+server_cache_RawCache.prototype = {
+	cacheRawVideo: function(client,url,callback) {
+		var isM3U8 = url.indexOf(".m3u8") != -1;
+		var ext = isM3U8 ? "m3u8" : "mp4";
+		var matchName = new EReg("^([^:.]+)\\.(.+)","");
+		var decodedUrl;
+		try {
+			decodedUrl = decodeURIComponent(url.split("+").join(" "));
+		} catch( _g ) {
+			decodedUrl = url;
+		}
+		var outName = matchName.match(HxOverrides.substr(decodedUrl,decodedUrl.lastIndexOf("/") + 1,null)) ? matchName.matched(1) + ("." + ext) : "video." + ext;
+		outName = this.cache.getFreeFileName(outName);
+		if(this.cache.exists(outName)) {
+			callback(outName);
+			return;
+		}
+		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/cache/RawCache.hx", lineNumber : 46, className : "server.cache.RawCache", methodName : "cacheRawVideo"});
+		this.main.send(client,{ type : "Progress", progress : { type : "Caching", ratio : 0, data : outName}});
+		if(isM3U8) {
+			this.handleM3u8(client,url,outName,callback);
+		} else {
+			this.handleMp4(client,url,outName,callback);
+		}
+	}
+	,handleMp4: function(client,url,outName,callback) {
+		var _gthis = this;
+		this.downloadFile(client,url,outName,function(downloaded,total) {
+			var v = downloaded / total;
+			_gthis.main.send(client,{ type : "Progress", progress : { type : "Downloading", ratio : v < 0 ? 0 : v > 1 ? 1 : v}});
+		},function() {
+			_gthis.cache.add(outName);
+			callback(outName);
+		},function(err) {
+			_gthis.log(client,"Mp4 download failed: " + err);
+			_gthis.cancelProgress(client);
+		});
+	}
+	,handleM3u8: function(client,url,outName,callback) {
+		var _gthis = this;
+		var useProxy = true;
+		this.downloadM3u8Playlist(client,url,useProxy,function(playlist,totalSize,segments) {
+			if(useProxy) {
+				totalSize = playlist.length;
+			}
+			if(!_gthis.cache.removeOlderCache(totalSize + _gthis.cache.freeSpaceBlock)) {
+				_gthis.log(client,_gthis.cache.notEnoughSpaceErrorText);
+				_gthis.cancelProgress(client);
+				return;
+			}
+			if(useProxy) {
+				_gthis.main.send(client,{ type : "Progress", progress : { type : "Caching", ratio : 1, data : outName}});
+				js_node_Fs.writeFileSync("" + _gthis.cache.cacheDir + "/" + outName,playlist);
+				_gthis.cache.add(outName);
+				callback(outName);
+				return;
+			}
+			var activeDownloads = 0;
+			var maxParallelDownloads = 10;
+			var downloaded = 0;
+			var downloadNextBatch = null;
+			downloadNextBatch = function() {
+				var _g = 0;
+				while(_g < segments.length) {
+					var segment = [segments[_g]];
+					++_g;
+					if(activeDownloads >= maxParallelDownloads) {
+						break;
+					}
+					if(segment[0].started) {
+						continue;
+					}
+					segment[0].started = true;
+					activeDownloads += 1;
+					haxe_Log.trace("download segment",{ fileName : "src/server/cache/RawCache.hx", lineNumber : 118, className : "server.cache.RawCache", methodName : "handleM3u8", customParams : [segment[0].i]});
+					_gthis.downloadFile(client,segment[0].url,segment[0].name,(function() {
+						return function(downloadedBytes,totalBytes) {
+						};
+					})(),(function(segment) {
+						return function() {
+							activeDownloads -= 1;
+							segment[0].completed = true;
+							downloaded += 1;
+							var progress = downloaded / segments.length;
+							_gthis.main.send(client,{ type : "Progress", progress : { type : "Downloading", ratio : progress < 0 ? 0 : progress > 1 ? 1 : progress}});
+							if(downloaded == segments.length) {
+								haxe_Log.trace("All " + downloaded + "/" + segments.length + " segments downloaded",{ fileName : "src/server/cache/RawCache.hx", lineNumber : 138, className : "server.cache.RawCache", methodName : "handleM3u8"});
+								js_node_Fs.writeFileSync("" + _gthis.cache.cacheDir + "/" + outName,playlist);
+								_gthis.cache.add(outName);
+								callback(outName);
+							} else {
+								downloadNextBatch();
+							}
+						};
+					})(segment),(function(segment) {
+						return function(err) {
+							activeDownloads -= 1;
+							downloaded += 1;
+							_gthis.log(client,"TS segment " + segment[0].i + " download failed: " + err);
+							_gthis.cancelProgress(client);
+							var _gthis1 = _gthis;
+							var result = new Array(segments.length);
+							var _g = 0;
+							var _g1 = segments.length;
+							while(_g < _g1) {
+								var i = _g++;
+								result[i] = segments[i].name;
+							}
+							_gthis1.cleanupFiles(result);
+						};
+					})(segment));
+				}
+			};
+			downloadNextBatch();
+		},function(err) {
+			_gthis.log(client,"M3U8 processing failed: " + err);
+			_gthis.cancelProgress(client);
+		});
+	}
+	,request: function(url,options,callback) {
+		var httpsOptions = options != null ? options : { };
+		httpsOptions.rejectUnauthorized = false;
+		httpsOptions.headers = httpsOptions.headers != null ? httpsOptions.headers : { };
+		if(StringTools.startsWith(url,"https:")) {
+			return js_node_Https.request(url,httpsOptions,callback);
+		} else {
+			return js_node_Http.request(url,httpsOptions,callback);
+		}
+	}
+	,downloadM3u8Playlist: function(client,url,useProxy,onSuccess,onError) {
+		var _gthis = this;
+		var req = this.request(url,{ headers : { "User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", "Accept" : "*/*"}},function(res) {
+			if(res.statusCode >= 300 && res.statusCode < 400) {
+				var redirectUrl = res.headers["location"];
+				if(redirectUrl != null) {
+					_gthis.downloadM3u8Playlist(client,redirectUrl,useProxy,onSuccess,onError);
+					return;
+				}
+			}
+			var body = [];
+			res.on("data",function(chunk) {
+				return body.push(chunk);
+			});
+			res.on("end",function() {
+				try {
+					var buffer = js_node_buffer_Buffer.concat(body);
+					var content = buffer.toString();
+					if(!new EReg("^#EXTM3U","").match(content)) {
+						onError("Invalid M3U8 playlist");
+						return;
+					}
+					var baseUrl = url.substring(0,url.lastIndexOf("/") + 1);
+					var segments = [];
+					var lines = content.split("\n");
+					var _g_current = 0;
+					var _g_array = lines;
+					while(_g_current < _g_array.length) {
+						var _g_value = _g_array[_g_current++];
+						var _g_key = _g_current - 1;
+						var line = StringTools.trim(_g_value);
+						if(line.length == 0) {
+							continue;
+						}
+						if(StringTools.startsWith(line,"#")) {
+							continue;
+						}
+						var segmentUrl = line.indexOf("://") == -1 ? baseUrl + line : line;
+						var i = segments.length;
+						var segment = { i : i, url : segmentUrl, started : false, completed : false, name : "segment" + i + ".ts"};
+						segments.push(segment);
+						lines[_g_key] = "./" + segment.name;
+						if(useProxy) {
+							lines[_g_key] = "/proxy?url=" + segmentUrl;
+						}
+					}
+					var req = _gthis.request(segments[0].url,{ method : "GET"},function(res) {
+						var tmp = Std.parseInt(res.headers["content-length"]);
+						var totalSize = (tmp != null ? tmp : 0) * (segments.length + 1);
+						if(totalSize == 0) {
+							onError("Failed to get segment sizes: no content-length");
+							return;
+						}
+						onSuccess(lines.join("\n"),totalSize,segments);
+					});
+					req.on("error",function(err) {
+						onError("Request error: failed to get segment sizes");
+					});
+					req.end();
+				} catch( _g ) {
+					var _g1 = haxe_Exception.caught(_g);
+					onError("Playlist processing error: " + Std.string(_g1));
+				}
+			});
+		});
+		req.on("error",onError);
+		req.end();
+	}
+	,downloadFile: function(client,url,fileName,onProgress,onComplete,onError) {
+		var file = js_node_Fs.createWriteStream("" + this.cache.cacheDir + "/" + fileName);
+		var req = this.request(url,{ method : "GET", headers : { "User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537." + Std.random(100), "Accept" : "*/*"}},function(res) {
+			var total;
+			var tmp = Std.parseInt(res.headers["content-length"]);
+			total = tmp != null ? tmp : 0;
+			var downloaded = 0;
+			res.on("data",function(chunk) {
+				downloaded += chunk.length;
+				onProgress(downloaded,total);
+				if(!file.write(chunk)) {
+					res.pause();
+					file.once("drain",function() {
+						return res.resume();
+					});
+				}
+			});
+			res.on("end",function() {
+				file.end();
+			});
+			res.on("error",function(err) {
+				file.destroy();
+				onError("Response error: " + err);
+			});
+		});
+		file.on("finish",onComplete);
+		file.on("error",function(err) {
+			req.destroy();
+			onError("File error: " + err);
+		});
+		req.on("error",function(err) {
+			file.destroy();
+			onError("Request failed: " + err);
+		});
+		req.end();
+	}
+	,cleanupFiles: function(files) {
+		var _g = 0;
+		while(_g < files.length) {
+			var file = files[_g];
+			++_g;
+			if(sys_FileSystem.exists(file)) {
+				js_node_Fs.unlinkSync(file);
+			}
+		}
+	}
+	,log: function(client,msg) {
+		this.cache.log(client,msg);
+	}
+	,cancelProgress: function(client) {
+		this.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 0}});
+	}
+	,__class__: server_cache_RawCache
+};
+var server_cache_YoutubeCache = function(main,cache) {
+	this.main = main;
+	this.cache = cache;
+};
+server_cache_YoutubeCache.__name__ = true;
+server_cache_YoutubeCache.prototype = {
+	checkYtDeps: function() {
+		var ytdl;
+		try {
+			ytdl = require("@distube/ytdl-core");
+		} catch( _g ) {
+			return false;
+		}
+		try {
+			js_node_ChildProcess.execSync("ffmpeg -version",{ stdio : "ignore", timeout : 3000});
+			return true;
+		} catch( _g ) {
+			return false;
+		}
+	}
+	,cleanYtInputFiles: function() {
+		var names = js_node_Fs.readdirSync(this.cache.cacheDir);
+		var _g = 0;
+		while(_g < names.length) {
+			var name = names[_g];
+			++_g;
+			if(!StringTools.startsWith(name,"__tmp")) {
+				continue;
+			}
+			this.cache.remove(name);
+		}
+	}
+	,cacheYoutubeVideo: function(client,url,callback) {
+		var _gthis = this;
+		if(!this.cache.isYtReady) {
+			haxe_Log.trace("Do `npm i @distube/ytdl-core@latest` to use cache feature (you also need to install `ffmpeg` to build mp4 from downloaded audio/video tracks).",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 46, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+			return;
+		}
+		var videoId = utils_YoutubeUtils.extractVideoId(url);
+		if(videoId == "") {
+			this.log(client,"Error: youtube video id not found in url: " + url);
+			return;
+		}
+		var outName = videoId + ".mp4";
+		if(this.cache.exists(outName)) {
+			callback(outName);
+			return;
+		}
+		var inVideoName = "__tmp-video-" + videoId;
+		var inAudioName = "__tmp-audio-" + videoId;
+		if(this.cache.isFileExists(inVideoName)) {
+			this.log(client,"Caching " + outName + " already in progress");
+			return;
+		}
+		var ytdl = require("@distube/ytdl-core");
+		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 80, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+		this.main.send(client,{ type : "Progress", progress : { type : "Caching", ratio : 0, data : outName}});
+		var agent = null;
+		var cookiesPath = "" + this.main.userDir + "/cookies.json";
+		if(sys_FileSystem.exists(cookiesPath)) {
+			agent = ytdl.createAgent(JSON.parse(js_node_Fs.readFileSync(cookiesPath,{ encoding : "utf8"})));
+		}
+		var promise = ytdl.getInfo(url,{ agent : agent});
+		promise.then(function(info) {
+			haxe_Log.trace("Get info with " + info.formats.length + " formats",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 98, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+			var audioFormat;
+			try {
+				var ytdl1 = ytdl.chooseFormat;
+				var _g = [];
+				var _g1 = 0;
+				var _g2 = info.formats;
+				while(_g1 < _g2.length) {
+					var v = _g2[_g1];
+					++_g1;
+					var tmp = v.audioCodec;
+					if(tmp != null ? StringTools.startsWith(tmp,"mp4a") : null) {
+						_g.push(v);
+					}
+				}
+				audioFormat = ytdl1(_g,{ quality : "highestaudio"});
+			} catch( _g ) {
+				var e = haxe_Exception.caught(_g);
+				_gthis.log(client,"Error: audio format not found");
+				haxe_Log.trace(e,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 105, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+				var _g1 = [];
+				var _g2 = 0;
+				var _g3 = info.formats;
+				while(_g2 < _g3.length) {
+					var v = _g3[_g2];
+					++_g2;
+					if(v.hasAudio) {
+						_g1.push(v);
+					}
+				}
+				haxe_Log.trace(_g1,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 106, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+				return;
+			}
+			var videoFormat;
+			var tmp = _gthis.getBestYoutubeVideoFormat(info.formats);
+			if(tmp != null) {
+				videoFormat = tmp;
+			} else {
+				_gthis.log(client,"Error: video format not found");
+				var _g = [];
+				var _g1 = 0;
+				var _g2 = info.formats;
+				while(_g1 < _g2.length) {
+					var v = _g2[_g1];
+					++_g1;
+					if(v.hasVideo) {
+						_g.push(v);
+					}
+				}
+				haxe_Log.trace(_g,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 111, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+				return;
+			}
+			var tmp = Std.parseInt(videoFormat.contentLength);
+			var videoSize = tmp != null ? tmp : 0;
+			var tmp = Std.parseInt(audioFormat.contentLength);
+			var audioSize = tmp != null ? tmp : 0;
+			var hasSpace = _gthis.cache.removeOlderCache((videoSize + audioSize) * 2 + _gthis.cache.freeSpaceBlock);
+			if(!hasSpace) {
+				videoFormat = _gthis.getBestYoutubeVideoFormat(info.formats,videoFormat.qualityLabel);
+				var tmp = Std.parseInt(videoFormat.contentLength);
+				var videoSize = tmp != null ? tmp : 0;
+				var tmp = Std.parseInt(audioFormat.contentLength);
+				var audioSize = tmp != null ? tmp : 0;
+				var hasSpace = _gthis.cache.removeOlderCache((videoSize + audioSize) * 2 + _gthis.cache.freeSpaceBlock);
+				if(!hasSpace) {
+					_gthis.cache.remove(inVideoName);
+					_gthis.cache.remove(inAudioName);
+					_gthis.cancelProgress(client);
+					_gthis.log(client,_gthis.cache.notEnoughSpaceErrorText);
+				}
+				if(!hasSpace) {
+					return;
+				}
+			}
+			var dlVideo = ytdl(url,{ format : videoFormat, agent : agent});
+			dlVideo.pipe(js_node_Fs.createWriteStream("" + _gthis.cache.cacheDir + "/" + inVideoName));
+			dlVideo.on("error",function(err) {
+				_gthis.log(client,"Error during video download: " + err);
+				_gthis.cache.remove(inVideoName);
+				_gthis.cache.remove(inAudioName);
+				_gthis.cancelProgress(client);
+			});
+			var dlAudio = ytdl(url,{ format : audioFormat, agent : agent});
+			dlAudio.pipe(js_node_Fs.createWriteStream("" + _gthis.cache.cacheDir + "/" + inAudioName));
+			dlAudio.on("error",function(err) {
+				_gthis.log(client,"Error during audio download: " + err);
+				_gthis.cache.remove(inVideoName);
+				_gthis.cache.remove(inAudioName);
+				_gthis.cancelProgress(client);
+			});
+			var count = 0;
+			var onComplete = function(type) {
+				count += 1;
+				haxe_Log.trace("" + type + " track downloaded (" + count + "/2)",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 153, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+				if(count < 2) {
+					return;
+				}
+				if(!_gthis.cache.isFileExists(inVideoName) || !_gthis.cache.isFileExists(inAudioName)) {
+					_gthis.log(client,"Input files not found for making final video");
+					_gthis.cache.remove(inVideoName);
+					_gthis.cache.remove(inAudioName);
+					_gthis.cancelProgress(client);
+					return;
+				}
+				var size = js_node_Fs.statSync("" + _gthis.cache.cacheDir + "/" + inVideoName).size;
+				size += js_node_Fs.statSync("" + _gthis.cache.cacheDir + "/" + inAudioName).size;
+				var hasSpace = _gthis.cache.removeOlderCache(size + _gthis.cache.freeSpaceBlock);
+				if(!hasSpace) {
+					_gthis.cache.remove(inVideoName);
+					_gthis.cache.remove(inAudioName);
+					_gthis.cancelProgress(client);
+					_gthis.log(client,_gthis.cache.notEnoughSpaceErrorText);
+				}
+				if(!hasSpace) {
+					return;
+				}
+				var args = ("-y -i ./" + inVideoName + " -i ./" + inAudioName + " -c copy -map 0:v -map 1:a ./" + outName).split(" ");
+				var $process = js_node_ChildProcess.spawn("ffmpeg",args,{ cwd : _gthis.cache.cacheDir});
+				var outputData = [];
+				$process.stderr.on("data",function(data) {
+					return outputData.push(data);
+				});
+				$process.on("close",function(code) {
+					_gthis.cache.remove(inVideoName);
+					_gthis.cache.remove(inAudioName);
+					if(code != 0) {
+						_gthis.cancelProgress(client);
+						var errCodeMsg = "Error: ffmpeg closed with code " + code;
+						var _g = [];
+						var _g1 = 0;
+						var _g2 = _gthis.main.clients;
+						while(_g1 < _g2.length) {
+							var v = _g2[_g1];
+							++_g1;
+							if((v.group & 1 << ClientGroup.Admin._hx_index) != 0) {
+								_g.push(v);
+							}
+						}
+						var admins = _g;
+						var _g = 0;
+						while(_g < admins.length) {
+							var client1 = admins[_g];
+							++_g;
+							_gthis.log(client1,js_node_buffer_Buffer.concat(outputData).toString());
+							_gthis.log(client1,errCodeMsg);
+						}
+						if(admins.indexOf(client) == -1) {
+							_gthis.log(client,errCodeMsg);
+						}
+						return;
+					}
+					_gthis.cache.add(outName);
+					callback(outName);
+				});
+			};
+			dlVideo.on("finish",function() {
+				onComplete("Video");
+			});
+			dlAudio.on("finish",function() {
+				onComplete("Audio");
+			});
+			dlVideo.on("progress",function(chunkLength,downloaded,contentLength) {
+				var v = downloaded / contentLength;
+				var ratio = v < 0 ? 0 : v > 1 ? 1 : v;
+				_gthis.main.send(client,{ type : "Progress", progress : { type : "Downloading", ratio : ratio}});
+			});
+		}).catch(function(err) {
+			_gthis.cache.remove(inVideoName);
+			_gthis.cache.remove(inAudioName);
+			_gthis.cancelProgress(client);
+			_gthis.log(client,"" + err);
+		});
+	}
+	,getBestYoutubeVideoFormat: function(formats,ignoreQuality) {
+		var qPriority = [1080,720,480,360,240,144];
+		var _g = 0;
+		while(_g < qPriority.length) {
+			var quality = "" + qPriority[_g++] + "p";
+			if(quality == ignoreQuality) {
+				continue;
+			}
+			var _g1 = 0;
+			while(_g1 < formats.length) {
+				var format = formats[_g1];
+				++_g1;
+				if(format.videoCodec == null) {
+					continue;
+				}
+				if(format.qualityLabel == quality) {
+					return format;
+				}
+			}
+		}
+		return null;
+	}
+	,log: function(client,msg) {
+		this.cache.log(client,msg);
+	}
+	,cancelProgress: function(client) {
+		this.main.send(client,{ type : "Progress", progress : { type : "Canceled", ratio : 0}});
+	}
+	,__class__: server_cache_YoutubeCache
 };
 var sys_FileSystem = function() { };
 sys_FileSystem.__name__ = true;

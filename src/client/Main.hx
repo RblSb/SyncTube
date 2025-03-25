@@ -27,7 +27,7 @@ import js.html.WebSocket;
 
 class Main {
 	public static var instance(default, null):Main;
-	static inline var SETTINGS_VERSION = 5;
+	static inline var SETTINGS_VERSION = 6;
 	static inline var MAX_CHAT_MESSAGES = 200;
 
 	public final settings:ClientSettings;
@@ -81,8 +81,6 @@ class Main {
 			uuid: null,
 			name: "",
 			hash: "",
-			isExtendedPlayer: false,
-			playerSize: 1,
 			chatSize: 300,
 			synchThreshold: 2,
 			isSwapped: false,
@@ -92,6 +90,7 @@ class Main {
 			hotkeysEnabled: true,
 			showHintList: true,
 			checkboxes: [],
+			checkedCache: [],
 		}
 		Settings.init(defaults, settingsPatcher);
 		settings = Settings.read();
@@ -139,6 +138,16 @@ class Main {
 			case 4:
 				final data:ClientSettings = data;
 				data.checkboxes = [];
+			case 5:
+				final data:ClientSettings = data;
+				data.checkedCache = [];
+				Reflect.deleteField(data, "playerSize");
+				Reflect.deleteField(data, "isExtendedPlayer");
+				final oldCheck = data.checkboxes.find(item -> item.id == "cache-on-server");
+				if (oldCheck != null) {
+					data.checkboxes.remove(oldCheck);
+					data.checkedCache.push(YoutubeType);
+				}
 			case SETTINGS_VERSION, _:
 				throw 'skipped version $version';
 		}
@@ -305,6 +314,14 @@ class Main {
 
 	public function isSingleVideoUrl(url:String):Bool {
 		return player.isSingleVideoUrl(url);
+	}
+
+	public function isExternalVideoUrl(url:String):Bool {
+		url = url.ltrim();
+		if (url.startsWith("/")) return false;
+		final host = Browser.location.hostname;
+		if (url.contains(host)) return false;
+		return true;
 	}
 
 	public function sortItemsForQueueNext<T>(items:Array<T>):Void {

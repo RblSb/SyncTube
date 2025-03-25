@@ -107,7 +107,7 @@ class ConsoleInput {
 			case AddAdmin:
 				final name = args[0];
 				final password = args[1];
-				if (main.badNickName(name)) {
+				if (main.isBadClientName(name)) {
 					final error = Lang.get("usernameError")
 						.replace("$MAX", '${main.config.maxLoginLength}');
 					trace(error);

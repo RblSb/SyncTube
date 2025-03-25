@@ -222,6 +222,7 @@ class Buttons {
 		}
 
 		final mediaUrl:InputElement = getEl("#mediaurl");
+		final checkboxCache:InputElement = getEl("#cache-on-server");
 		mediaUrl.oninput = () -> {
 			final url = mediaUrl.value;
 			final playerType = main.getLinkPlayerType(url);
@@ -230,8 +231,13 @@ class Buttons {
 			getEl("#mediatitleblock").style.display = isSingleRawVideo ? "" : "none";
 			getEl("#subsurlblock").style.display = isSingleRawVideo ? "" : "none";
 			getEl("#voiceoverblock").style.display = (url.length > 0 && isSingle) ? "" : "none";
-			final showCache = isSingle && main.playersCacheSupport.contains(playerType);
-			getEl("#cache-on-server").parentElement.style.display = showCache ? "" : "none";
+
+			final isExternal = main.isExternalVideoUrl(url);
+			final showCache = isSingle && isExternal
+				&& main.playersCacheSupport.contains(playerType);
+			checkboxCache.parentElement.style.display = showCache ? "" : "none";
+			checkboxCache.checked = settings.checkedCache.contains(playerType);
+
 			final panel = getEl("#addfromurl");
 			final oldH = panel.style.height; // save for animation
 			panel.style.height = ""; // to calculate height from content
@@ -240,6 +246,16 @@ class Buttons {
 			Timer.delay(() -> panel.style.height = newH, 0);
 		}
 		mediaUrl.onfocus = mediaUrl.oninput;
+
+		checkboxCache.addEventListener("change", () -> {
+			final url = mediaUrl.value;
+			final playerType = main.getLinkPlayerType(url);
+			final checked = checkboxCache.checked;
+
+			settings.checkedCache.remove(playerType);
+			if (checked) settings.checkedCache.push(playerType);
+			Settings.write(settings);
+		});
 
 		getEl("#insert_template").onclick = e -> {
 			mediaUrl.value = main.getTemplateUrl();
@@ -518,7 +534,6 @@ class Buttons {
 		});
 		final checkboxes:Array<InputElement> = [
 			getEl("#add-temp"),
-			getEl("#cache-on-server"),
 		];
 		for (checkbox in checkboxes) {
 			checkbox.addEventListener("change", () -> {

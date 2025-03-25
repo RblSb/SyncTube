@@ -1,19 +1,20 @@
 package client;
 
+import Types.PlayerType;
+
 typedef ClientSettings = {
-	version:Int,
-	uuid:Null<String>,
-	name:String,
-	hash:String,
-	isExtendedPlayer:Bool,
-	playerSize:Float,
-	chatSize:Float,
-	synchThreshold:Int,
-	isSwapped:Bool,
-	isUserListHidden:Bool,
-	latestLinks:Array<String>,
-	latestSubs:Array<String>,
-	hotkeysEnabled:Bool,
-	showHintList:Bool,
-	checkboxes:Array<{id:String, checked:Null<Bool>}>,
+	var version:Int;
+	var uuid:Null<String>;
+	var name:String;
+	var hash:String;
+	var chatSize:Float;
+	var synchThreshold:Int;
+	var isSwapped:Bool;
+	var isUserListHidden:Bool;
+	var latestLinks:Array<String>;
+	var latestSubs:Array<String>;
+	var hotkeysEnabled:Bool;
+	var showHintList:Bool;
+	var checkboxes:Array<{id:String, checked:Null<Bool>}>;
+	var checkedCache:Array<PlayerType>;
 }

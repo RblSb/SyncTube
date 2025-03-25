@@ -52,13 +52,12 @@ class VideoList {
 		return items.exists(f);
 	}
 
+	public function find(f:(item:VideoItem) -> Bool):Null<VideoItem> {
+		return items.find(f);
+	}
+
 	public function findIndex(f:(item:VideoItem) -> Bool):Int {
-		var i = 0;
-		for (v in items) {
-			if (f(v)) return i;
-			i++;
-		}
-		return -1;
+		return items.findIndex(f);
 	}
 
 	public function addItem(item:VideoItem, atEnd:Bool):Void {
