@@ -22,7 +22,7 @@ body {
 .setup-form {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-4);
+    gap: 1rem;
     width: 100%;
 
     & button {
@@ -36,4 +36,11 @@ body {
             filter: brightness(1.15);
         }
     }
+}
+
+.form-errors {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    color: var(--error);
 }
