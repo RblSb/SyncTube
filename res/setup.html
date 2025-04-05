@@ -60,7 +60,7 @@
 
             const errors = !response
                 ? ["Unknown error"]
-                : Object.values(response.errors || {});
+                : (response.errors ?? []).map(item => item.error);
 
             showErrors(errorsElement, errors);
         }

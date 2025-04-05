@@ -113,8 +113,8 @@ class HttpServer {
 				return redirect(res, "/");
 			}
 
-			Fs.readFile("res/setup.html", (err:Dynamic, data:Buffer) -> {
-				data = cast localizeHtml(data.toString(), req.headers["accept-language"]);
+			Fs.readFile('$dir/setup.html', (err:Dynamic, data:Buffer) -> {
+				data = Buffer.from(localizeHtml(data.toString(), req.headers["accept-language"]));
 				res.setHeader("content-type", getMimeType("html"));
 				res.end(data);
 			});
@@ -144,7 +144,7 @@ class HttpServer {
 			}
 
 			if (ext == "html") {
-				if (!main.hasAdmins()) {
+				if (!main.isNoState && !main.hasAdmins()) {
 					return redirect(res, "/setup");
 				}
 				// replace ${textId} to localized strings
@@ -235,7 +235,7 @@ class HttpServer {
 	}
 
 	function redirect(res:ServerResponse, pathname:String) {
-		res.writeHead(302, { "Location": pathname });
+		res.writeHead(302, {"Location": pathname});
 		return res.end();
 	}
 
@@ -245,60 +245,69 @@ class HttpServer {
 		}
 
 		final lang = req.headers["accept-language"];
-		var bodyChunks:Array<Dynamic> = [];
+		var bodyChunks:Array<Buffer> = [];
 
-		req.on("data", function(chunk) {
+		req.on("data", chunk -> {
 			bodyChunks.push(chunk);
 		});
 
-		req.on("end", function() {
-			try {
-				final body = Buffer.concat(bodyChunks).toString();
-				final jsonData:Dynamic = haxe.Json.parse(body);
-				
-				final name = Std.string(jsonData.name);
-				final password = Std.string(jsonData.password);
-				final passwordConfirmation = Std.string(jsonData.passwordConfirmation);
-
-				var errors:Map<String, String> = [];
-
-				final lang = req.headers["accept-language"];
-				if (main.isBadClientName(name)) {
-					final error = Lang.get(lang, "usernameError")
-						.replace("$MAX", '${main.config.maxLoginLength}');
-					errors["name"] = error;
-				}
-
-				final min = main.config.minPasswordLength;
-				final max = main.config.maxPasswordLength;
-				if (password.length < min || password.length > max) {
-					final error = Lang.get(lang, "passwordError")
-						.replace("$MIN", '${min}')
-						.replace("$MAX", '${max}');
-					errors["password"] = error;
-				}
-
-				if (password != passwordConfirmation) {
-					final error = Lang.get(lang, "passwordsMismatchError");
-					errors["password"] = error;
-				}
-
-				if (!errors.empty()) {
-					var errorObj = {};
-					for (key => value in errors) {
-						Reflect.setField(errorObj, key, value);
-					}
-					throw errorObj;
-				}
-
-				main.addAdmin(name, password);
-
-				res.writeHead(200, { "Content-Type": "application/json" });
-				res.end(haxe.Json.stringify({ success: true }));
-			} catch (e:Dynamic) {
-				res.writeHead(400, { "Content-Type": "application/json" });
-				res.end(haxe.Json.stringify({ success: false, errors: e }));
+		req.on("end", () -> {
+			final body = Buffer.concat(bodyChunks).toString();
+			final jsonData:{
+				name:String,
+				password:String,
+				passwordConfirmation:String
+			} = try {
+				Json.parse(body);
+			} catch (e) {
+				res.writeHead(400, {"Content-Type": "application/json"});
+				res.end(Json.stringify({success: false, errors: []}));
+				return;
 			}
+
+			final name = Std.string(jsonData.name);
+			final password = Std.string(jsonData.password);
+			final passwordConfirmation = Std.string(jsonData.passwordConfirmation);
+
+			final errors:Array<{type:String, error:String}> = [];
+
+			final lang = req.headers["accept-language"];
+			if (main.isBadClientName(name)) {
+				final error = Lang.get(lang, "usernameError")
+					.replace("$MAX", '${main.config.maxLoginLength}');
+				errors.push({
+					type: "name",
+					error: error
+				});
+			}
+
+			final min = Main.MIN_PASSWORD_LENGTH;
+			final max = Main.MAX_PASSWORD_LENGTH;
+			if (password.length < min || password.length > max) {
+				final error = Lang.get(lang, "passwordError")
+					.replace("$MIN", '$min').replace("$MAX", '$max');
+				errors.push({
+					type: "password",
+					error: error
+				});
+			}
+
+			if (password != passwordConfirmation) {
+				errors.push({
+					type: "password",
+					error: Lang.get(lang, "passwordsMismatchError")
+				});
+			}
+
+			if (errors.length > 0) {
+				res.writeHead(400, {"Content-Type": "application/json"});
+				res.end(Json.stringify({success: false, errors: errors}));
+				return;
+			}
+
+			main.addAdmin(name, password);
+			res.writeHead(200, {"Content-Type": "application/json"});
+			res.end(Json.stringify({success: true}));
 		});
 	}
 
