@@ -33,6 +33,8 @@ typedef Config = {
 	port:Int,
 	channelName:String,
 	maxLoginLength:Int,
+	minPasswordLength:Int,
+	maxPasswordLength:Int,
 	maxMessageLength:Int,
 	serverChatHistory:Int,
 	totalVideoLimit:Int,

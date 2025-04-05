@@ -87,6 +87,8 @@ class HttpServer {
 					uploadFileLastChunk(req, res);
 				case "/upload":
 					uploadFile(req, res);
+				case "/setup":
+					finishSetup(req, res);
 			}
 			return;
 		}
@@ -103,6 +105,19 @@ class HttpServer {
 			res.statusCode = 500;
 			var rel = JsPath.relative(dir, filePath);
 			res.end('Error getting the file: No access to $rel.');
+			return;
+		}
+
+		if (url.pathname == "/setup") {
+			if (main.hasAdmins()) {
+				return redirect(res, "/");
+			}
+
+			Fs.readFile("res/setup.html", (err:Dynamic, data:Buffer) -> {
+				data = cast localizeHtml(data.toString(), req.headers["accept-language"]);
+				res.setHeader("content-type", getMimeType("html"));
+				res.end(data);
+			});
 			return;
 		}
 
@@ -127,7 +142,11 @@ class HttpServer {
 				readFileError(err, res, filePath);
 				return;
 			}
+
 			if (ext == "html") {
+				if (!main.hasAdmins()) {
+					return redirect(res, "/setup");
+				}
 				// replace ${textId} to localized strings
 				data = cast localizeHtml(data.toString(), req.headers["accept-language"]);
 			}
@@ -212,6 +231,74 @@ class HttpServer {
 				info: "File request error.",
 			});
 			cache.remove(name);
+		});
+	}
+
+	function redirect(res:ServerResponse, pathname:String) {
+		res.writeHead(302, { "Location": pathname });
+		return res.end();
+	}
+
+	function finishSetup(req:IncomingMessage, res:ServerResponse) {
+		if (main.hasAdmins()) {
+			return redirect(res, "/");
+		}
+
+		final lang = req.headers["accept-language"];
+		var bodyChunks:Array<Dynamic> = [];
+
+		req.on("data", function(chunk) {
+			bodyChunks.push(chunk);
+		});
+
+		req.on("end", function() {
+			try {
+				final body = Buffer.concat(bodyChunks).toString();
+				final jsonData:Dynamic = haxe.Json.parse(body);
+				
+				final name = Std.string(jsonData.name);
+				final password = Std.string(jsonData.password);
+				final passwordConfirmation = Std.string(jsonData.passwordConfirmation);
+
+				var errors:Map<String, String> = [];
+
+				final lang = req.headers["accept-language"];
+				if (main.isBadClientName(name)) {
+					final error = Lang.get(lang, "usernameError")
+						.replace("$MAX", '${main.config.maxLoginLength}');
+					errors["name"] = error;
+				}
+
+				final min = main.config.minPasswordLength;
+				final max = main.config.maxPasswordLength;
+				if (password.length < min || password.length > max) {
+					final error = Lang.get(lang, "passwordError")
+						.replace("$MIN", '${min}')
+						.replace("$MAX", '${max}');
+					errors["password"] = error;
+				}
+
+				if (password != passwordConfirmation) {
+					final error = Lang.get(lang, "passwordsMismatchError");
+					errors["password"] = error;
+				}
+
+				if (!errors.empty()) {
+					var errorObj = {};
+					for (key => value in errors) {
+						Reflect.setField(errorObj, key, value);
+					}
+					throw errorObj;
+				}
+
+				main.addAdmin(name, password);
+
+				res.writeHead(200, { "Content-Type": "application/json" });
+				res.end(haxe.Json.stringify({ success: true }));
+			} catch (e:Dynamic) {
+				res.writeHead(400, { "Content-Type": "application/json" });
+				res.end(haxe.Json.stringify({ success: false, errors: e }));
+			}
 		});
 	}
 

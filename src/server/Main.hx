@@ -370,6 +370,10 @@ class Main {
 		trace('Admin $name removed.');
 	}
 
+	public function hasAdmins():Bool {
+		return userList.admins.length > 0;
+	}
+
 	public function replayLog(events:Array<ServerEvent>):Void {
 		final timer = new Timer(1000);
 		timer.run = () -> {
