@@ -1,6 +1,6 @@
 --library hxnodejs
 --library hxnodejs-ws
---library json2object
+--library json2object:git:https://github.com/RblSb/json2object.git#nightly_safe_macros
 # Client libs for completion
 --library youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
 --library hls.js-extern:git:https://github.com/zoldesi-andor/hls.js-haxe-extern.git
@@ -8,6 +8,7 @@
 --class-path src
 --class-path test
 --main Main
+-w -WDeprecated
 # -D UTEST_PATTERN=testMain
 --js build/tests.js
 --cmd node build/tests.js

@@ -1,7 +1,6 @@
 package server;
 
 import Types.UploadResponse;
-import haxe.Json;
 import haxe.io.Path;
 import js.node.Buffer;
 import js.node.Fs.Fs;
@@ -12,6 +11,8 @@ import js.node.http.ClientRequest;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import js.node.url.URL;
+import json2object.ErrorUtils;
+import json2object.JsonParser;
 import server.cache.Cache;
 import sys.FileSystem;
 
@@ -21,6 +22,12 @@ private class HttpServerConfig {
 	public final customDir:String = null;
 	public final allowLocalRequests = false;
 	public final cache:Cache = null;
+}
+
+typedef SetupAdminRequest = {
+	name:String,
+	password:String,
+	passwordConfirmation:String,
 }
 
 class HttpServer {
@@ -110,7 +117,8 @@ class HttpServer {
 
 		if (url.pathname == "/setup") {
 			if (main.hasAdmins()) {
-				return redirect(res, "/");
+				res.redirect("/");
+				return;
 			}
 
 			Fs.readFile('$dir/setup.html', (err:Dynamic, data:Buffer) -> {
@@ -145,7 +153,8 @@ class HttpServer {
 
 			if (ext == "html") {
 				if (!main.isNoState && !main.hasAdmins()) {
-					return redirect(res, "/setup");
+					res.redirect("/setup");
+					return;
 				}
 				// replace ${textId} to localized strings
 				data = cast localizeHtml(data.toString(), req.headers["accept-language"]);
@@ -164,14 +173,11 @@ class HttpServer {
 		req.on("end", () -> {
 			final buffer = Buffer.concat(body);
 			uploadingFilesLastChunks[filePath] = buffer;
-			res.writeHead(200, {
-				"content-type": getMimeType("json"),
-			});
 			final json:UploadResponse = {
 				info: "File last chunk uploaded",
 				url: cache.getFileUrl(name)
 			}
-			res.end(Json.stringify(json));
+			res.status(200).json(json);
 		});
 	}
 
@@ -183,9 +189,7 @@ class HttpServer {
 		final size = Std.parseInt(req.headers["content-length"]) ?? return;
 
 		inline function end(code:Int, json:UploadResponse):Void {
-			res.statusCode = code;
-			res.end(Json.stringify(json));
-
+			res.status(code).json(json);
 			uploadingFilesSizes.remove(filePath);
 			uploadingFilesLastChunks.remove(filePath);
 		}
@@ -234,18 +238,12 @@ class HttpServer {
 		});
 	}
 
-	function redirect(res:ServerResponse, pathname:String) {
-		res.writeHead(302, {"Location": pathname});
-		return res.end();
-	}
-
 	function finishSetup(req:IncomingMessage, res:ServerResponse) {
 		if (main.hasAdmins()) {
-			return redirect(res, "/");
+			return res.redirect("/");
 		}
 
-		final lang = req.headers["accept-language"];
-		var bodyChunks:Array<Buffer> = [];
+		final bodyChunks:Array<Buffer> = [];
 
 		req.on("data", chunk -> {
 			bodyChunks.push(chunk);
@@ -253,25 +251,20 @@ class HttpServer {
 
 		req.on("end", () -> {
 			final body = Buffer.concat(bodyChunks).toString();
-			final jsonData:{
-				name:String,
-				password:String,
-				passwordConfirmation:String
-			} = try {
-				Json.parse(body);
-			} catch (e) {
-				res.writeHead(400, {"Content-Type": "application/json"});
-				res.end(Json.stringify({success: false, errors: []}));
+			final jsonParser = new JsonParser<SetupAdminRequest>();
+			final jsonData = jsonParser.fromJson(body);
+			if (jsonParser.errors.length > 0) {
+				final errors = ErrorUtils.convertErrorArray(jsonParser.errors);
+				trace(errors);
+				res.status(400).json({success: false, errors: []});
 				return;
 			}
-
-			final name = Std.string(jsonData.name);
-			final password = Std.string(jsonData.password);
-			final passwordConfirmation = Std.string(jsonData.passwordConfirmation);
-
+			final name = jsonData.name;
+			final password = jsonData.password;
+			final passwordConfirmation = jsonData.passwordConfirmation;
+			final lang = req.headers["accept-language"] ?? "en";
 			final errors:Array<{type:String, error:String}> = [];
 
-			final lang = req.headers["accept-language"];
 			if (main.isBadClientName(name)) {
 				final error = Lang.get(lang, "usernameError")
 					.replace("$MAX", '${main.config.maxLoginLength}');
@@ -300,14 +293,12 @@ class HttpServer {
 			}
 
 			if (errors.length > 0) {
-				res.writeHead(400, {"Content-Type": "application/json"});
-				res.end(Json.stringify({success: false, errors: errors}));
+				res.status(400).json({success: false, errors: errors});
 				return;
 			}
 
 			main.addAdmin(name, password);
-			res.writeHead(200, {"Content-Type": "application/json"});
-			res.end(Json.stringify({success: true}));
+			res.status(200).json({success: true});
 		});
 	}
 

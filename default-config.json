@@ -2,8 +2,6 @@
 	"port": 4200,
 	"channelName": "SyncTube",
 	"maxLoginLength": 20,
-	"minPasswordLength": 4,
-	"maxPasswordLength": 50,
 	"maxMessageLength": 500,
 	"serverChatHistory": 50,
 	"totalVideoLimit": 0,

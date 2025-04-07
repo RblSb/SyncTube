@@ -1,7 +1,6 @@
 --library hxnodejs
 --library hxnodejs-ws
---library json2object:git:https://github.com/RblSb/json2object.git
--D junsafe_compiler_cache
+--library json2object:git:https://github.com/RblSb/json2object.git#nightly_safe_macros
 # Client libs for completion
 --library youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
 --library hls.js-extern:git:https://github.com/zoldesi-andor/hls.js-haxe-extern.git
@@ -9,6 +8,7 @@
 --class-path src
 --main server.Main
 -D analyzer-optimize
--w -WDeprecatedEnumAbstract
+# -w -WDeprecatedEnumAbstract
+-w -WDeprecated
 --dce full
 --js build/server.js

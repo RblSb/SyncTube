@@ -253,10 +253,6 @@ Lambda.findIndex = function(it,f) {
 	}
 	return -1;
 };
-var haxe_ds_StringMap = function() {
-	this.h = Object.create(null);
-};
-haxe_ds_StringMap.__name__ = true;
 var Lang = function() { };
 Lang.__name__ = true;
 Lang.request = function(path,callback) {
@@ -5429,6 +5425,10 @@ haxe_crypto_Sha256.prototype = {
 		return str.toLowerCase();
 	}
 };
+var haxe_ds_StringMap = function() {
+	this.h = Object.create(null);
+};
+haxe_ds_StringMap.__name__ = true;
 var haxe_http_HttpBase = function(url) {
 	this.url = url;
 	this.headers = [];
