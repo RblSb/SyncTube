@@ -31,6 +31,8 @@ private typedef MainOptions = {
 }
 
 class Main {
+	public static inline var MIN_PASSWORD_LENGTH = 4;
+	public static inline var MAX_PASSWORD_LENGTH = 50;
 	static inline var VIDEO_START_MAX_DELAY = 3000;
 	static inline var VIDEO_SKIP_DELAY = 1000;
 	static inline var FLASHBACKS_COUNT = 50;
@@ -42,8 +44,8 @@ class Main {
 	public final userDir:String;
 	public final logsDir:String;
 	public final config:Config;
+	public final isNoState:Bool;
 
-	final isNoState:Bool;
 	final verbose:Bool;
 	final statePath:String;
 	var wss:WSServer;
@@ -368,6 +370,10 @@ class Main {
 			userList.admins.find(item -> item.name == name)
 		);
 		trace('Admin $name removed.');
+	}
+
+	public function hasAdmins():Bool {
+		return userList.admins.length > 0;
 	}
 
 	public function replayLog(events:Array<ServerEvent>):Void {

@@ -17,6 +17,8 @@
 	"openInApp": "Open in App",
 	"hideThisMessage": "Hide this message",
 	"usernameError": "Username length must be from 1 to $MAX characters and don't repeat another's. Characters &^<>'\" are not allowed.",
+	"passwordError": "Password length must be from $MIN to $MAX characters.",
+	"passwordsMismatchError": "Passwords do not match.",
 	"passwordMatchError": "Wrong password.",
 	"accessError": "Access error",
 	"noPermission": "No '$PERMISSION' permission.",
@@ -111,5 +113,7 @@
 	"off": "Off",
 
 	"areYouSure": "Are you sure?",
-	"dataWillBeLost": "The data will be lost."
+	"dataWillBeLost": "The data will be lost.",
+
+	"setupTitle": "Welcome to SyncTube!"
 }

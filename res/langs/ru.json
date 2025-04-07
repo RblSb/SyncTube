@@ -17,6 +17,8 @@
 	"openInApp": "Открыть в приложении",
 	"hideThisMessage": "Скрыть это сообщение",
 	"usernameError": "Ник должен быть от 1 до $MAX символов и не повторять чужие. Символы &^<>'\" запрещены.",
+	"passwordError": "Длина пароля должна быть от $MIN до $MAX символов.",
+	"passwordsMismatchError": "Пароли не совпадают.",
 	"passwordMatchError": "Неправильный пароль.",
 	"accessError": "Ошибка доступа",
 	"noPermission": "Нет '$PERMISSION' разрешения.",
@@ -111,5 +113,7 @@
 	"off": "Откл.",
 
 	"areYouSure": "Вы уверены?",
-	"dataWillBeLost": "Данные будут потеряны."
+	"dataWillBeLost": "Данные будут потеряны.",
+
+	"setupTitle": "Добро пожаловать в SyncTube!"
 }

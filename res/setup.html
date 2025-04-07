@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <title>SyncTube</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link id="usertheme" href="css/des.css" rel="stylesheet">
+  <link id="usertheme" href="css/setup.css" rel="stylesheet">
+  <link id="customcss" href="css/custom.css" rel="stylesheet">
+
+</head>
+
+<body>
+  <main class="setup">
+    <h1 class="setup-title">SyncTube</h1>
+    <p>Create your admin account</p>
+
+    <form id="setup-form" class="setup-form" action="/setup" method="POST">
+      <input type="text" name="name" placeholder="Name">
+      <input type="password" name="password" placeholder="Password">
+      <input type="password" name="confirmation" placeholder="Repeat password">
+
+      <div id="form-errors" class="form-errors"></div>
+
+      <button type="submit">Create</button>
+    </form>
+  </main>
+
+  <script>
+    const formElement = document.getElementById("setup-form");
+    const errorsElement = document.getElementById("form-errors");
+
+    formElement.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const { name, password, confirmation } = formElement.elements;
+      const payload = {
+        name: name.value,
+        password: password.value,
+        passwordConfirmation: confirmation.value,
+      }
+
+      fetch("/setup", { method: "POST", body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(response => handleResponse(response))
+        .catch(() => handleResponse(null));
+    }, true);
+
+
+    function handleResponse(response) {
+      if (response.success) {
+        return window.location.reload();
+      }
+
+      const errors = !response
+        ? ["Unknown error"]
+        : (response.errors ?? []).map(item => item.error);
+
+      showErrors(errorsElement, errors);
+    }
+
+    function showErrors(container, errors) {
+      container.innerHTML = "";
+
+      errors.forEach((message) => {
+        const errorEl = document.createElement("div");
+        errorEl.innerText = message;
+        container.appendChild(errorEl);
+      });
+    }
+  </script>
+</body>
+
+</html>

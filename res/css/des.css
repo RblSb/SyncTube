@@ -48,7 +48,6 @@ body.swap {
   grid-template-areas: "chat gutter video";
 }
 
-
 @media only screen and (orientation: portrait) {
   body {
     display: flex;
