@@ -3021,6 +3021,9 @@ client_Player.prototype = {
 		if(!this.isLoaded) {
 			return;
 		}
+		if(!this.isSyncActive()) {
+			return;
+		}
 		if(this.videoList.items.length == 0) {
 			return;
 		}
@@ -3055,6 +3058,9 @@ client_Player.prototype = {
 			tmp.pause();
 		}
 		if(!this.isLoaded) {
+			return;
+		}
+		if(!this.isSyncActive()) {
 			return;
 		}
 		var _this = this.videoList;
@@ -3316,8 +3322,19 @@ client_Player.prototype = {
 		}
 		return this.player.isVideoLoaded();
 	}
-	,play: function() {
+	,isSyncActive: function() {
 		if(!this.main.isSyncActive) {
+			return false;
+		}
+		var _this = this.videoList;
+		var tmp = _this.items[_this.pos];
+		if(tmp == null) {
+			return false;
+		}
+		return tmp.playerType != "IframeType";
+	}
+	,play: function() {
+		if(!this.isSyncActive()) {
 			return;
 		}
 		if(this.player == null) {
@@ -3339,7 +3356,7 @@ client_Player.prototype = {
 		}
 	}
 	,pause: function() {
-		if(!this.main.isSyncActive) {
+		if(!this.isSyncActive()) {
 			return;
 		}
 		if(this.player == null) {
@@ -3367,7 +3384,7 @@ client_Player.prototype = {
 		if(isLocal == null) {
 			isLocal = true;
 		}
-		if(!this.main.isSyncActive) {
+		if(!this.isSyncActive()) {
 			return;
 		}
 		if(this.player == null) {
@@ -3395,7 +3412,7 @@ client_Player.prototype = {
 		if(isLocal == null) {
 			isLocal = true;
 		}
-		if(!this.main.isSyncActive) {
+		if(!this.isSyncActive()) {
 			return;
 		}
 		if(this.player == null) {
@@ -3445,7 +3462,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 666, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 674, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -3765,7 +3782,7 @@ client_players_Iframe.prototype = {
 		var iframe = window.document.createElement("div");
 		iframe.innerHTML = StringTools.trim(data.url);
 		if(this.isValidIframe(iframe)) {
-			callback({ duration : 356400});
+			callback({ duration : 356400, title : "Iframe media"});
 		} else {
 			callback({ duration : 0});
 		}
@@ -3783,13 +3800,22 @@ client_players_Iframe.prototype = {
 	,loadVideo: function(item) {
 		this.removeVideo();
 		this.video = window.document.createElement("div");
-		this.video.innerHTML = item.url;
+		var data = item.url;
+		if(data.indexOf("player.twitch.tv") != -1) {
+			var hostname = $global.location.hostname;
+			data = StringTools.replace(data,"parent=www.example.com","parent=" + hostname);
+			if(!new EReg("[A-z]","").match(hostname)) {
+				client_Main.instance.serverMessage("Twitch player blocks access from ips, please use SyncTube from any domain for it.\nYou can register some on <a href=\"https://nya.pub\" target=\"_blank\">nya.pub</a>.",false);
+			}
+		}
+		this.video.innerHTML = data;
 		if(!this.isValidIframe(this.video)) {
 			this.video = null;
 			return;
 		}
 		if(this.video.firstChild.nodeName == "IFRAME") {
 			this.video.setAttribute("sandbox","allow-scripts");
+			this.video.classList.add("videoplayerIframeParent");
 		}
 		this.video.firstElementChild.id = "videoplayer";
 		this.playerEl.appendChild(this.video);

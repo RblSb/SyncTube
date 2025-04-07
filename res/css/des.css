@@ -456,10 +456,16 @@ header h4 {
   max-height: 80vh;
 }
 
+.videoplayerIframeParent {
+  width: 100%;
+  height: 100%;
+}
+
 iframe#videoplayer {
   width: 100%;
   height: 100%;
   aspect-ratio: 16 / 9;
+  position: unset !important;
 }
 
 @media only screen and (orientation: portrait) {

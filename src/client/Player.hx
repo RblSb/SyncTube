@@ -278,6 +278,7 @@ class Player {
 	public function onPlay():Void {
 		audioTrack?.play();
 		if (!isLoaded) return;
+		if (!isSyncActive()) return;
 		if (videoList.length == 0) return;
 
 		final hasAutoPause = main.hasLeaderOnPauseRequest();
@@ -317,6 +318,7 @@ class Player {
 		audioTrack?.pause();
 
 		if (!isLoaded) return;
+		if (!isSyncActive()) return;
 		final item = videoList.currentItem ?? return;
 		// do not send pause if video is ended
 		if (getTime() >= item.duration - 0.01) return;
@@ -579,8 +581,14 @@ class Player {
 		return player.isVideoLoaded();
 	}
 
+	function isSyncActive():Bool {
+		if (!main.isSyncActive) return false;
+		final item = videoList.currentItem ?? return false;
+		return item.playerType != IframeType;
+	}
+
 	public function play():Void {
-		if (!main.isSyncActive) return;
+		if (!isSyncActive()) return;
 		if (player == null) return;
 		if (!player.isVideoLoaded()) return;
 		player.play();
@@ -593,7 +601,7 @@ class Player {
 	}
 
 	public function pause():Void {
-		if (!main.isSyncActive) return;
+		if (!isSyncActive()) return;
 		if (player == null) return;
 		if (!player.isVideoLoaded()) return;
 		player.pause();
@@ -608,7 +616,7 @@ class Player {
 	}
 
 	public function setTime(time:Float, isLocal = true):Void {
-		if (!main.isSyncActive) return;
+		if (!isSyncActive()) return;
 		if (player == null) return;
 		if (!player.isVideoLoaded()) return;
 		skipSetTime = isLocal;
@@ -624,7 +632,7 @@ class Player {
 	}
 
 	public function setPlaybackRate(rate:Float, isLocal = true):Void {
-		if (!main.isSyncActive) return;
+		if (!isSyncActive()) return;
 		if (player == null) return;
 		if (!player.isVideoLoaded()) return;
 		skipSetRate = isLocal;

@@ -6,6 +6,7 @@ import Types.VideoDataRequest;
 import Types.VideoItem;
 import client.Main.getEl;
 import js.Browser.document;
+import js.Browser;
 import js.html.Element;
 
 class Iframe implements IPlayer {
@@ -31,7 +32,10 @@ class Iframe implements IPlayer {
 		final iframe = document.createDivElement();
 		iframe.innerHTML = data.url.trim();
 		if (isValidIframe(iframe)) {
-			callback({duration: 99 * 60 * 60});
+			callback({
+				duration: 99 * 60 * 60,
+				title: "Iframe media",
+			});
 		} else {
 			callback({duration: 0});
 		}
@@ -46,13 +50,28 @@ class Iframe implements IPlayer {
 	public function loadVideo(item:VideoItem):Void {
 		removeVideo();
 		video = document.createDivElement();
-		video.innerHTML = item.url; // actually data
+		var data = item.url;
+
+		if (data.contains("player.twitch.tv")) {
+			final hostname = Browser.location.hostname;
+			data = data.replace("parent=www.example.com", 'parent=$hostname');
+			if (!~/[A-z]/.match(hostname)) {
+				Main.instance.serverMessage(
+					'Twitch player blocks access from ips, please use SyncTube from any domain for it.
+You can register some on <a href="https://nya.pub" target="_blank">nya.pub</a>.',
+					false
+				);
+			}
+		}
+
+		video.innerHTML = data;
 		if (!isValidIframe(video)) {
 			video = null;
 			return;
 		}
 		if (video.firstChild.nodeName == "IFRAME") {
 			video.setAttribute("sandbox", "allow-scripts");
+			video.classList.add("videoplayerIframeParent");
 		}
 		video.firstElementChild.id = "videoplayer";
 		playerEl.appendChild(video);
