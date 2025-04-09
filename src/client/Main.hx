@@ -65,6 +65,8 @@ class Main {
 	var onBlinkTab:Null<Timer>;
 	var gotFirstPageInteraction = false;
 	var msgBuf = getEl("#messagebuffer");
+	var isPageUnloading = false;
+	var isPageVisible = true;
 
 	static function main():Void {
 		new Main();
@@ -114,6 +116,12 @@ class Main {
 		JsApi.init(this, player);
 
 		document.addEventListener("click", onFirstInteraction);
+		window.addEventListener("beforeunload", () -> isPageUnloading = true);
+		window.addEventListener("blur", () -> isPageVisible = false);
+		window.addEventListener("focus", () -> isPageVisible = true);
+		document.addEventListener("visibilitychange", () -> {
+			isPageVisible = document.visibilityState == VISIBLE;
+		});
 	}
 
 	function onFirstInteraction():Void {
@@ -1463,11 +1471,13 @@ class Main {
 	}
 
 	public function hasLeaderOnPauseRequest():Bool {
-		return config.requestLeaderOnPause;
+		final hasAccess = isPageVisible && !isPageUnloading;
+		return config.requestLeaderOnPause && hasAccess;
 	}
 
 	public function hasUnpauseWithoutLeader():Bool {
-		return config.unpauseWithoutLeader;
+		final hasAccess = isPageVisible && !isPageUnloading;
+		return config.unpauseWithoutLeader && hasAccess;
 	}
 
 	public function getTemplateUrl():String {

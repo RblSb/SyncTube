@@ -1347,6 +1347,8 @@ client_JsApi.fireVideoRemoveEvents = function(item) {
 var client_Main = function() {
 	this.matchSimpleDate = new EReg("^-?([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s?)?$","");
 	this.urlMask = new EReg("\\${([0-9]+)-([0-9]+)}","g");
+	this.isPageVisible = true;
+	this.isPageUnloading = false;
 	this.msgBuf = window.document.querySelector("#messagebuffer");
 	this.gotFirstPageInteraction = false;
 	this.disabledReconnection = false;
@@ -1393,6 +1395,18 @@ var client_Main = function() {
 	});
 	client_JsApi.init(this,this.player);
 	window.document.addEventListener("click",$bind(this,this.onFirstInteraction));
+	window.addEventListener("beforeunload",function() {
+		return _gthis.isPageUnloading = true;
+	});
+	window.addEventListener("blur",function() {
+		return _gthis.isPageVisible = false;
+	});
+	window.addEventListener("focus",function() {
+		return _gthis.isPageVisible = true;
+	});
+	window.document.addEventListener("visibilitychange",function() {
+		return _gthis.isPageVisible = window.document.visibilityState == "visible";
+	});
 };
 client_Main.__name__ = true;
 client_Main.main = function() {
@@ -1730,7 +1744,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 478, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 486, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireEvents(data);
 		switch(data.type) {
@@ -2733,10 +2747,18 @@ client_Main.prototype = {
 		return ClientTools.hasLeader(this.clients);
 	}
 	,hasLeaderOnPauseRequest: function() {
-		return this.config.requestLeaderOnPause;
+		if(this.config.requestLeaderOnPause) {
+			return this.isPageVisible && !this.isPageUnloading;
+		} else {
+			return false;
+		}
 	}
 	,hasUnpauseWithoutLeader: function() {
-		return this.config.unpauseWithoutLeader;
+		if(this.config.unpauseWithoutLeader) {
+			return this.isPageVisible && !this.isPageUnloading;
+		} else {
+			return false;
+		}
 	}
 	,getTemplateUrl: function() {
 		return this.config.templateUrl;
