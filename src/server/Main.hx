@@ -639,7 +639,7 @@ class Main {
 
 			case Message:
 				if (!checkPermission(client, WriteChatPerm)) return;
-				var text = data.message.text;
+				var text = data.message.text.trim();
 				if (text.length == 0) return;
 				if (text.length > config.maxMessageLength) {
 					text = text.substr(0, config.maxMessageLength);

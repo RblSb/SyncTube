@@ -5190,7 +5190,7 @@ server_Main.prototype = {
 			if(!this.checkPermission(client,"writeChat")) {
 				return;
 			}
-			var text = data.message.text;
+			var text = StringTools.trim(data.message.text);
 			if(text.length == 0) {
 				return;
 			}

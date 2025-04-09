@@ -55,7 +55,7 @@ class Player {
 		initItemButtons();
 
 		final resizeObserver = Utils.createResizeObserver(entries -> {
-			if (isLoaded) return;
+			if (isLoaded || videoList.length == 0) return;
 			Buttons.onViewportResize();
 		});
 		if (resizeObserver != null) {
@@ -63,7 +63,7 @@ class Player {
 		} else {
 			final timer = new Timer(50);
 			timer.run = () -> {
-				if (isLoaded) return;
+				if (isLoaded || videoList.length == 0) return;
 				Buttons.onViewportResize();
 			}
 		}

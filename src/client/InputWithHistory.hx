@@ -33,7 +33,7 @@ class InputWithHistory {
 		final key:KeyCode = cast e.keyCode;
 		switch (key) {
 			case Return:
-				final value = element.value;
+				final value = element.value.trim();
 				if (value.length == 0) return;
 				final isAdd = onEnter(value);
 				if (isAdd) pushIfNotLast(history, value);

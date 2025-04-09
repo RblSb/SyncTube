@@ -67,10 +67,11 @@ class Main {
 	var msgBuf = getEl("#messagebuffer");
 
 	static function main():Void {
-		instance = new Main();
+		new Main();
 	}
 
 	function new() {
+		instance = this;
 		haxe.Log.trace = Utils.nativeTrace;
 		player = new Player(this);
 		host = Browser.location.hostname;

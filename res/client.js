@@ -1160,7 +1160,7 @@ client_InputWithHistory.prototype = {
 		var key = e.keyCode;
 		switch(key) {
 		case 13:
-			var value = this.element.value;
+			var value = StringTools.trim(this.element.value);
 			if(value.length == 0) {
 				return;
 			}
@@ -1367,6 +1367,7 @@ var client_Main = function() {
 	this.forceSyncNextTick = false;
 	this.isSyncActive = true;
 	var _gthis = this;
+	client_Main.instance = this;
 	haxe_Log.trace = client_Utils.nativeTrace;
 	this.player = new client_Player(this);
 	this.host = $global.location.hostname;
@@ -1395,7 +1396,7 @@ var client_Main = function() {
 };
 client_Main.__name__ = true;
 client_Main.main = function() {
-	client_Main.instance = new client_Main();
+	new client_Main();
 };
 client_Main.prototype = {
 	onFirstInteraction: function() {
@@ -1729,7 +1730,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 477, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 478, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireEvents(data);
 		switch(data.type) {
@@ -2781,7 +2782,7 @@ var client_Player = function(main) {
 	this.rawPlayer = new client_players_Raw(main,this);
 	this.initItemButtons();
 	var resizeObserver = client_Utils.createResizeObserver(function(entries) {
-		if(_gthis.isLoaded) {
+		if(_gthis.isLoaded || _gthis.videoList.items.length == 0) {
 			return;
 		}
 		client_Buttons.onViewportResize();
@@ -2790,7 +2791,7 @@ var client_Player = function(main) {
 		resizeObserver.observe(this.playerEl);
 	} else {
 		new haxe_Timer(50).run = function() {
-			if(_gthis.isLoaded) {
+			if(_gthis.isLoaded || _gthis.videoList.items.length == 0) {
 				return;
 			}
 			client_Buttons.onViewportResize();
@@ -3751,7 +3752,11 @@ client_Utils.saveFile = function(name,mime,data) {
 	URL.revokeObjectURL(url);
 };
 client_Utils.createResizeObserver = function(callback) {
-	return null;
+	var $window = window;
+	if($window.ResizeObserver == null) {
+		return null;
+	}
+	return new ResizeObserver(callback);
 };
 client_Utils.createAudioContext = function() {
 	var w = window;

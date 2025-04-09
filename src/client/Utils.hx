@@ -202,7 +202,6 @@ class Utils {
 	public static function createResizeObserver(callback:(entries:Array<Dynamic>) -> Void):Null<{
 		observe:(el:Element) -> Void
 	}> {
-		return null;
 		final window = js.Browser.window;
 		final observer = (window : Dynamic).ResizeObserver ?? return null;
 		return js.Syntax.code("new ResizeObserver({0})", callback);
