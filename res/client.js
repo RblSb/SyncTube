@@ -1399,7 +1399,11 @@ var client_Main = function() {
 		return _gthis.isPageUnloading = true;
 	});
 	window.addEventListener("blur",function() {
-		return _gthis.isPageVisible = false;
+		var tmp = window.document.activeElement;
+		if((tmp != null ? tmp.tagName : null) == "IFRAME") {
+			return;
+		}
+		_gthis.isPageVisible = false;
 	});
 	window.addEventListener("focus",function() {
 		return _gthis.isPageVisible = true;
@@ -1744,7 +1748,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 486, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 489, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireEvents(data);
 		switch(data.type) {

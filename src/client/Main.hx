@@ -117,7 +117,10 @@ class Main {
 
 		document.addEventListener("click", onFirstInteraction);
 		window.addEventListener("beforeunload", () -> isPageUnloading = true);
-		window.addEventListener("blur", () -> isPageVisible = false);
+		window.addEventListener("blur", () -> {
+			if (document.activeElement?.tagName == "IFRAME") return;
+			isPageVisible = false;
+		});
 		window.addEventListener("focus", () -> isPageVisible = true);
 		document.addEventListener("visibilitychange", () -> {
 			isPageVisible = document.visibilityState == VISIBLE;
