@@ -41,10 +41,12 @@ class HttpServer {
 		"jpeg" => "image/jpeg",
 		"gif" => "image/gif",
 		"webp" => "image/webp",
+		"avif" => "image/avif",
 		"svg" => "image/svg+xml",
 		"ico" => "image/x-icon",
 		"wav" => "audio/wav",
 		"mp3" => "audio/mpeg",
+		"ogg" => "audio/ogg",
 		"mp4" => "video/mp4",
 		"webm" => "video/webm",
 		"woff" => "application/font-woff",
@@ -371,7 +373,7 @@ class HttpServer {
 		if (Utils.isOutOfRange(start, 0, videoSize - 1)) start = 0;
 		var end = Std.parseInt(ranges[2]);
 		if (end == null) end = start + CHUNK_SIZE;
-		if (Utils.isOutOfRange(end, start, videoSize - 1)) end = videoSize - 1;
+		if (Utils.isOutOfRange(end, start, videoSize - 1)) end = (videoSize - 1).limitMin(0);
 		return {
 			start: start,
 			end: end
@@ -379,7 +381,10 @@ class HttpServer {
 	}
 
 	function isMediaExtension(ext:String):Bool {
-		return ext == "mp4" || ext == "webm" || ext == "mp3" || ext == "wav";
+		return switch ext {
+			case "mp4", "webm", "mp3", "ogg", "wav": true;
+			case _: false;
+		}
 	}
 
 	final matchLang = ~/^[A-z]+/;
@@ -452,7 +457,7 @@ class HttpServer {
 	}
 
 	function getMimeType(ext:String):String {
-		return mimeTypes[ext] ?? return "application/octet-stream";
+		return mimeTypes[ext] ?? "application/octet-stream";
 	}
 
 	final ctrlCharacters = ~/[\u0000-\u001F\u007F-\u009F\u2000-\u200D\uFEFF]/g;

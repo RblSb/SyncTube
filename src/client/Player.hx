@@ -601,7 +601,10 @@ class Player {
 	}
 
 	public function pause():Void {
-		if (!isSyncActive()) return;
+		// allow pausing when removing last video
+		if (videoList.length > 0) {
+			if (!isSyncActive()) return;
+		}
 		if (player == null) return;
 		if (!player.isVideoLoaded()) return;
 		player.pause();

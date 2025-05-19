@@ -54,7 +54,7 @@ or
 ## Optional dependencies
 If you want to enable `Cache on server` feature for Youtube player, you can also run:
 ```shell
-npm i @distube/ytdl-core@latest
+npm i https://github.com/RblSb/ytdlp-nodejs
 ```
 And install `ffmpeg` on your server system, it's only used to build single mp4 from downloaded audio/video tracks. Default cache size is 3.0 GiB.
 

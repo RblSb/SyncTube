@@ -61,37 +61,39 @@ class RawCache {
 	}
 
 	function handleMp4(client:Client, url:String, outName:String, callback:(name:String) -> Void) {
+		final clientName = client.name;
 		downloadFile(client, url, outName, (downloaded, total) -> {
-			main.send(client, {
+			main.sendByName(clientName, {
 				type: Progress,
 				progress: {
 					type: Downloading,
-					ratio: (downloaded / total).clamp(0, 1)
+					ratio: (downloaded / total).clamp(0, 1).toFixed(4)
 				}
 			});
 		}, () -> {
 			cache.add(outName);
 			callback(outName);
 		}, (err) -> {
-			log(client, 'Mp4 download failed: $err');
-			cancelProgress(client);
+			log(clientName, 'Mp4 download failed: $err');
+			cancelProgress(clientName);
 		});
 	}
 
 	function handleM3u8(client:Client, url:String, outName:String, callback:(name:String) -> Void):Void {
+		final clientName = client.name;
 		final useProxy = true;
 		downloadM3u8Playlist(client, url, useProxy, (playlist, totalSize, segments) -> {
 			// only playlist file donwloaded
 			if (useProxy) totalSize = playlist.length;
 
 			if (!cache.removeOlderCache(totalSize + cache.freeSpaceBlock)) {
-				log(client, cache.notEnoughSpaceErrorText);
-				cancelProgress(client);
+				log(clientName, cache.notEnoughSpaceErrorText);
+				cancelProgress(clientName);
 				return;
 			}
 
 			if (useProxy) {
-				main.send(client, {
+				main.sendByName(clientName, {
 					type: Progress,
 					progress: {
 						type: Caching,
@@ -126,7 +128,7 @@ class RawCache {
 							downloaded++;
 
 							final progress = downloaded / segments.length;
-							main.send(client, {
+							main.sendByName(clientName, {
 								type: Progress,
 								progress: {
 									type: Downloading,
@@ -154,8 +156,8 @@ class RawCache {
 						(err) -> {
 							activeDownloads--;
 							downloaded++;
-							log(client, 'TS segment ${segment.i} download failed: $err');
-							cancelProgress(client);
+							log(clientName, 'TS segment ${segment.i} download failed: $err');
+							cancelProgress(clientName);
 							cleanupFiles(segments.map(item -> item.name));
 						}
 					);
@@ -165,8 +167,8 @@ class RawCache {
 			// Start the initial batch of downloads
 			downloadNextBatch();
 		}, (err) -> {
-			log(client, 'M3U8 processing failed: $err');
-			cancelProgress(client);
+			log(clientName, 'M3U8 processing failed: $err');
+			cancelProgress(clientName);
 		});
 	}
 
@@ -327,17 +329,12 @@ class RawCache {
 	}
 
 	function buildTsFiles(tempFiles:Array<String>, outName:String, client:Client, callback:String->Void) {
+		final clientName = client.name;
 		final missingFiles = tempFiles.filter(f ->
 			!FileSystem.exists('${cache.cacheDir}/$f'));
 		if (missingFiles.length > 0) {
-			log(client, 'Concatenation failed: ${missingFiles.length} segments are missing');
-			main.send(client, {
-				type: Progress,
-				progress: {
-					type: Canceled,
-					ratio: 1
-				}
-			});
+			log(clientName, 'Concatenation failed: ${missingFiles.length} segments are missing');
+			cancelProgress(clientName);
 			cleanupFiles(tempFiles);
 			return;
 		}
@@ -378,14 +375,8 @@ class RawCache {
 		final timeout = 5 * 60 * 1000; // 5 minutes
 		final timeoutId = js.Node.setTimeout(() -> {
 			process.kill();
-			log(client, 'FFmpeg process timed out after ${timeout / 1000} seconds');
-			main.send(client, {
-				type: Progress,
-				progress: {
-					type: Canceled,
-					ratio: 1
-				}
-			});
+			log(clientName, 'FFmpeg process timed out after ${timeout / 1000} seconds');
+			cancelProgress(clientName);
 			cleanupFiles(tempFiles.concat([concatFile]));
 		}, timeout);
 
@@ -394,14 +385,13 @@ class RawCache {
 
 			if (code != 0) {
 				final errorMsg = Buffer.concat(errorOutput).toString();
-				log(client, 'FFmpeg concatenation failed with code $code');
-				trace('FFmpeg error output: $errorMsg');
+				cache.logWithAdmins(client, 'FFmpeg concatenation failed with code $code');
+				final ffmpegErr = 'FFmpeg error output: $errorMsg';
+				trace(ffmpegErr);
 
 				// Log detailed error to admins
 				final admins = main.clients.filter(client -> client.isAdmin);
-				for (admin in admins) {
-					log(admin, 'FFmpeg error: $errorMsg');
-				}
+				for (admin in admins) main.serverMessage(admin, ffmpegErr);
 
 				main.send(client, {
 					type: Progress,
@@ -417,7 +407,7 @@ class RawCache {
 					cache.add(outName);
 					callback(outName);
 				} else {
-					log(client, 'FFmpeg process completed but output file is missing or empty');
+					log(clientName, 'FFmpeg process completed but output file is missing or empty');
 					main.send(client, {
 						type: Progress,
 						progress: {
@@ -435,7 +425,7 @@ class RawCache {
 		// Handle process errors (like if FFmpeg isn't found)
 		process.on("error", (err) -> {
 			js.Node.clearTimeout(timeoutId);
-			log(client, 'Failed to start FFmpeg: $err');
+			log(clientName, 'Failed to start FFmpeg: $err');
 			main.send(client, {
 				type: Progress,
 				progress: {
@@ -453,12 +443,12 @@ class RawCache {
 		}
 	}
 
-	function log(client:Client, msg:String):Void {
-		cache.log(client, msg);
+	function log(clientName:String, msg:String):Void {
+		cache.logByName(clientName, msg);
 	}
 
-	function cancelProgress(client:Client):Void {
-		main.send(client, {
+	function cancelProgress(clientName:String):Void {
+		main.sendByName(clientName, {
 			type: Progress,
 			progress: {
 				type: Canceled,

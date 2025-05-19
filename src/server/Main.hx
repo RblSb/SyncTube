@@ -58,7 +58,9 @@ class Main {
 	public final clients:Array<Client> = [];
 
 	final freeIds:Array<Int> = [];
+	#if !display
 	final wsEventParser = new JsonParser<WsEvent>();
+	#end
 	final consoleInput:ConsoleInput;
 	final cache:Cache;
 	final cacheDir:String;
@@ -960,6 +962,7 @@ class Main {
 				serverMessage(client, "Free space: "
 					+ (cache.getFreeSpace() / 1024).toFixed()
 					+ "KiB");
+				serverMessage(client, "Memory usage: " + js.Node.process.memoryUsage());
 				send(client, {
 					type: Dump,
 					dump: {
@@ -1003,6 +1006,11 @@ class Main {
 	}
 
 	public function send(client:Client, data:WsEvent):Void {
+		client.ws.send(jsonStringify(data), null);
+	}
+
+	public function sendByName(clientName:String, data:WsEvent):Void {
+		final client = clients.getByName(clientName) ?? return;
 		client.ws.send(jsonStringify(data), null);
 	}
 

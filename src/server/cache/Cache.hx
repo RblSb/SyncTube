@@ -39,19 +39,37 @@ class Cache {
 		cachedFiles.resize(0);
 		for (name in names) cachedFiles.push(name);
 
+		removeUntrackedFiles();
+	}
+
+	function removeUntrackedFiles():Void {
 		final names = FileSystem.readDirectory(cacheDir);
 		for (name in names) {
 			if (name.startsWith(".")) continue;
 			if (FileSystem.isDirectory('$cacheDir/$name')) continue;
 			if (cachedFiles.contains(name)) continue;
-			trace('Remove non-tracked cache $name');
+			trace('Remove untracked cache $name');
 			remove(name);
 		}
 	}
 
 	public function log(client:Client, msg:String):Void {
-		main.serverMessage(client, msg);
 		trace(msg);
+		main.serverMessage(client, msg);
+	}
+
+	public function logByName(clientName:String, msg:String):Void {
+		trace(msg);
+		final client = main.clients.getByName(clientName) ?? return;
+		main.serverMessage(client, msg);
+	}
+
+	public function logWithAdmins(client:Client, msg:String):Void {
+		log(client, msg);
+		final admins = main.clients.filter(client -> client.isAdmin);
+		for (admin in admins) {
+			if (client != admin) main.serverMessage(admin, msg);
+		}
 	}
 
 	public function cacheYoutubeVideo(client:Client, url:String, callback:(name:String) -> Void) {
@@ -150,6 +168,14 @@ class Cache {
 
 	public function isFileExists(name:String):Bool {
 		return FileSystem.exists(getFilePath(name));
+	}
+
+	public function findFile(callback:(name:String) -> Bool):Null<String> {
+		final names = FileSystem.readDirectory(cacheDir);
+		for (name in names) {
+			if (callback(name)) return name;
+		}
+		return null;
 	}
 
 	public function getFreeSpace():Int {
