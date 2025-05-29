@@ -106,8 +106,16 @@ class Main {
 			});
 			exit();
 		});
-		process.on("unhandledRejection", (reason, promise) -> {
-			logError("unhandledRejection", reason);
+		process.on("unhandledRejection", (err, promise) -> {
+			if (err is js.lib.Error) {
+				final err:js.lib.Error = err;
+				logError("unhandledRejection", {
+					message: err.message,
+					stack: err.stack
+				});
+			} else {
+				logError("unhandledRejection", '$err');
+			}
 			exit();
 		});
 

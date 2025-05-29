@@ -85,21 +85,24 @@ class YoutubeCache {
 
 		function onGetInfo(info:VideoInfo):Void {
 			trace('Get info with ${info.formats.length} formats');
-			var aformats = info.formats.filter(format -> format.vcodec == "none");
+			var aformats = info.formats.filter(f -> f.acodec != "none" && f.vcodec == "none");
 			if (aformats.length == 0) {
-				aformats = info.formats.filter(format -> format.acodec != "none");
+				aformats = info.formats.filter(f -> f.acodec != "none");
 			}
 			aformats.sort((a, b) -> (a?.filesize ?? 0) < (b?.filesize ?? 0) ? 1 : -1);
 			final audioFormat:VideoFormat = aformats[0] ?? {
 				log(clientName, "Error: format with audio not found");
-				for (format in info.formats) trace(format);
+				for (format in aformats) trace(format);
 				return;
 			}
-			final vformats = info.formats.filter(format -> format.vcodec != "none");
+			final vformats = info.formats.filter(f -> {
+				if (f.vcodec == "none") return false;
+				return f.width != null && f.height != null;
+			});
 			vformats.sort((a, b) -> (a?.filesize ?? 0) < (b?.filesize ?? 0) ? 1 : -1);
 			var videoFormat = getBestYoutubeVideoFormat(vformats) ?? {
 				log(clientName, "Error: video format not found");
-				for (format in info.formats) trace(format);
+				for (format in vformats) trace(format);
 				return;
 			}
 			inline function getTotalFormatsSize():Int {
@@ -114,7 +117,7 @@ class YoutubeCache {
 					+ cache.freeSpaceBlock);
 				if (hasSpace) break;
 				// try fallback to worse video quality
-				ignoreQualities.push(Std.int(videoFormat.height ?? 0));
+				ignoreQualities.push(videoFormatResolution(videoFormat));
 				videoFormat = getBestYoutubeVideoFormat(vformats, ignoreQualities) ?? break;
 			}
 			if (!checkEnoughSpace(getTotalFormatsSize() * 2)) return;
@@ -203,16 +206,16 @@ class YoutubeCache {
 		if (ignoreQualities != null) {
 			for (q in ignoreQualities) qPriority.remove(q);
 		}
-		final format60 = findFormat(formats, qPriority, true);
-		return format60 ?? findFormat(formats, qPriority, false);
+		final format60 = findVideoFormat(formats, qPriority, true);
+		return format60 ?? findVideoFormat(formats, qPriority, false);
 	}
 
-	function findFormat(formats:Array<VideoFormat>, qPriority:Array<Int>, is60fps:Bool):Null<VideoFormat> {
+	function findVideoFormat(formats:Array<VideoFormat>, qPriority:Array<Int>, is60fps:Bool):Null<VideoFormat> {
 		for (q in qPriority) {
 			final quality = '${q}p' + (is60fps ? "60" : "");
 			for (format in formats) {
-				final height = format.height ?? continue;
-				if (height > q) continue;
+				final min = videoFormatResolution(format);
+				if (min > q) continue;
 				final format_note = formatVideoQuality(format);
 				if (format_note == quality) return format;
 			}
@@ -220,10 +223,15 @@ class YoutubeCache {
 		return null;
 	}
 
+	function videoFormatResolution(format:VideoFormat):Int {
+		final min = Math.min(format.width, format.height);
+		return Std.int(min);
+	}
+
 	function formatVideoQuality(format:VideoFormat):Null<String> {
-		final height = format.height ?? return null;
+		final resolution = videoFormatResolution(format);
 		// when there is 720p and 720p60 formats
-		return format.format_note ?? '${height}p';
+		return format.format_note ?? '${resolution}p';
 	}
 
 	function log(clientName:String, msg:String):Void {
