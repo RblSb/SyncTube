@@ -189,11 +189,9 @@ class YoutubeCache {
 	}
 
 	function getInfoAsync(url:String, useCookies = false):Promise<VideoInfo> {
-		return ytDlp.execAsync(url, {
-			dumpSingleJson: true,
-			quiet: true,
+		return cast ytDlp.getInfoAsync(url, {
 			cookies: useCookies ? getCookiesPathOrNull() : null,
-		}).then(data -> Json.parse(data));
+		});
 	}
 
 	function getCookiesPathOrNull():Null<String> {

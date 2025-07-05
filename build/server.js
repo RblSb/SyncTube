@@ -6538,9 +6538,7 @@ server_cache_YoutubeCache.prototype = {
 		if(useCookies == null) {
 			useCookies = false;
 		}
-		return this.ytDlp.execAsync(url,{ dumpSingleJson : true, quiet : true, cookies : useCookies ? this.getCookiesPathOrNull() : null}).then(function(data) {
-			return JSON.parse(data);
-		});
+		return this.ytDlp.getInfoAsync(url,{ cookies : useCookies ? this.getCookiesPathOrNull() : null});
 	}
 	,getCookiesPathOrNull: function() {
 		var cookiesPath = "" + this.main.userDir + "/cookies.txt";
