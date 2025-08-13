@@ -4246,6 +4246,9 @@ server_HttpServer.prototype = {
 		}
 	}
 	,localizeHtml: function(data,lang) {
+		if(data.indexOf("<!-- localization-template -->") == -1) {
+			return data;
+		}
 		if(lang != null && this.matchLang.match(lang)) {
 			lang = this.matchLang.matched(0);
 		} else {
@@ -6381,12 +6384,32 @@ server_cache_YoutubeCache.prototype = {
 			while(_g1 < _this.length) {
 				var v = _this[_g1];
 				++_g1;
+				var onGetInfo;
 				if(v.acodec != "none" && v.vcodec == "none") {
+					var tmp = v.format_note;
+					onGetInfo = tmp != null ? tmp.indexOf("original") != -1 : null;
+				} else {
+					onGetInfo = false;
+				}
+				if(onGetInfo) {
 					_g.push(v);
 				}
 			}
 			var aformats = _g;
 			if(_g.length == 0) {
+				var _this = info.formats;
+				var _g = [];
+				var _g1 = 0;
+				while(_g1 < _this.length) {
+					var v = _this[_g1];
+					++_g1;
+					if(v.acodec != "none" && v.vcodec == "none") {
+						_g.push(v);
+					}
+				}
+				aformats = _g;
+			}
+			if(aformats.length == 0) {
 				var _this = info.formats;
 				var _g = [];
 				var _g1 = 0;
@@ -6412,7 +6435,7 @@ server_cache_YoutubeCache.prototype = {
 			if(tmp == null) {
 				_gthis.log(clientName,"Error: format with audio not found");
 				var _g = 0;
-				while(_g < aformats.length) haxe_Log.trace(aformats[_g++],{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 95, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+				while(_g < aformats.length) haxe_Log.trace(aformats[_g++],{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 99, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 				return;
 			}
 			var _this = info.formats;
@@ -6441,7 +6464,7 @@ server_cache_YoutubeCache.prototype = {
 			} else {
 				_gthis.log(clientName,"Error: video format not found");
 				var _g1 = 0;
-				while(_g1 < _g.length) haxe_Log.trace(_g[_g1++],{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 105, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+				while(_g1 < _g.length) haxe_Log.trace(_g[_g1++],{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 109, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 				return;
 			}
 			var ignoreQualities = [];
@@ -6483,7 +6506,7 @@ server_cache_YoutubeCache.prototype = {
 			var a = tmp1 != null ? tmp1 : 0;
 			var audioSizeRatio = (a < 2 ? 2 : a) / totalSize;
 			var isVideoFormatDownloading = true;
-			var dlVideo = _gthis.ytDlp.downloadAsync(url,{ format : videoFormat.format_id == tmp.format_id ? videoFormat.format_id : "" + videoFormat.format_id + "+" + tmp.format_id, output : "" + _gthis.cache.cacheDir + "/" + inVideoName, remuxVideo : "mp4", cookies : useCookies ? _gthis.getCookiesPathOrNull() : null, onProgress : function(p) {
+			var dlVideo = _gthis.ytDlp.downloadAsync(url,{ format : videoFormat.format_id == tmp.format_id ? videoFormat.format_id : "" + videoFormat.format_id + "+" + tmp.format_id, output : "" + _gthis.cache.cacheDir + "/" + inVideoName, remuxVideo : "mp4", cookies : useCookies ? _gthis.getCookiesPathOrNull() : null, forceIpv4 : true, onProgress : function(p) {
 				var isFinished = p.status == "finished";
 				var ratio;
 				if(isFinished) {
@@ -6525,7 +6548,7 @@ server_cache_YoutubeCache.prototype = {
 			});
 		};
 		this.getInfoAsync(url,useCookies).then(onGetInfo).catch(function(err) {
-			haxe_Log.trace(err,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 181, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+			haxe_Log.trace(err,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 186, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 			useCookies = true;
 			return _gthis.getInfoAsync(url,useCookies).then(onGetInfo).catch(function(err) {
 				_gthis.cleanYtInputFiles(inVideoName);

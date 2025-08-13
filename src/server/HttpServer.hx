@@ -391,6 +391,7 @@ class HttpServer {
 	final matchVarString = ~/\${([A-z_]+)}/g;
 
 	function localizeHtml(data:String, lang:String):String {
+		if (!data.contains("<!-- localization-template -->")) return data;
 		if (lang != null && matchLang.match(lang)) {
 			lang = matchLang.matched(0);
 		} else lang = "en";

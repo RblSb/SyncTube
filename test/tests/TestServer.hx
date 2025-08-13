@@ -28,7 +28,7 @@ class TestServer extends Test {
 				Assert.equals("File Приветмир! not found.", data);
 			});
 			request('$url/Ы%ы%00ы!', data -> {
-				Assert.equals("<!DOCTYPE html>", splitLines(data)[0]);
+				Assert.equals("<!DOCTYPE html>", splitLines(data)[1]);
 			});
 			request('$url/video/skins/default.php?dir_inc=/etc/passwd%00', data -> {
 				var line = "File video/skins/default.php not found.";
@@ -36,13 +36,13 @@ class TestServer extends Test {
 				Assert.equals(line, data);
 			});
 			request('$url/%20', data -> {
-				Assert.equals("<!DOCTYPE html>", splitLines(data)[0]);
+				Assert.equals("<!DOCTYPE html>", splitLines(data)[1]);
 			});
 			request('$url/build/../../server.js', data -> {
 				Assert.equals("File server.js not found.", data);
 			});
 			request('$url/?meh', data -> {
-				Assert.equals("<!DOCTYPE html>", splitLines(data)[0]);
+				Assert.equals("<!DOCTYPE html>", splitLines(data)[1]);
 				async.done();
 			});
 		}

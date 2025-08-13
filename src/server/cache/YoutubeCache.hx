@@ -85,7 +85,11 @@ class YoutubeCache {
 
 		function onGetInfo(info:VideoInfo):Void {
 			trace('Get info with ${info.formats.length} formats');
-			var aformats = info.formats.filter(f -> f.acodec != "none" && f.vcodec == "none");
+			var aformats = info.formats.filter(f -> f.acodec != "none"
+				&& f.vcodec == "none" && f.format_note?.contains("original"));
+			if (aformats.length == 0) {
+				aformats = info.formats.filter(f -> f.acodec != "none" && f.vcodec == "none");
+			}
 			if (aformats.length == 0) {
 				aformats = info.formats.filter(f -> f.acodec != "none");
 			}
@@ -136,6 +140,7 @@ class YoutubeCache {
 				output: '${cache.cacheDir}/$inVideoName',
 				remuxVideo: "mp4",
 				cookies: useCookies ? getCookiesPathOrNull() : null,
+				forceIpv4: true,
 				onProgress: p -> {
 					final isFinished = p.status == "finished";
 					var ratio = if (isFinished) {

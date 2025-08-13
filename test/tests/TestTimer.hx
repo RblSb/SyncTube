@@ -27,7 +27,7 @@ class TestTimer extends Test {
 			Assert.equals(false, timer.isPaused());
 			Assert.equals(true, timer.isStarted);
 			timer.stop();
-			Assert.equals(0, timer.getTime());
+			Assert.equals(0.0, timer.getTime());
 			Assert.equals(true, timer.isPaused());
 			Assert.equals(false, timer.isStarted);
 			timer.start();
