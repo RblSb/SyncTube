@@ -141,6 +141,8 @@ class YoutubeCache {
 				remuxVideo: "mp4",
 				cookies: useCookies ? getCookiesPathOrNull() : null,
 				forceIpv4: true,
+				socketTimeout: 2,
+				extractorRetries: 0,
 				onProgress: p -> {
 					final isFinished = p.status == "finished";
 					var ratio = if (isFinished) {

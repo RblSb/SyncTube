@@ -120,6 +120,15 @@ textarea {
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
+code {
+  background: var(--background-chat);
+  border: solid var(--border) 1px;
+  border-radius: .5rem;
+  padding: .25rem;
+  word-break: break-all;
+  display: inline-flex;
+}
+
 input[type="text"]:focus,
 input[type="password"]:focus,
 button:focus,

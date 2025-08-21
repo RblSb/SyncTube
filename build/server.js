@@ -6506,7 +6506,7 @@ server_cache_YoutubeCache.prototype = {
 			var a = tmp1 != null ? tmp1 : 0;
 			var audioSizeRatio = (a < 2 ? 2 : a) / totalSize;
 			var isVideoFormatDownloading = true;
-			var dlVideo = _gthis.ytDlp.downloadAsync(url,{ format : videoFormat.format_id == tmp.format_id ? videoFormat.format_id : "" + videoFormat.format_id + "+" + tmp.format_id, output : "" + _gthis.cache.cacheDir + "/" + inVideoName, remuxVideo : "mp4", cookies : useCookies ? _gthis.getCookiesPathOrNull() : null, forceIpv4 : true, onProgress : function(p) {
+			var dlVideo = _gthis.ytDlp.downloadAsync(url,{ format : videoFormat.format_id == tmp.format_id ? videoFormat.format_id : "" + videoFormat.format_id + "+" + tmp.format_id, output : "" + _gthis.cache.cacheDir + "/" + inVideoName, remuxVideo : "mp4", cookies : useCookies ? _gthis.getCookiesPathOrNull() : null, forceIpv4 : true, socketTimeout : 2, extractorRetries : 0, onProgress : function(p) {
 				var isFinished = p.status == "finished";
 				var ratio;
 				if(isFinished) {
@@ -6548,7 +6548,7 @@ server_cache_YoutubeCache.prototype = {
 			});
 		};
 		this.getInfoAsync(url,useCookies).then(onGetInfo).catch(function(err) {
-			haxe_Log.trace(err,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 186, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+			haxe_Log.trace(err,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 188, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 			useCookies = true;
 			return _gthis.getInfoAsync(url,useCookies).then(onGetInfo).catch(function(err) {
 				_gthis.cleanYtInputFiles(inVideoName);
