@@ -1032,6 +1032,11 @@ class Main {
 						data: json
 					}
 				});
+			case CrashTest:
+				if (!client.isAdmin) return;
+				trace("Crashing...");
+				final arr:Array<Int> = cast null;
+				arr[1]++;
 		}
 	}
 

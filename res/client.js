@@ -1773,6 +1773,8 @@ client_Main.prototype = {
 			this.onConnected(data);
 			this.onTimeGet.run();
 			break;
+		case "CrashTest":
+			break;
 		case "Disconnected":
 			break;
 		case "Dump":
@@ -2594,6 +2596,9 @@ client_Main.prototype = {
 			return true;
 		case "clear":
 			this.send({ type : "ClearChat"});
+			return true;
+		case "crash":
+			this.send({ type : "CrashTest"});
 			return true;
 		case "dump":
 			this.send({ type : "Dump"});

@@ -1846,7 +1846,7 @@ JsonParser_$d8e5213783812cec0906ca233f0379dc.prototype = $extend(json2object_rea
 		this.value = null;
 	}
 	,loadJsonString: function(s,pos,variable) {
-		this.value = this.loadString(s,pos,variable,["Connected","Disconnected","Login","PasswordRequest","LoginError","Logout","Message","ServerMessage","Progress","UpdateClients","BanClient","KickClient","AddVideo","RemoveVideo","SkipVideo","VideoLoaded","Pause","Play","GetTime","SetTime","SetRate","Rewind","Flashback","SetLeader","PlayItem","SetNextItem","ToggleItemType","ClearChat","ClearPlaylist","ShufflePlaylist","UpdatePlaylist","TogglePlaylistLock","Dump"],"Connected");
+		this.value = this.loadString(s,pos,variable,["Connected","Disconnected","Login","PasswordRequest","LoginError","Logout","Message","ServerMessage","Progress","UpdateClients","BanClient","KickClient","AddVideo","RemoveVideo","SkipVideo","VideoLoaded","Pause","Play","GetTime","SetTime","SetRate","Rewind","Flashback","SetLeader","PlayItem","SetNextItem","ToggleItemType","ClearChat","ClearPlaylist","ShufflePlaylist","UpdatePlaylist","TogglePlaylistLock","Dump","CrashTest"],"Connected");
 	}
 	,__class__: JsonParser_$d8e5213783812cec0906ca233f0379dc
 });
@@ -3747,6 +3747,7 @@ server_ConsoleInput.prototype = {
 	initConsoleInput: function() {
 		var _gthis = this;
 		var rl = js_node_Readline.createInterface({ input : process.stdin, output : process.stdout, completer : $bind(this,this.onCompletion)});
+		var originalTrace = haxe_Log.trace;
 		haxe_Log.trace = function(msg,infos) {
 			js_node_Readline.clearLine(process.stdout,0);
 			js_node_Readline.cursorTo(process.stdout,0,null);
@@ -3757,6 +3758,9 @@ server_ConsoleInput.prototype = {
 		rl.on("line",function(line) {
 			_gthis.parseLine(line);
 			rl.prompt();
+		});
+		rl.on("close",function() {
+			return haxe_Log.trace = originalTrace;
 		});
 	}
 	,formatOutput: function(v,infos) {
@@ -3810,7 +3814,7 @@ server_ConsoleInput.prototype = {
 			var name = args[0];
 			var password = args[1];
 			if(this.main.isBadClientName(name)) {
-				haxe_Log.trace(StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.main.config.maxLoginLength),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 113, className : "server.ConsoleInput", methodName : "parseLine"});
+				haxe_Log.trace(StringTools.replace(Lang.get("usernameError"),"$MAX","" + this.main.config.maxLoginLength),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 116, className : "server.ConsoleInput", methodName : "parseLine"});
 				return;
 			}
 			this.main.addAdmin(name,password);
@@ -3831,7 +3835,7 @@ server_ConsoleInput.prototype = {
 				}
 			}
 			var _g1 = 0;
-			while(_g1 < _g.length) haxe_Log.trace(haxe_io_Path.withoutExtension(_g[_g1++]),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 140, className : "server.ConsoleInput", methodName : "parseLine"});
+			while(_g1 < _g.length) haxe_Log.trace(haxe_io_Path.withoutExtension(_g[_g1++]),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 143, className : "server.ConsoleInput", methodName : "parseLine"});
 			break;
 		case "removeAdmin":
 			this.main.removeAdmin(args[0]);
@@ -3840,7 +3844,7 @@ server_ConsoleInput.prototype = {
 			server_Utils.ensureDir(this.main.logsDir);
 			var path = haxe_io_Path.normalize("" + this.main.logsDir + "/" + args[0] + ".json");
 			if(!sys_FileSystem.exists(path)) {
-				haxe_Log.trace("File \"" + path + "\" not found",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 127, className : "server.ConsoleInput", methodName : "parseLine"});
+				haxe_Log.trace("File \"" + path + "\" not found",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 130, className : "server.ConsoleInput", methodName : "parseLine"});
 				return;
 			}
 			var text = js_node_Fs.readFileSync(path,{ encoding : "utf8"});
@@ -3853,7 +3857,7 @@ server_ConsoleInput.prototype = {
 		var len = args.length;
 		var actual = this.commands.h[command].args.length;
 		if(len != actual) {
-			haxe_Log.trace("Wrong count of arguments for command \"" + command + "\" (" + len + " instead of " + actual + ")",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 152, className : "server.ConsoleInput", methodName : "isValidArgs"});
+			haxe_Log.trace("Wrong count of arguments for command \"" + command + "\" (" + len + " instead of " + actual + ")",{ fileName : "src/server/ConsoleInput.hx", lineNumber : 155, className : "server.ConsoleInput", methodName : "isValidArgs"});
 			return false;
 		}
 		return true;
@@ -3883,7 +3887,7 @@ server_ConsoleInput.prototype = {
 			var data = _g.value;
 			list.push("" + StringTools.rpad("/" + _g.key + " " + data.args.join(" ")," ",maxLength) + " | " + data.desc);
 		}
-		haxe_Log.trace("Unknown command \"" + line + "\". List:\n" + list.join("\n"),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 171, className : "server.ConsoleInput", methodName : "printHelp"});
+		haxe_Log.trace("Unknown command \"" + line + "\". List:\n" + list.join("\n"),{ fileName : "src/server/ConsoleInput.hx", lineNumber : 174, className : "server.ConsoleInput", methodName : "printHelp"});
 	}
 	,__class__: server_ConsoleInput
 };
@@ -5100,6 +5104,13 @@ server_Main.prototype = {
 			this.send(client,{ type : "Connected", connected : { uuid : client.uuid, config : this.config, history : this.messages, isUnknownClient : true, clientName : client.name, clients : this.clientList(), videoList : this.videoList.items, isPlaylistOpen : this.videoList.isOpen, itemPos : this.videoList.pos, globalIp : this.globalIp, playersCacheSupport : this.playersCacheSupport}});
 			this.sendClientListExcept(client);
 			break;
+		case "CrashTest":
+			if((client.group & 8) == 0) {
+				return;
+			}
+			haxe_Log.trace("Crashing...",{ fileName : "src/server/Main.hx", lineNumber : 1037, className : "server.Main", methodName : "onMessage"});
+			null[1]++;
+			break;
 		case "Disconnected":
 			if(!internal) {
 				return;
@@ -5595,7 +5606,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1141, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1146, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;
@@ -5923,6 +5934,7 @@ var server_cache_Cache = function(main,cacheDir) {
 	this.isYtReady = this.youtubeCache.checkYtDeps();
 	if(this.isYtReady) {
 		this.youtubeCache.cleanYtInputFiles();
+		this.youtubeCache.checkUpdate();
 	}
 };
 server_cache_Cache.__name__ = true;
@@ -5951,16 +5963,16 @@ server_cache_Cache.prototype = {
 			if(this.cachedFiles.indexOf(name) != -1) {
 				continue;
 			}
-			haxe_Log.trace("Remove untracked cache " + name,{ fileName : "src/server/cache/Cache.hx", lineNumber : 51, className : "server.cache.Cache", methodName : "removeUntrackedFiles"});
+			haxe_Log.trace("Remove untracked cache " + name,{ fileName : "src/server/cache/Cache.hx", lineNumber : 54, className : "server.cache.Cache", methodName : "removeUntrackedFiles"});
 			this.remove(name);
 		}
 	}
 	,log: function(client,msg) {
-		haxe_Log.trace(msg,{ fileName : "src/server/cache/Cache.hx", lineNumber : 57, className : "server.cache.Cache", methodName : "log"});
+		haxe_Log.trace(msg,{ fileName : "src/server/cache/Cache.hx", lineNumber : 60, className : "server.cache.Cache", methodName : "log"});
 		this.main.serverMessage(client,msg);
 	}
 	,logByName: function(clientName,msg) {
-		haxe_Log.trace(msg,{ fileName : "src/server/cache/Cache.hx", lineNumber : 62, className : "server.cache.Cache", methodName : "logByName"});
+		haxe_Log.trace(msg,{ fileName : "src/server/cache/Cache.hx", lineNumber : 65, className : "server.cache.Cache", methodName : "logByName"});
 		var tmp = ClientTools.getByName(this.main.clients,clientName);
 		if(tmp == null) {
 			return;
@@ -6015,13 +6027,13 @@ server_cache_Cache.prototype = {
 		var _gthis = this;
 		var tmp = js_node_Fs.statfs;
 		if(tmp == null) {
-			haxe_Log.trace("Warning: no fs.statfs support in current nodejs version (needs v18+)",{ fileName : "src/server/cache/Cache.hx", lineNumber : 101, className : "server.cache.Cache", methodName : "getFreeDiskSpace"});
+			haxe_Log.trace("Warning: no fs.statfs support in current nodejs version (needs v18+)",{ fileName : "src/server/cache/Cache.hx", lineNumber : 104, className : "server.cache.Cache", methodName : "getFreeDiskSpace"});
 			callback(this.storageLimit);
 			return;
 		}
 		tmp("/",function(err,stats) {
 			if(err != null) {
-				haxe_Log.trace(err,{ fileName : "src/server/cache/Cache.hx", lineNumber : 107, className : "server.cache.Cache", methodName : "getFreeDiskSpace"});
+				haxe_Log.trace(err,{ fileName : "src/server/cache/Cache.hx", lineNumber : 110, className : "server.cache.Cache", methodName : "getFreeDiskSpace"});
 				callback(_gthis.storageLimit);
 				return;
 			}
@@ -6402,6 +6414,13 @@ server_cache_YoutubeCache.prototype = {
 			return false;
 		}
 	}
+	,checkUpdate: function() {
+		this.ytDlp.execAsync("-U",{ onData : function(d) {
+			haxe_Log.trace(d,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 35, className : "server.cache.YoutubeCache", methodName : "checkUpdate"});
+		}}).catch(function(e) {
+			haxe_Log.trace(e,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 38, className : "server.cache.YoutubeCache", methodName : "checkUpdate"});
+		});
+	}
 	,cleanYtInputFiles: function(prefix) {
 		if(prefix == null) {
 			prefix = "__tmp";
@@ -6420,7 +6439,7 @@ server_cache_YoutubeCache.prototype = {
 	,cacheYoutubeVideo: function(client,url,callback) {
 		var _gthis = this;
 		if(!this.cache.isYtReady) {
-			haxe_Log.trace("Do `npm i https://github.com/RblSb/ytdlp-nodejs` to use cache feature (you also need to install `ffmpeg` to build mp4 from downloaded audio/video tracks).",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 42, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+			haxe_Log.trace("Do `npm i https://github.com/RblSb/ytdlp-nodejs` to use cache feature (you also need to install `ffmpeg` to build mp4 from downloaded audio/video tracks).",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 52, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 			return;
 		}
 		var clientName = client.name;
@@ -6439,11 +6458,11 @@ server_cache_YoutubeCache.prototype = {
 			this.log(clientName,"Caching " + outName + " already in progress");
 			return;
 		}
-		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 74, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+		haxe_Log.trace("Caching " + url + " to " + outName + "...",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 84, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 		this.main.sendByName(clientName,{ type : "Progress", progress : { type : "Caching", ratio : 0, data : outName}});
 		var useCookies = false;
 		var onGetInfo = function(info) {
-			haxe_Log.trace("Get info with " + info.formats.length + " formats",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 87, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+			haxe_Log.trace("Get info with " + info.formats.length + " formats",{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 97, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 			var _this = info.formats;
 			var _g = [];
 			var _g1 = 0;
@@ -6501,7 +6520,7 @@ server_cache_YoutubeCache.prototype = {
 			if(tmp == null) {
 				_gthis.log(clientName,"Error: format with audio not found");
 				var _g = 0;
-				while(_g < aformats.length) haxe_Log.trace(aformats[_g++],{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 99, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+				while(_g < aformats.length) haxe_Log.trace(aformats[_g++],{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 109, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 				return;
 			}
 			var _this = info.formats;
@@ -6530,7 +6549,7 @@ server_cache_YoutubeCache.prototype = {
 			} else {
 				_gthis.log(clientName,"Error: video format not found");
 				var _g1 = 0;
-				while(_g1 < _g.length) haxe_Log.trace(_g[_g1++],{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 109, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+				while(_g1 < _g.length) haxe_Log.trace(_g[_g1++],{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 119, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 				return;
 			}
 			var ignoreQualities = [];
@@ -6614,7 +6633,7 @@ server_cache_YoutubeCache.prototype = {
 			});
 		};
 		this.getInfoAsync(url,useCookies).then(onGetInfo).catch(function(err) {
-			haxe_Log.trace(err,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 188, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
+			haxe_Log.trace(err,{ fileName : "src/server/cache/YoutubeCache.hx", lineNumber : 198, className : "server.cache.YoutubeCache", methodName : "cacheYoutubeVideo"});
 			useCookies = true;
 			return _gthis.getInfoAsync(url,useCookies).then(onGetInfo).catch(function(err) {
 				_gthis.cleanYtInputFiles(inVideoName);

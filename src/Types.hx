@@ -296,4 +296,5 @@ enum abstract WsEventType(String) {
 	var UpdatePlaylist;
 	var TogglePlaylistLock;
 	var Dump;
+	var CrashTest;
 }

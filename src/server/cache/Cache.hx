@@ -28,7 +28,10 @@ class Cache {
 		youtubeCache = new YoutubeCache(main, this);
 		rawCache = new RawCache(main, this);
 		isYtReady = youtubeCache.checkYtDeps();
-		if (isYtReady) youtubeCache.cleanYtInputFiles();
+		if (isYtReady) {
+			youtubeCache.cleanYtInputFiles();
+			youtubeCache.checkUpdate();
+		}
 	}
 
 	public function getCachedFiles():Array<String> {

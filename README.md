@@ -83,6 +83,7 @@ It just works, but you can also check [user/ folder](/user/README.md) for server
 - `/unban Foo` (`/removeBan`) - Unban user `Foo`
 - `/kick Foo` - Force `Foo` disconnection until page reload
 - `/dump` - Download state dump to report issues
+- `/crash` - Crash server if you need to test your auto-restart solution
 
 ## Plugins
 - [octosubs](https://github.com/RblSb/SyncTube-octosubs) - More colorful `ASS`/`SSA` subtitles support

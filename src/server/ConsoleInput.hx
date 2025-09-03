@@ -57,6 +57,7 @@ class ConsoleInput {
 			output: process.stdout,
 			completer: onCompletion
 		});
+		final originalTrace = haxe.Log.trace;
 		haxe.Log.trace = (msg:Dynamic, ?infos:haxe.PosInfos) -> {
 			Readline.clearLine(process.stdout, 0);
 			Readline.cursorTo(process.stdout, 0, null);
@@ -68,7 +69,9 @@ class ConsoleInput {
 			parseLine(line);
 			rl.prompt();
 		});
-		// rl.on("close", exit);
+		rl.on("close", () -> {
+			haxe.Log.trace = originalTrace;
+		});
 	}
 
 	function formatOutput(v:Dynamic, infos:haxe.PosInfos):String {

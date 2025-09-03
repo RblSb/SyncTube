@@ -697,6 +697,8 @@ class Main {
 
 			case Dump:
 				Utils.saveFile("dump.json", ApplicationJson, data.dump.data);
+
+			case CrashTest:
 		}
 	}
 
@@ -1343,6 +1345,9 @@ class Main {
 				return true;
 			case "dump":
 				send({type: Dump});
+				return true;
+			case "crash":
+				send({type: CrashTest});
 				return true;
 		}
 		if (matchSimpleDate.match(command)) {

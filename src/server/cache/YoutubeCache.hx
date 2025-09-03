@@ -29,6 +29,16 @@ class YoutubeCache {
 		}
 	}
 
+	public function checkUpdate():Void {
+		ytDlp.execAsync("-U", {
+			onData: d -> {
+				trace(d);
+			}
+		}).catchError(e -> {
+			trace(e);
+		});
+	}
+
 	public function cleanYtInputFiles(prefix = "__tmp"):Void {
 		final names = FileSystem.readDirectory(cache.cacheDir);
 		for (name in names) {
