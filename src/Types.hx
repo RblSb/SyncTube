@@ -42,6 +42,8 @@ typedef Config = {
 	localAdmins:Bool,
 	allowProxyIps:Bool,
 	localNetworkOnly:Bool,
+	sslKeyPemPath:String,
+	sslCertPemPath:String,
 	templateUrl:String,
 	youtubeApiKey:String,
 	youtubePlaylistLimit:Int,

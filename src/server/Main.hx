@@ -16,6 +16,7 @@ import js.Node.__dirname;
 import js.Node.process;
 import js.node.Crypto;
 import js.node.Http;
+import js.node.Https;
 import js.node.http.IncomingMessage;
 import js.node.url.URL;
 import js.npm.ws.Server as WSServer;
@@ -159,8 +160,25 @@ class Main {
 		preparePort();
 	}
 
+	function isDefaultPort():Bool {
+		return port == 80 || port == 443;
+	}
+
+	function getPort(protocol:String):Int {
+		if (!isDefaultPort()) return port;
+		return switch protocol {
+			case "https": 443;
+			case "http", _: 80;
+		}
+	}
+
 	function runServer():Void {
-		trace('Local: http://$localIp:$port');
+		final ssl = getSslConfig(config);
+		final protocol = ssl == null ? "http" : "https";
+		final port = getPort(protocol);
+		final colonPort = isDefaultPort() ? "" : ':$port';
+
+		trace('Local: $protocol://$localIp$colonPort');
 		if (config.localNetworkOnly) {
 			trace("Global network is disabled in config");
 		} else {
@@ -168,7 +186,7 @@ class Main {
 				final isIp6 = ip.contains(":");
 				if (isIp6) ip = '[$ip]';
 				globalIp = ip;
-				trace('Global: http://$globalIp:$port');
+				trace('Global: $protocol://$globalIp$colonPort');
 			});
 		}
 
@@ -181,10 +199,26 @@ class Main {
 		});
 		Lang.init('$dir/langs');
 
-		final server = Http.createServer((req, res) -> {
-			httpServer.serveFiles(req, res);
-		});
-		wss = new WSServer({server: server});
+		final server = if (ssl == null) {
+			Http.createServer(httpServer.serveFiles);
+		} else {
+			if (isDefaultPort()) {
+				try {
+					final redirectHttpServer = Http.createServer((req, res) -> {
+						final host = req.headers["host"] ?? "";
+						final location = 'https://$host${req.url}';
+						res.writeHead(302, {"location": location});
+						res.end();
+					});
+					redirectHttpServer.listen(80);
+				} catch (e) {
+					trace("Cannot run http server on port 80 for https redirects:", e);
+				}
+			}
+
+			Https.createServer({key: ssl.key, cert: ssl.cert}, httpServer.serveFiles);
+		}
+		wss = new WSServer({server: cast server});
 		wss.on("connection", onConnect);
 		if (config.localNetworkOnly) server.listen(port, localIp, onServerInited);
 		else server.listen(port, onServerInited);
@@ -199,6 +233,27 @@ class Main {
 				client.ws.terminate();
 			}
 		};
+	}
+
+	function getSslConfig(config:Config):Null<{key:String, cert:String}> {
+		final c = config;
+		if (c.sslKeyPemPath.length == 0 && c.sslCertPemPath.length == 0) return null;
+		final hasBoth = FileSystem.exists(c.sslKeyPemPath)
+			&& FileSystem.exists(c.sslCertPemPath);
+		if (hasBoth) {
+			final key = File.getContent(c.sslKeyPemPath);
+			final cert = File.getContent(c.sslCertPemPath);
+			return {
+				key: key,
+				cert: cert
+			}
+		}
+
+		if (!FileSystem.exists(c.sslKeyPemPath))
+			trace('sslKeyPemPath: absolute file path not found: ${c.sslKeyPemPath}');
+		if (!FileSystem.exists(c.sslCertPemPath))
+			trace('sslCertPemPath: absolute file path not found: ${c.sslCertPemPath}');
+		return null;
 	}
 
 	dynamic function onServerInited():Void {};

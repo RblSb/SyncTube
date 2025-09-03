@@ -90,12 +90,16 @@ class HttpServer {
 		res.setHeader("accept-ranges", "bytes");
 		res.setHeader("content-type", getMimeType(ext));
 
-		if (cache != null && req.method == "POST") {
+		if (req.method == "POST") {
+			if (cache != null) {
+				switch url.pathname {
+					case "/upload-last-chunk":
+						uploadFileLastChunk(req, res);
+					case "/upload":
+						uploadFile(req, res);
+				}
+			}
 			switch url.pathname {
-				case "/upload-last-chunk":
-					uploadFileLastChunk(req, res);
-				case "/upload":
-					uploadFile(req, res);
 				case "/setup":
 					finishSetup(req, res);
 			}
