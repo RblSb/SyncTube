@@ -212,9 +212,11 @@ class Youtube implements IPlayer {
 			return;
 		}
 		if (youtube != null) {
+			isLoaded = false;
 			youtube.loadVideoById({
 				videoId: extractVideoId(item.url)
 			});
+			if (main.lastState.paused) youtube.pauseVideo();
 			return;
 		}
 		isLoaded = false;
@@ -234,8 +236,8 @@ class Youtube implements IPlayer {
 			events: {
 				onReady: e -> {
 					if (!main.isAutoplayAllowed()) e.target.mute();
-					isLoaded = true;
 					if (main.lastState.paused) youtube.pauseVideo();
+					isLoaded = true;
 					player.onCanBePlayed();
 				},
 				onStateChange: e -> {
@@ -243,8 +245,16 @@ class Youtube implements IPlayer {
 						case UNSTARTED:
 						case ENDED:
 						case PLAYING:
+							if (!isLoaded) {
+								isLoaded = true;
+								player.onCanBePlayed();
+							}
 							player.onPlay();
 						case PAUSED:
+							if (!isLoaded) {
+								isLoaded = true;
+								player.onCanBePlayed();
+							}
 							player.onPause();
 						case BUFFERING:
 							player.onSetTime();

@@ -5196,7 +5196,7 @@ server_Main.prototype = {
 				},1000);
 				return;
 			}
-			var obj = { type : "GetTime", getTime : { time : this.videoTimer.getTime()}};
+			var obj = { type : "GetTime", getTime : { time : tools_MathTools.toFixed(this.videoTimer.getTime())}};
 			if(this.videoTimer.isPaused()) {
 				obj.getTime.paused = true;
 			}

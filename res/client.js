@@ -2801,7 +2801,7 @@ var client_Player = function(main) {
 	this.voiceOverInput = window.document.querySelector("#voiceoverurl");
 	this.skipSetRate = false;
 	this.skipSetTime = false;
-	this.isLoaded = false;
+	this.canBePlayedSent = false;
 	this.playerEl = window.document.querySelector("#ytapiplayer");
 	this.videoItemsEl = window.document.querySelector("#queue");
 	this.videoList = new VideoList();
@@ -2813,7 +2813,7 @@ var client_Player = function(main) {
 	this.rawPlayer = new client_players_Raw(main,this);
 	this.initItemButtons();
 	var resizeObserver = client_Utils.createResizeObserver(function(entries) {
-		if(_gthis.isLoaded || _gthis.videoList.items.length == 0) {
+		if(_gthis.isVideoLoaded() || _gthis.videoList.items.length == 0) {
 			return;
 		}
 		client_Buttons.onViewportResize();
@@ -2822,7 +2822,7 @@ var client_Player = function(main) {
 		resizeObserver.observe(this.playerEl);
 	} else {
 		new haxe_Timer(50).run = function() {
-			if(_gthis.isLoaded || _gthis.videoList.items.length == 0) {
+			if(_gthis.isVideoLoaded() || _gthis.videoList.items.length == 0) {
 				return;
 			}
 			client_Buttons.onViewportResize();
@@ -2944,7 +2944,7 @@ client_Player.prototype = {
 		this.removeActiveLabel(this.videoList.pos);
 		this.videoList.setPos(i);
 		this.addActiveLabel(this.videoList.pos);
-		this.isLoaded = false;
+		this.canBePlayedSent = false;
 		if(this.main.isVideoEnabled) {
 			this.player.loadVideo(item);
 			this.setExternalAudioTrack(item);
@@ -3039,10 +3039,10 @@ client_Player.prototype = {
 		el2.style.display = tmp;
 	}
 	,onCanBePlayed: function() {
-		if(!this.isLoaded) {
+		if(!this.canBePlayedSent) {
 			this.main.send({ type : "VideoLoaded"});
 		}
-		this.isLoaded = true;
+		this.canBePlayedSent = true;
 		client_Buttons.onViewportResize();
 	}
 	,onPlay: function() {
@@ -3050,7 +3050,7 @@ client_Player.prototype = {
 		if(tmp != null) {
 			tmp.play();
 		}
-		if(!this.isLoaded) {
+		if(!this.isVideoLoaded()) {
 			return;
 		}
 		if(!this.isSyncActive()) {
@@ -3089,7 +3089,7 @@ client_Player.prototype = {
 		if(tmp != null) {
 			tmp.pause();
 		}
-		if(!this.isLoaded) {
+		if(!this.isVideoLoaded()) {
 			return;
 		}
 		if(!this.isSyncActive()) {
@@ -3103,7 +3103,7 @@ client_Player.prototype = {
 		if(this.getTime() >= tmp.duration - 0.01) {
 			return;
 		}
-		var hasAutoPause = this.main.hasLeaderOnPauseRequest() && this.videoList.items.length > 0 && this.getTime() > 1 && this.isLoaded;
+		var hasAutoPause = this.main.hasLeaderOnPauseRequest() && this.videoList.items.length > 0 && this.getTime() > 1;
 		if(this.main.showingServerPause) {
 			hasAutoPause = false;
 		}
@@ -3496,7 +3496,7 @@ client_Player.prototype = {
 			}
 		};
 		http.onError = function(msg) {
-			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 677, className : "client.Player", methodName : "skipAd"});
+			haxe_Log.trace(msg,{ fileName : "src/client/Player.hx", lineNumber : 675, className : "client.Player", methodName : "skipAd"});
 		};
 		http.request();
 	}
@@ -5012,7 +5012,11 @@ client_players_Youtube.prototype = {
 			return;
 		}
 		if(this.youtube != null) {
+			this.isLoaded = false;
 			this.youtube.loadVideoById({ videoId : this.extractVideoId(item.url)});
+			if(this.main.lastState.paused) {
+				this.youtube.pauseVideo();
+			}
 			return;
 		}
 		this.isLoaded = false;
@@ -5023,10 +5027,10 @@ client_players_Youtube.prototype = {
 			if(!_gthis.main.isAutoplayAllowed()) {
 				e.target.mute();
 			}
-			_gthis.isLoaded = true;
 			if(_gthis.main.lastState.paused) {
 				_gthis.youtube.pauseVideo();
 			}
+			_gthis.isLoaded = true;
 			_gthis.player.onCanBePlayed();
 		}, onStateChange : function(e) {
 			switch(e.data) {
@@ -5035,9 +5039,17 @@ client_players_Youtube.prototype = {
 			case 0:
 				break;
 			case 1:
+				if(!_gthis.isLoaded) {
+					_gthis.isLoaded = true;
+					_gthis.player.onCanBePlayed();
+				}
 				_gthis.player.onPlay();
 				break;
 			case 2:
+				if(!_gthis.isLoaded) {
+					_gthis.isLoaded = true;
+					_gthis.player.onCanBePlayed();
+				}
 				_gthis.player.onPause();
 				break;
 			case 3:
@@ -5049,7 +5061,7 @@ client_players_Youtube.prototype = {
 		}, onPlaybackRateChange : function(e) {
 			_gthis.player.onRateChange();
 		}, onError : function(e) {
-			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 259, className : "client.players.Youtube", methodName : "loadVideo"});
+			haxe_Log.trace("Error " + e.data,{ fileName : "src/client/players/Youtube.hx", lineNumber : 269, className : "client.players.Youtube", methodName : "loadVideo"});
 		}}});
 	}
 	,removeVideo: function() {

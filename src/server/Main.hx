@@ -848,7 +848,7 @@ class Main {
 				final obj:WsEvent = {
 					type: GetTime,
 					getTime: {
-						time: videoTimer.getTime()
+						time: videoTimer.getTime().toFixed()
 					}
 				};
 				if (videoTimer.isPaused()) obj.getTime.paused = true;

@@ -28,7 +28,7 @@ class Player {
 	final videoItemsEl = getEl("#queue");
 	final playerEl = getEl("#ytapiplayer");
 	var player:Null<IPlayer>;
-	var isLoaded = false;
+	var canBePlayedSent = false;
 	var skipSetTime = false;
 	var skipSetRate = false;
 
@@ -55,7 +55,7 @@ class Player {
 		initItemButtons();
 
 		final resizeObserver = Utils.createResizeObserver(entries -> {
-			if (isLoaded || videoList.length == 0) return;
+			if (isVideoLoaded() || videoList.length == 0) return;
 			Buttons.onViewportResize();
 		});
 		if (resizeObserver != null) {
@@ -63,7 +63,7 @@ class Player {
 		} else {
 			final timer = new Timer(50);
 			timer.run = () -> {
-				if (isLoaded || videoList.length == 0) return;
+				if (isVideoLoaded() || videoList.length == 0) return;
 				Buttons.onViewportResize();
 			}
 		}
@@ -189,7 +189,7 @@ class Player {
 		videoList.setPos(i);
 		addActiveLabel(videoList.pos);
 
-		isLoaded = false;
+		canBePlayedSent = false;
 		if (main.isVideoEnabled) {
 			player.loadVideo(item);
 			setExternalAudioTrack(item);
@@ -270,14 +270,14 @@ class Player {
 	}
 
 	public function onCanBePlayed():Void {
-		if (!isLoaded) main.send({type: VideoLoaded});
-		isLoaded = true;
+		if (!canBePlayedSent) main.send({type: VideoLoaded});
+		canBePlayedSent = true;
 		Buttons.onViewportResize();
 	}
 
 	public function onPlay():Void {
 		audioTrack?.play();
-		if (!isLoaded) return;
+		if (!isVideoLoaded()) return;
 		if (!isSyncActive()) return;
 		if (videoList.length == 0) return;
 
@@ -317,15 +317,13 @@ class Player {
 	public function onPause():Void {
 		audioTrack?.pause();
 
-		if (!isLoaded) return;
+		if (!isVideoLoaded()) return;
 		if (!isSyncActive()) return;
 		final item = videoList.currentItem ?? return;
 		// do not send pause if video is ended
 		if (getTime() >= item.duration - 0.01) return;
-		var hasAutoPause = main.hasLeaderOnPauseRequest()
-			&& videoList.length > 0
-			&& getTime() > 1
-			&& isLoaded;
+		var hasAutoPause = main.hasLeaderOnPauseRequest() && videoList.length > 0
+			&& getTime() > 1;
 		// do not set leader on pause if user tried to play server-paused video
 		if (main.showingServerPause) hasAutoPause = false;
 		// set leader and pause
