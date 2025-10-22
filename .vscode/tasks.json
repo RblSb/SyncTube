@@ -19,12 +19,7 @@
 			},
 			"presentation": {
 				"clear": true
-			},
-			"dependsOn": "Clear terminal"
-		},
-		{
-			"label": "Clear terminal",
-			"command": "${command:workbench.action.terminal.clear}",
+			}
 		},
 		{
 			"label": "Run tests",

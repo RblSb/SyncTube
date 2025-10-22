@@ -1,15 +1,13 @@
 --library hxnodejs
---library hxnodejs-ws
+--library hxnodejs-ws:git:https://github.com/haxe-externs/hxnodejs-ws.git
 --library json2object:git:https://github.com/RblSb/json2object.git#nightly_safe_macros
---library ytdlp-nodejs:git:https://github.com/RblSb/ytdlp-nodejs-externs.git
+--library ytdlp-nodejs:git:https://github.com/haxe-externs/ytdlp-nodejs-externs.git
 # Client libs for completion
---library youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
+--library youtubeIFramePlayer:git:https://github.com/haxe-externs/youtubeIFramePlayer-externs.git
 --library hls.js-extern:git:https://github.com/zoldesi-andor/hls.js-haxe-extern.git
 --library utest
 --class-path src
 --main server.Main
 -D analyzer-optimize
-# -w -WDeprecatedEnumAbstract
--w -WDeprecated
 --dce full
 --js build/server.js

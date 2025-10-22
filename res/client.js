@@ -815,58 +815,8 @@ client_Buttons.init = function(main) {
 		mediaUrl.focus();
 	};
 	window.document.querySelector("#mediaurl-upload").onclick = function(e) {
-		client_Utils.browseFile(function(buffer,name) {
-			if(name == null) {
-				name = "";
-			}
-			var _this_r = new RegExp("[?#%/\\\\]","g".split("u").join(""));
-			name = StringTools.trim(name.replace(_this_r,""));
-			if(name.length == 0) {
-				name = "video";
-			}
-			name = window.encodeURIComponent(name);
-			var a = buffer.byteLength - 5242880;
-			var lastChunk = buffer.slice(a < 0 ? 0 : a);
-			var chunkReq = window.fetch("/upload-last-chunk",{ method : "POST", headers : { "content-name" : name}, body : lastChunk});
-			chunkReq.then(function(e) {
-				return e.json().then(function(data) {
-					if(data.errorId != null) {
-						main.serverMessage(data.info,true,false);
-						return;
-					}
-					window.document.querySelector("#mediaurl").value = data.url;
-				});
-			});
-			var request = new XMLHttpRequest();
-			request.open("POST","/upload",true);
-			request.setRequestHeader("content-name",name);
-			request.upload.onprogress = function(event) {
-				var ratio = 0.0;
-				if(event.lengthComputable) {
-					var v = event.loaded / event.total;
-					ratio = v < 0 ? 0 : v > 1 ? 1 : v;
-				}
-				main.onProgressEvent({ type : "Progress", progress : { type : "Uploading", ratio : ratio}});
-			};
-			request.onload = function(e) {
-				var data;
-				try {
-					data = JSON.parse(request.responseText);
-				} catch( _g ) {
-					haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/Buttons.hx", lineNumber : 316, className : "client.Buttons", methodName : "init"});
-					return;
-				}
-				if(data.errorId == null) {
-					return;
-				}
-				main.serverMessage(data.info,true,false);
-			};
-			request.onloadend = function() {
-				return haxe_Timer.delay(function() {
-					main.hideDynamicChin();
-				},500);
-			};
-			request.send(new Blob([buffer]));
+		client_Utils.browseJsFile(function(file) {
+			new client_FileUploader(main).uploadFile(file);
 		});
 	};
 	var showOptions = window.document.querySelector("#showoptions");
@@ -1135,6 +1085,72 @@ client_Buttons.initPageFullscreen = function() {
 			el.classList.remove("mobile-view");
 		}
 	};
+};
+var client_FileUploader = function(main) {
+	this.main = main;
+};
+client_FileUploader.__name__ = true;
+client_FileUploader.prototype = {
+	uploadFile: function(file) {
+		var _gthis = this;
+		var _this_r = new RegExp("[?#%/\\\\]","g".split("u").join(""));
+		var name = StringTools.trim(file.name.replace(_this_r,""));
+		if(name.length == 0) {
+			name = "video";
+		}
+		name = window.encodeURIComponent(name);
+		this.uploadLastChunk(file,name,function(data) {
+			if(data.errorId != null) {
+				_gthis.main.serverMessage(data.info,true,false);
+				return;
+			}
+			window.document.querySelector("#mediaurl").value = data.url;
+			_gthis.uploadFullFile(name,file);
+		});
+	}
+	,uploadFullFile: function(name,file) {
+		var _gthis = this;
+		var request = new XMLHttpRequest();
+		request.open("POST","/upload",true);
+		request.setRequestHeader("content-name",name);
+		request.upload.onprogress = function(event) {
+			var ratio = 0.0;
+			if(event.lengthComputable) {
+				var v = event.loaded / event.total;
+				ratio = v < 0 ? 0 : v > 1 ? 1 : v;
+			}
+			_gthis.main.onProgressEvent({ type : "Progress", progress : { type : "Uploading", ratio : ratio}});
+		};
+		request.onload = function(e) {
+			var data;
+			try {
+				data = JSON.parse(request.responseText);
+			} catch( _g ) {
+				haxe_Log.trace(haxe_Exception.caught(_g),{ fileName : "src/client/FileUploader.hx", lineNumber : 61, className : "client.FileUploader", methodName : "uploadFullFile"});
+				return;
+			}
+			if(data.errorId == null) {
+				return;
+			}
+			_gthis.main.serverMessage(data.info,true,false);
+		};
+		request.onloadend = function() {
+			return haxe_Timer.delay(function() {
+				_gthis.main.hideDynamicChin();
+			},500);
+		};
+		request.send(file);
+	}
+	,uploadLastChunk: function(file,name,callback) {
+		var a = file.size - 5242880;
+		var lastChunk = file.slice(a < 0 ? 0 : a);
+		var chunkReq = window.fetch("/upload-last-chunk",{ method : "POST", headers : { "content-name" : name}, body : lastChunk});
+		chunkReq.then(function(e) {
+			return e.json().then(function(data) {
+				callback(data);
+			});
+		});
+	}
 };
 var client_InputWithHistory = function(element,history,maxItems,onEnter) {
 	this.historyId = -1;
@@ -3721,9 +3737,6 @@ client_Utils.copyToClipboard = function(text) {
 client_Utils.matchedNum = function(ereg) {
 	return ereg.r.m.length;
 };
-client_Utils.browseFile = function(onFileLoad) {
-	client_Utils.browseFileImpl(onFileLoad,true,false);
-};
 client_Utils.browseFileUrl = function(onFileLoad,revoke) {
 	if(revoke == null) {
 		revoke = false;
@@ -3766,6 +3779,25 @@ client_Utils.browseFileImpl = function(onFileLoad,isBinary,revokeAfterLoad) {
 			return window.document.body.removeChild(input);
 		};
 		reader.readAsArrayBuffer(file);
+	};
+	window.document.body.appendChild(input);
+	input.click();
+};
+client_Utils.browseJsFile = function(onFileSelected) {
+	var input = window.document.createElement("input");
+	input.style.visibility = "hidden";
+	input.type = "file";
+	input.id = "browse";
+	input.onclick = function(e) {
+		e.cancelBubble = true;
+		return e.stopPropagation();
+	};
+	input.onchange = function(e) {
+		var tmp = input.files[0];
+		if(tmp == null) {
+			return;
+		}
+		onFileSelected(tmp);
 	};
 	window.document.body.appendChild(input);
 	input.click();
@@ -5879,14 +5911,6 @@ js_Browser.createXMLHttpRequest = function() {
 };
 var js_hlsjs_HlsConfig = function() { };
 js_hlsjs_HlsConfig.__name__ = true;
-var js_lib__$ArrayBuffer_ArrayBufferCompat = function() { };
-js_lib__$ArrayBuffer_ArrayBufferCompat.__name__ = true;
-js_lib__$ArrayBuffer_ArrayBufferCompat.sliceImpl = function(begin,end) {
-	var u = new Uint8Array(this,begin,end == null ? null : end - begin);
-	var resultArray = new Uint8Array(u.byteLength);
-	resultArray.set(u);
-	return resultArray.buffer;
-};
 var js_youtube_Youtube = function() { };
 js_youtube_Youtube.__name__ = true;
 js_youtube_Youtube.init = function(onAPIReady) {
@@ -5947,9 +5971,6 @@ String.__name__ = true;
 Array.__name__ = true;
 Date.__name__ = "Date";
 js_Boot.__toStr = ({ }).toString;
-if(ArrayBuffer.prototype.slice == null) {
-	ArrayBuffer.prototype.slice = js_lib__$ArrayBuffer_ArrayBufferCompat.sliceImpl;
-}
 Lang.langs = new haxe_ds_StringMap();
 Lang.ids = ["en","ru"];
 Lang.lang = HxOverrides.substr($global.navigator.language,0,2).toLowerCase();

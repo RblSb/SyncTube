@@ -1,8 +1,7 @@
---library youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
+--library youtubeIFramePlayer:git:https://github.com/haxe-externs/youtubeIFramePlayer-externs.git
 --library hls.js-extern:git:https://github.com/zoldesi-andor/hls.js-haxe-extern.git
 --class-path src
 --main client.Main
 -D analyzer-optimize
--w -WDeprecatedEnumAbstract
 --dce full
 --js res/client.js

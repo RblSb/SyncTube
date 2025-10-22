@@ -5,8 +5,10 @@
 			"request": "launch",
 			"name": "Node: build and run",
 			"program": "${workspaceFolder}/build/server.js",
-			"args": ["--verbose"],
-			"sourceMaps": true,
+			"runtimeExecutable": "node",
+			"args": [
+				// "--verbose"
+			],
 			"preLaunchTask": "Build all",
 			"killBehavior": "polite",
 			"console": "integratedTerminal"

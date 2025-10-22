@@ -1,15 +1,14 @@
 --library hxnodejs
 --library hxnodejs-ws
 --library json2object:git:https://github.com/RblSb/json2object.git#nightly_safe_macros
---library ytdlp-nodejs:git:https://github.com/RblSb/ytdlp-nodejs-externs.git
+--library ytdlp-nodejs:git:https://github.com/haxe-externs/ytdlp-nodejs-externs.git
 # Client libs for completion
---library youtubeIFramePlayer:git:https://github.com/okawa-h/youtubeIFramePlayer-externs.git
+--library youtubeIFramePlayer:git:https://github.com/haxe-externs/youtubeIFramePlayer-externs.git
 --library hls.js-extern:git:https://github.com/zoldesi-andor/hls.js-haxe-extern.git
 --library utest
 --class-path src
 --class-path test
 --main Main
--w -WDeprecated
 # -D UTEST_PATTERN=testMain
 --js build/tests.js
 --cmd node build/tests.js

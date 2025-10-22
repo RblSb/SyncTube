@@ -6,6 +6,7 @@ import js.Browser.navigator;
 import js.Browser.window;
 import js.html.Blob;
 import js.html.Element;
+import js.html.File;
 import js.html.FileReader;
 import js.html.URL;
 import js.html.audio.AudioContext;
@@ -176,6 +177,26 @@ class Utils {
 				document.body.removeChild(input);
 			}
 			reader.readAsArrayBuffer(file);
+		}
+		document.body.appendChild(input);
+		input.click();
+	}
+
+	/** Don't extract data for bigger files. **/
+	public static function browseJsFile(
+		onFileSelected:(file:File) -> Void
+	):Void {
+		final input = document.createInputElement();
+		input.style.visibility = "hidden";
+		input.type = "file";
+		input.id = "browse";
+		input.onclick = e -> {
+			e.cancelBubble = true;
+			e.stopPropagation();
+		}
+		input.onchange = e -> {
+			final file = input.files[0] ?? return;
+			onFileSelected(file);
 		}
 		document.body.appendChild(input);
 		input.click();
