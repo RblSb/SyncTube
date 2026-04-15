@@ -223,8 +223,9 @@ class YoutubeCache {
 	}
 
 	function getInfoAsync(url:String, useCookies = false):Promise<VideoInfo> {
-		return cast ytDlp.getInfoAsync(url, {
+		return cast ytDlp.getInfoAsync(url, cast {
 			cookies: useCookies ? getCookiesPathOrNull() : null,
+			additionalOptions: ["--no-js-runtimes", "--js-runtimes", main.config.ytDlp.jsRuntime],
 		});
 	}
 
