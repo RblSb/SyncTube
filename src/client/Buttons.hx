@@ -27,7 +27,7 @@ class Buttons {
 
 		for (item in settings.checkboxes) {
 			if (item.checked == null) continue;
-			final checkbox:InputElement = getEl('#${item.id}') ?? continue;
+			final checkbox = (getEl('#${item.id}') : InputElement) ?? continue;
 			checkbox.checked = item.checked;
 		}
 

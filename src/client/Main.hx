@@ -1518,7 +1518,7 @@ class Main {
 	}
 
 	@:generic
-	public static inline function getEl<T:Element>(id:String):T {
+	public static inline function getEl<T:Element>(id:String):Null<T> {
 		return cast document.querySelector(id);
 	}
 }
