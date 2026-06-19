@@ -948,18 +948,25 @@ footer#footer {
   margin-left: .5rem;
 }
 
-#guestpass_icon:hover {
+#guestpass_icon:hover,
+#sso_btn:hover {
   cursor: pointer;
 }
 
-#passwordbox {
+#passwordbox,
+#guestnamebox {
   display: flex;
   flex-direction: row;
 }
 
-#guestpass {
+#guestpass,
+#guestnamebox #guestname {
   flex-grow: 2;
   width: 2rem;
+}
+
+#sso_btn {
+  margin-left: .5rem;
 }
 
 /*

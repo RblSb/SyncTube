@@ -40,6 +40,19 @@ typedef ServerConfig = Config & {
 	ytDlp:{
 		channel:String, jsRuntime:String,
 	},
+	?oidc:OidcConfig,
+}
+
+typedef OidcConfig = {
+	enabled:Bool,
+	issuer:String,
+	clientId:String,
+	clientSecret:String,
+	?redirectUri:String,
+	?scopes:String,
+	?usernameClaim:String,
+	?groupClaim:String,
+	?adminValues:Array<String>,
 }
 
 typedef Config = {
@@ -59,6 +72,7 @@ typedef Config = {
 	filters:Array<Filter>,
 	?serverVersion:Int,
 	?isVerbose:Bool,
+	?isOidcEnabled:Bool,
 	?salt:String
 }
 

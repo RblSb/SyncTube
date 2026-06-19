@@ -28,6 +28,17 @@
 		"channel": "stable",
 		"jsRuntime": "node"
 	},
+	"oidc": {
+		"enabled": false,
+		"issuer": "",
+		"clientId": "",
+		"clientSecret": "",
+		"redirectUri": "",
+		"scopes": "openid profile",
+		"usernameClaim": "",
+		"groupClaim": "",
+		"adminValues": []
+	},
 	"emotes": [
 		{"name": ":adorable:", "image": "https://i.imgur.com/5GxNwDY.png"},
 		{"name": ":angry:", "image": "https://i.imgur.com/Mx9lhMZ.png"},

@@ -833,7 +833,9 @@ client_Buttons.init = function(main) {
 	};
 	window.document.querySelector("#exitBtn").onclick = function(e) {
 		showOptions.onclick();
-		if((main.personal.group & 2) != 0) {
+		if(main.isOidcSession) {
+			window.location.href = "/auth/logout";
+		} else if((main.personal.group & 2) != 0) {
 			main.send({ type : "Logout"});
 		} else {
 			window.document.querySelector("#guestname").focus();
@@ -1000,6 +1002,9 @@ client_Buttons.initChatInputs = function(main) {
 				guestName.blur();
 			}
 		}
+	};
+	window.document.querySelector("#sso_btn").onclick = function(e) {
+		return window.location.href = "/auth/login";
 	};
 	var guestPass = window.document.querySelector("#guestpass");
 	guestPass.onkeydown = function(e) {
@@ -1377,6 +1382,7 @@ var client_Main = function() {
 	this.lastStateTimeStamp = 0.0;
 	this.lastState = { time : 0, rate : 1.0, paused : false, pausedByServer : false};
 	this.timeFromLastState = 0.0;
+	this.isOidcSession = false;
 	this.showingServerPause = false;
 	this.playersCacheSupport = [];
 	this.isPlaylistOpen = true;
@@ -1764,7 +1770,7 @@ client_Main.prototype = {
 		var data = JSON.parse(e.data);
 		if(this.config != null && this.config.isVerbose) {
 			var t = data.type;
-			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 489, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
+			haxe_Log.trace("Event: " + data.type,{ fileName : "src/client/Main.hx", lineNumber : 490, className : "client.Main", methodName : "onMessage", customParams : [Reflect.field(data,t.charAt(0).toLowerCase() + HxOverrides.substr(t,1,null))]});
 		}
 		client_JsApi.fireEvents(data);
 		switch(data.type) {
@@ -2054,19 +2060,22 @@ client_Main.prototype = {
 			this.updateClients(connected.clients);
 			this.personal = ClientTools.getByName(this.clients,connected.clientName,this.personal);
 			this.showGuestLoginPanel();
+			var guestName = window.document.querySelector("#guestname");
+			var name = this.settings.name;
+			if(name.length == 0) {
+				name = guestName.value;
+			}
+			var hash = this.settings.hash;
+			if(hash.length > 0) {
+				this.loginRequest(name,hash);
+			} else {
+				this.guestLogin(name);
+			}
 		} else {
+			if(this.config.isOidcEnabled == true) {
+				this.isOidcSession = true;
+			}
 			this.onLogin(connected.clients,connected.clientName);
-		}
-		var guestName = window.document.querySelector("#guestname");
-		var name = this.settings.name;
-		if(name.length == 0) {
-			name = guestName.value;
-		}
-		var hash = this.settings.hash;
-		if(hash.length > 0) {
-			this.loginRequest(name,hash);
-		} else {
-			this.guestLogin(name);
 		}
 		this.setLeaderButton((this.personal.group & 4) != 0);
 		this.setPlaylistLock(connected.isPlaylistOpen);
@@ -2206,6 +2215,8 @@ client_Main.prototype = {
 			config.unpauseWithoutLeader = false;
 		}
 		this.pageTitle = config.channelName;
+		var tmp = config.isOidcEnabled == true ? "" : "none";
+		window.document.querySelector("#sso_btn").style.display = tmp;
 		window.document.querySelector("#guestname").maxLength = config.maxLoginLength;
 		window.document.querySelector("#chatline").maxLength = config.maxMessageLength;
 		this.filters.length = 0;

@@ -2110,7 +2110,7 @@ JsonParser_$fa535ffb25e1fd20341652f9be21e06e.__name__ = true;
 JsonParser_$fa535ffb25e1fd20341652f9be21e06e.__super__ = json2object_reader_BaseParser;
 JsonParser_$fa535ffb25e1fd20341652f9be21e06e.prototype = $extend(json2object_reader_BaseParser.prototype,{
 	onIncorrectType: function(pos,variable) {
-		this.errors.push(json2object_Error.IncorrectType(variable,"{ youtubePlaylistLimit : Int, youtubeApiKey : String, userVideoLimit : Int, unpauseWithoutLeader : Bool, totalVideoLimit : Int, templateUrl : String, ?serverVersion : Null<Int>, ?salt : Null<String>, requestLeaderOnPause : Bool, port : Int, permissions : Permissions, maxMessageLength : Int, maxLoginLength : Int, ?isVerbose : Null<Bool>, filters : Array<Filter>, emotes : Array<Emote>, channelName : String }",pos));
+		this.errors.push(json2object_Error.IncorrectType(variable,"{ youtubePlaylistLimit : Int, youtubeApiKey : String, userVideoLimit : Int, unpauseWithoutLeader : Bool, totalVideoLimit : Int, templateUrl : String, ?serverVersion : Null<Int>, ?salt : Null<String>, requestLeaderOnPause : Bool, port : Int, permissions : Permissions, maxMessageLength : Int, maxLoginLength : Int, ?isVerbose : Null<Bool>, ?isOidcEnabled : Null<Bool>, filters : Array<Filter>, emotes : Array<Emote>, channelName : String }",pos));
 		json2object_reader_BaseParser.prototype.onIncorrectType.call(this,pos,variable);
 	}
 	,loadJsonNull: function(pos,variable) {
@@ -2118,7 +2118,7 @@ JsonParser_$fa535ffb25e1fd20341652f9be21e06e.prototype = $extend(json2object_rea
 	}
 	,loadJsonObject: function(o,pos,variable) {
 		var assigned = new haxe_ds_StringMap();
-		this.objectSetupAssign(assigned,["channelName","emotes","filters","isVerbose","maxLoginLength","maxMessageLength","permissions","port","requestLeaderOnPause","salt","serverVersion","templateUrl","totalVideoLimit","unpauseWithoutLeader","userVideoLimit","youtubeApiKey","youtubePlaylistLimit"],[false,false,false,true,false,false,false,false,false,true,true,false,false,false,false,false,false]);
+		this.objectSetupAssign(assigned,["channelName","emotes","filters","isOidcEnabled","isVerbose","maxLoginLength","maxMessageLength","permissions","port","requestLeaderOnPause","salt","serverVersion","templateUrl","totalVideoLimit","unpauseWithoutLeader","userVideoLimit","youtubeApiKey","youtubePlaylistLimit"],[false,false,false,true,true,false,false,false,false,false,true,true,false,false,false,false,false,false]);
 		this.value = this.getAuto();
 		var _g = 0;
 		while(_g < o.length) {
@@ -2133,6 +2133,9 @@ JsonParser_$fa535ffb25e1fd20341652f9be21e06e.prototype = $extend(json2object_rea
 				break;
 			case "filters":
 				this.value.filters = this.loadObjectField(($_=new JsonParser_$4152afa9599cfde83ddff5d84d1707c8(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"filters",assigned,this.value.filters,pos);
+				break;
+			case "isOidcEnabled":
+				this.value.isOidcEnabled = this.loadObjectField(($_=new JsonParser_$f55acea3678203c700715b781ad1ef0c(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"isOidcEnabled",assigned,this.value.isOidcEnabled,pos);
 				break;
 			case "isVerbose":
 				this.value.isVerbose = this.loadObjectField(($_=new JsonParser_$f55acea3678203c700715b781ad1ef0c(this.errors,this.putils,1),$bind($_,$_.loadJson)),field,"isVerbose",assigned,this.value.isVerbose,pos);
@@ -2183,7 +2186,7 @@ JsonParser_$fa535ffb25e1fd20341652f9be21e06e.prototype = $extend(json2object_rea
 		this.objectErrors(assigned,pos);
 	}
 	,getAuto: function() {
-		return { channelName : new JsonParser_$27118326006d3829667a400ad23d5d98([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), emotes : new JsonParser_$b228e2c506a1d2b95c8332e07c38b0f2([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), filters : new JsonParser_$4152afa9599cfde83ddff5d84d1707c8([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), isVerbose : new JsonParser_$f55acea3678203c700715b781ad1ef0c([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), maxLoginLength : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), maxMessageLength : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), permissions : new JsonParser_$d08ccf52b4cdd08e41cfb99ec42e0b29([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), port : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), requestLeaderOnPause : new JsonParser_$c26f15e86e3de4c398a8273272aba034([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), salt : new JsonParser_$ddce6d3de223cb2759be5c48797abca5([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), serverVersion : new JsonParser_$fce7124f52c7d8d1f8ed39d333573e17([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), templateUrl : new JsonParser_$27118326006d3829667a400ad23d5d98([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), totalVideoLimit : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), unpauseWithoutLeader : new JsonParser_$c26f15e86e3de4c398a8273272aba034([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), userVideoLimit : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), youtubeApiKey : new JsonParser_$27118326006d3829667a400ad23d5d98([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), youtubePlaylistLimit : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1)))};
+		return { channelName : new JsonParser_$27118326006d3829667a400ad23d5d98([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), emotes : new JsonParser_$b228e2c506a1d2b95c8332e07c38b0f2([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), filters : new JsonParser_$4152afa9599cfde83ddff5d84d1707c8([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), isOidcEnabled : new JsonParser_$f55acea3678203c700715b781ad1ef0c([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), isVerbose : new JsonParser_$f55acea3678203c700715b781ad1ef0c([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), maxLoginLength : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), maxMessageLength : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), permissions : new JsonParser_$d08ccf52b4cdd08e41cfb99ec42e0b29([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), port : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), requestLeaderOnPause : new JsonParser_$c26f15e86e3de4c398a8273272aba034([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), salt : new JsonParser_$ddce6d3de223cb2759be5c48797abca5([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), serverVersion : new JsonParser_$fce7124f52c7d8d1f8ed39d333573e17([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), templateUrl : new JsonParser_$27118326006d3829667a400ad23d5d98([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), totalVideoLimit : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), unpauseWithoutLeader : new JsonParser_$c26f15e86e3de4c398a8273272aba034([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), userVideoLimit : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), youtubeApiKey : new JsonParser_$27118326006d3829667a400ad23d5d98([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1))), youtubePlaylistLimit : new JsonParser_$1686a6c336b71b36d77354cea19a8b52([],this.putils,0).loadJson(new hxjsonast_Json(hxjsonast_JsonValue.JNull,new hxjsonast_Position("",0,1)))};
 	}
 	,__class__: JsonParser_$fa535ffb25e1fd20341652f9be21e06e
 });
@@ -2408,6 +2411,52 @@ StringBuf.prototype = {
 };
 var StringTools = function() { };
 StringTools.__name__ = true;
+StringTools.htmlEscape = function(s,quotes) {
+	var buf_b = "";
+	var _g_offset = 0;
+	var _g_s = s;
+	while(_g_offset < _g_s.length) {
+		var s = _g_s;
+		var index = _g_offset++;
+		var c = s.charCodeAt(index);
+		if(c >= 55296 && c <= 56319) {
+			c = c - 55232 << 10 | s.charCodeAt(index + 1) & 1023;
+		}
+		var c1 = c;
+		if(c1 >= 65536) {
+			++_g_offset;
+		}
+		var code = c1;
+		switch(code) {
+		case 34:
+			if(quotes) {
+				buf_b += "&quot;";
+			} else {
+				buf_b += String.fromCodePoint(code);
+			}
+			break;
+		case 38:
+			buf_b += "&amp;";
+			break;
+		case 39:
+			if(quotes) {
+				buf_b += "&#039;";
+			} else {
+				buf_b += String.fromCodePoint(code);
+			}
+			break;
+		case 60:
+			buf_b += "&lt;";
+			break;
+		case 62:
+			buf_b += "&gt;";
+			break;
+		default:
+			buf_b += String.fromCodePoint(code);
+		}
+	}
+	return buf_b;
+};
 StringTools.startsWith = function(s,start) {
 	if(s.length >= start.length) {
 		return s.lastIndexOf(start,0) == 0;
@@ -3947,6 +3996,19 @@ server_HttpServer.prototype = {
 		var ext = haxe_io_Path.extension(filePath).toLowerCase();
 		res.setHeader("accept-ranges","bytes");
 		res.setHeader("content-type",this.getMimeType(ext));
+		if(this.main.oidc != null) {
+			switch(url.pathname) {
+			case "/auth/callback":
+				this.main.oidc.handleCallback(req,res);
+				return;
+			case "/auth/login":
+				this.main.oidc.beginLogin(req,res);
+				return;
+			case "/auth/logout":
+				this.main.oidc.logout(req,res);
+				return;
+			}
+		}
 		if(req.method == "POST") {
 			if(this.cache != null) {
 				switch(url.pathname) {
@@ -4104,7 +4166,7 @@ server_HttpServer.prototype = {
 			}
 		});
 		stream.on("error",function(err) {
-			haxe_Log.trace(err,{ fileName : "src/server/HttpServer.hx", lineNumber : 231, className : "server.HttpServer", methodName : "uploadFile"});
+			haxe_Log.trace(err,{ fileName : "src/server/HttpServer.hx", lineNumber : 245, className : "server.HttpServer", methodName : "uploadFile"});
 			tools_HttpServerTools.json(tools_HttpServerTools.status(res,500),{ info : "File write stream error."});
 			var _this = _gthis.uploadingFilesSizes;
 			if(Object.prototype.hasOwnProperty.call(_this.h,filePath)) {
@@ -4117,7 +4179,7 @@ server_HttpServer.prototype = {
 			_gthis.cache.remove(name);
 		});
 		req.on("error",function(err) {
-			haxe_Log.trace("Request Error:",{ fileName : "src/server/HttpServer.hx", lineNumber : 238, className : "server.HttpServer", methodName : "uploadFile", customParams : [err]});
+			haxe_Log.trace("Request Error:",{ fileName : "src/server/HttpServer.hx", lineNumber : 252, className : "server.HttpServer", methodName : "uploadFile", customParams : [err]});
 			stream.destroy();
 			tools_HttpServerTools.json(tools_HttpServerTools.status(res,500),{ info : "File request error."});
 			var _this = _gthis.uploadingFilesSizes;
@@ -4146,7 +4208,7 @@ server_HttpServer.prototype = {
 			var jsonParser = new JsonParser_$f3c29c0813c93ee49a61ccf072b8a177();
 			var jsonData = jsonParser.fromJson(body);
 			if(jsonParser.errors.length > 0) {
-				haxe_Log.trace(json2object_ErrorUtils.convertErrorArray(jsonParser.errors),{ fileName : "src/server/HttpServer.hx", lineNumber : 264, className : "server.HttpServer", methodName : "finishSetup"});
+				haxe_Log.trace(json2object_ErrorUtils.convertErrorArray(jsonParser.errors),{ fileName : "src/server/HttpServer.hx", lineNumber : 278, className : "server.HttpServer", methodName : "finishSetup"});
 				tools_HttpServerTools.json(tools_HttpServerTools.status(res,400),{ success : false, errors : []});
 				return;
 			}
@@ -4504,6 +4566,11 @@ var server_Main = function(opts) {
 	this.config.isVerbose = this.verbose;
 	this.userList = this.loadUsers();
 	this.config.salt = this.generateConfigSalt(this.userList);
+	var oidcConfig = this.config.oidc;
+	if(oidcConfig != null && oidcConfig.enabled) {
+		this.oidc = new server_Oidc(oidcConfig,{ maxLoginLength : this.config.maxLoginLength, isHttps : this.getSslConfig(this.config) != null});
+	}
+	this.config.isOidcEnabled = this.oidc != null;
 	this.logger = new server_Logger(this.logsDir,10,this.verbose);
 	this.consoleInput = new server_ConsoleInput(this);
 	this.consoleInput.initConsoleInput();
@@ -4537,7 +4604,7 @@ var server_Main = function(opts) {
 	preparePort = function() {
 		server_Utils.isPortFree(_gthis.port,function(isFree) {
 			if(!isFree && attempts > 0) {
-				haxe_Log.trace("Warning: port " + _gthis.port + " is already in use. Changed to " + (_gthis.port + 1),{ fileName : "src/server/Main.hx", lineNumber : 157, className : "server.Main", methodName : "new"});
+				haxe_Log.trace("Warning: port " + _gthis.port + " is already in use. Changed to " + (_gthis.port + 1),{ fileName : "src/server/Main.hx", lineNumber : 167, className : "server.Main", methodName : "new"});
 				attempts -= 1;
 				_gthis.port++;
 				preparePort();
@@ -4588,16 +4655,16 @@ server_Main.prototype = {
 		var protocol = ssl == null ? "http" : "https";
 		var port = this.getPort(protocol);
 		var colonPort = this.isDefaultPort() ? "" : ":" + port;
-		haxe_Log.trace("Local: " + protocol + "://" + this.localIp + colonPort,{ fileName : "src/server/Main.hx", lineNumber : 187, className : "server.Main", methodName : "runServer"});
+		haxe_Log.trace("Local: " + protocol + "://" + this.localIp + colonPort,{ fileName : "src/server/Main.hx", lineNumber : 197, className : "server.Main", methodName : "runServer"});
 		if(this.config.localNetworkOnly) {
-			haxe_Log.trace("Global network is disabled in config",{ fileName : "src/server/Main.hx", lineNumber : 189, className : "server.Main", methodName : "runServer"});
+			haxe_Log.trace("Global network is disabled in config",{ fileName : "src/server/Main.hx", lineNumber : 199, className : "server.Main", methodName : "runServer"});
 		} else if(!this.isNoState) {
 			server_Utils.getGlobalIp(function(ip) {
 				if(ip.indexOf(":") != -1) {
 					ip = "[" + ip + "]";
 				}
 				_gthis.globalIp = ip;
-				haxe_Log.trace("Global: " + protocol + "://" + _gthis.globalIp + colonPort,{ fileName : "src/server/Main.hx", lineNumber : 195, className : "server.Main", methodName : "runServer"});
+				haxe_Log.trace("Global: " + protocol + "://" + _gthis.globalIp + colonPort,{ fileName : "src/server/Main.hx", lineNumber : 205, className : "server.Main", methodName : "runServer"});
 			});
 		}
 		var dir = "" + this.rootDir + "/res";
@@ -4618,7 +4685,7 @@ server_Main.prototype = {
 					redirectHttpServer.listen(80);
 				} catch( _g ) {
 					var _g1 = haxe_Exception.caught(_g);
-					haxe_Log.trace("Cannot run http server on port 80 for https redirects:",{ fileName : "src/server/Main.hx", lineNumber : 221, className : "server.Main", methodName : "runServer", customParams : [_g1]});
+					haxe_Log.trace("Cannot run http server on port 80 for https redirects:",{ fileName : "src/server/Main.hx", lineNumber : 231, className : "server.Main", methodName : "runServer", customParams : [_g1]});
 				}
 			}
 			server = js_node_Https.createServer({ key : ssl.key, cert : ssl.cert},$bind(httpServer,httpServer.serveFiles));
@@ -4655,10 +4722,10 @@ server_Main.prototype = {
 			return { key : key, cert : cert};
 		}
 		if(!sys_FileSystem.exists(config.sslKeyPemPath)) {
-			haxe_Log.trace("sslKeyPemPath: absolute file path not found: " + config.sslKeyPemPath,{ fileName : "src/server/Main.hx", lineNumber : 259, className : "server.Main", methodName : "getSslConfig"});
+			haxe_Log.trace("sslKeyPemPath: absolute file path not found: " + config.sslKeyPemPath,{ fileName : "src/server/Main.hx", lineNumber : 269, className : "server.Main", methodName : "getSslConfig"});
 		}
 		if(!sys_FileSystem.exists(config.sslCertPemPath)) {
-			haxe_Log.trace("sslCertPemPath: absolute file path not found: " + config.sslCertPemPath,{ fileName : "src/server/Main.hx", lineNumber : 261, className : "server.Main", methodName : "getSslConfig"});
+			haxe_Log.trace("sslCertPemPath: absolute file path not found: " + config.sslCertPemPath,{ fileName : "src/server/Main.hx", lineNumber : 271, className : "server.Main", methodName : "getSslConfig"});
 		}
 		return null;
 	}
@@ -4716,7 +4783,7 @@ server_Main.prototype = {
 			var field = _g1[_g];
 			++_g;
 			if(Reflect.field(config,field) == null) {
-				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 307, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: config field \"" + field + "\" is unknown",{ fileName : "src/server/Main.hx", lineNumber : 317, className : "server.Main", methodName : "getUserConfig"});
 			}
 			config[field] = Reflect.field(customConfig,field);
 		}
@@ -4729,14 +4796,14 @@ server_Main.prototype = {
 			var emote = _g1[_g];
 			++_g;
 			if(emoteCopies_h[emote.name]) {
-				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 315, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 325, className : "server.Main", methodName : "getUserConfig"});
 			}
 			emoteCopies_h[emote.name] = true;
 			if(!this.verbose) {
 				continue;
 			}
 			if(emoteCopies_h[emote.image]) {
-				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 319, className : "server.Main", methodName : "getUserConfig"});
+				haxe_Log.trace("Warning: emote url of name \"" + emote.name + "\" has copy",{ fileName : "src/server/Main.hx", lineNumber : 329, className : "server.Main", methodName : "getUserConfig"});
 			}
 			emoteCopies_h[emote.image] = true;
 		}
@@ -4773,7 +4840,7 @@ server_Main.prototype = {
 		js_node_Fs.writeFileSync("" + this.userDir + "/users.json",JSON.stringify({ admins : users1, bans : _g, salt : users.salt},null,"\t"));
 	}
 	,saveState: function() {
-		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 357, className : "server.Main", methodName : "saveState"});
+		haxe_Log.trace("Saving state...",{ fileName : "src/server/Main.hx", lineNumber : 367, className : "server.Main", methodName : "saveState"});
 		var json = JSON.stringify(this.getCurrentState(),null,"\t");
 		js_node_Fs.writeFileSync(this.statePath,json);
 		this.writeUsers(this.userList);
@@ -4788,7 +4855,7 @@ server_Main.prototype = {
 		if(!sys_FileSystem.exists(this.statePath)) {
 			return;
 		}
-		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 381, className : "server.Main", methodName : "loadState"});
+		haxe_Log.trace("Loading state...",{ fileName : "src/server/Main.hx", lineNumber : 391, className : "server.Main", methodName : "loadState"});
 		var state = JSON.parse(js_node_Fs.readFileSync(this.statePath,{ encoding : "utf8"}));
 		state.flashbacks = state.flashbacks != null ? state.flashbacks : [];
 		state.cachedFiles = state.cachedFiles != null ? state.cachedFiles : [];
@@ -4810,7 +4877,7 @@ server_Main.prototype = {
 	}
 	,logError: function(type,data) {
 		this.cache.removeOlderCache(1048576);
-		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 405, className : "server.Main", methodName : "logError", customParams : [data]});
+		haxe_Log.trace(type,{ fileName : "src/server/Main.hx", lineNumber : 415, className : "server.Main", methodName : "logError", customParams : [data]});
 		var crashesFolder = "" + this.userDir + "/crashes";
 		server_Utils.ensureDir(crashesFolder);
 		var name = DateTools.format(new Date(),"%Y-%m-%d_%H_%M_%S") + "-" + type;
@@ -4832,7 +4899,7 @@ server_Main.prototype = {
 			if(_gthis.clients.length == 0) {
 				return;
 			}
-			haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 418, className : "server.Main", methodName : "initIntergationHandlers"});
+			haxe_Log.trace("Ping " + url,{ fileName : "src/server/Main.hx", lineNumber : 428, className : "server.Main", methodName : "initIntergationHandlers"});
 			js_node_Http.get(url,null,function(r) {
 			});
 		};
@@ -4851,13 +4918,13 @@ server_Main.prototype = {
 		password += this.config.salt;
 		var hash = haxe_crypto_Sha256.encode(password);
 		this.userList.admins.push({ name : name, hash : hash});
-		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 439, className : "server.Main", methodName : "addAdmin"});
+		haxe_Log.trace("Admin " + name + " added.",{ fileName : "src/server/Main.hx", lineNumber : 449, className : "server.Main", methodName : "addAdmin"});
 	}
 	,removeAdmin: function(name) {
 		HxOverrides.remove(this.userList.admins,Lambda.find(this.userList.admins,function(item) {
 			return item.name == name;
 		}));
-		haxe_Log.trace("Admin " + name + " removed.",{ fileName : "src/server/Main.hx", lineNumber : 446, className : "server.Main", methodName : "removeAdmin"});
+		haxe_Log.trace("Admin " + name + " removed.",{ fileName : "src/server/Main.hx", lineNumber : 456, className : "server.Main", methodName : "removeAdmin"});
 	}
 	,hasAdmins: function() {
 		return this.userList.admins.length > 0;
@@ -4927,11 +4994,21 @@ server_Main.prototype = {
 		var ip = this.clientIp(req);
 		var id = this.freeIds.length > 0 ? this.freeIds.shift() : this.clients.length;
 		var name = "Guest " + (id + 1);
-		haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 509, className : "server.Main", methodName : "onConnect", customParams : ["" + name + " connected (" + ip + ")"]});
+		haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 519, className : "server.Main", methodName : "onConnect", customParams : ["" + name + " connected (" + ip + ")"]});
 		var isAdmin = this.config.localAdmins && req.socket.localAddress == ip;
 		var client = new Client(ws,req,id,name,0);
 		client.uuid = uuid;
 		client.setGroupFlag(ClientGroup.Admin,isAdmin);
+		if(this.oidc != null) {
+			var session = this.oidc.resolveSession(req);
+			if(session != null) {
+				client.name = this.uniqueLoginName(session.name);
+				client.setGroupFlag(ClientGroup.User,true);
+				if(session.isAdmin) {
+					client.setGroupFlag(ClientGroup.Admin,true);
+				}
+			}
+		}
 		this.clients.push(client);
 		ws.on("pong",function() {
 			return client.isAlive = true;
@@ -4941,7 +5018,7 @@ server_Main.prototype = {
 			var obj = _gthis.wsEventParser.fromJson(data.toString());
 			if(_gthis.wsEventParser.errors.length > 0 || _gthis.noTypeObj(obj)) {
 				var errors = "" + ("Wrong request for type \"" + obj.type + "\":") + "\n" + json2object_ErrorUtils.convertErrorArray(_gthis.wsEventParser.errors);
-				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 526, className : "server.Main", methodName : "onConnect"});
+				haxe_Log.trace(errors,{ fileName : "src/server/Main.hx", lineNumber : 544, className : "server.Main", methodName : "onConnect"});
 				_gthis.serverMessage(client,errors);
 				return;
 			}
@@ -5129,21 +5206,21 @@ server_Main.prototype = {
 				}
 			}
 			this.checkBan(client);
-			this.send(client,{ type : "Connected", connected : { uuid : client.uuid, config : { channelName : this.config.channelName, emotes : this.config.emotes, filters : this.config.filters, isVerbose : this.config.isVerbose, maxLoginLength : this.config.maxLoginLength, maxMessageLength : this.config.maxMessageLength, permissions : this.config.permissions, port : this.config.port, requestLeaderOnPause : this.config.requestLeaderOnPause, salt : this.config.salt, serverVersion : this.config.serverVersion, templateUrl : this.config.templateUrl, totalVideoLimit : this.config.totalVideoLimit, unpauseWithoutLeader : this.config.unpauseWithoutLeader, userVideoLimit : this.config.userVideoLimit, youtubeApiKey : this.config.youtubeApiKey, youtubePlaylistLimit : this.config.youtubePlaylistLimit}, history : this.messages, isUnknownClient : true, clientName : client.name, clients : this.clientList(), videoList : this.videoList.items, isPlaylistOpen : this.videoList.isOpen, itemPos : this.videoList.pos, globalIp : this.globalIp, playersCacheSupport : this.playersCacheSupport}});
+			this.send(client,{ type : "Connected", connected : { uuid : client.uuid, config : { channelName : this.config.channelName, emotes : this.config.emotes, filters : this.config.filters, isOidcEnabled : this.config.isOidcEnabled, isVerbose : this.config.isVerbose, maxLoginLength : this.config.maxLoginLength, maxMessageLength : this.config.maxMessageLength, permissions : this.config.permissions, port : this.config.port, requestLeaderOnPause : this.config.requestLeaderOnPause, salt : this.config.salt, serverVersion : this.config.serverVersion, templateUrl : this.config.templateUrl, totalVideoLimit : this.config.totalVideoLimit, unpauseWithoutLeader : this.config.unpauseWithoutLeader, userVideoLimit : this.config.userVideoLimit, youtubeApiKey : this.config.youtubeApiKey, youtubePlaylistLimit : this.config.youtubePlaylistLimit}, history : this.messages, isUnknownClient : (client.group & 2) == 0, clientName : client.name, clients : this.clientList(), videoList : this.videoList.items, isPlaylistOpen : this.videoList.isOpen, itemPos : this.videoList.pos, globalIp : this.globalIp, playersCacheSupport : this.playersCacheSupport}});
 			this.sendClientListExcept(client);
 			break;
 		case "CrashTest":
 			if((client.group & 8) == 0) {
 				return;
 			}
-			haxe_Log.trace("Crashing...",{ fileName : "src/server/Main.hx", lineNumber : 1046, className : "server.Main", methodName : "onMessage"});
+			haxe_Log.trace("Crashing...",{ fileName : "src/server/Main.hx", lineNumber : 1064, className : "server.Main", methodName : "onMessage"});
 			null[1]++;
 			break;
 		case "Disconnected":
 			if(!internal) {
 				return;
 			}
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 591, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " disconnected"]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 609, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " disconnected"]});
 			server_Utils.sortedPush(this.freeIds,client.id);
 			HxOverrides.remove(this.clients,client);
 			this.sendClientList();
@@ -5284,7 +5361,7 @@ server_Main.prototype = {
 				this.send(client,{ type : "LoginError"});
 				return;
 			}
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 682, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " logged as " + name]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 700, className : "server.Main", methodName : "onMessage", customParams : ["Client " + client.name + " logged as " + name]});
 			client.name = name;
 			client.setGroupFlag(ClientGroup.User,true);
 			this.checkBan(client);
@@ -5297,7 +5374,7 @@ server_Main.prototype = {
 			var oldName = client.name;
 			client.name = "Guest " + (this.clients.indexOf(client) + 1);
 			client.setGroupFlag(ClientGroup.User,false);
-			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 703, className : "server.Main", methodName : "onMessage", customParams : ["Client " + oldName + " logout to " + client.name]});
+			haxe_Log.trace(HxOverrides.dateStr(new Date()),{ fileName : "src/server/Main.hx", lineNumber : 721, className : "server.Main", methodName : "onMessage", customParams : ["Client " + oldName + " logout to " + client.name]});
 			this.send(client,{ type : data.type, logout : { oldClientName : oldName, clientName : client.name, clients : this.clientList()}});
 			this.sendClientListExcept(client);
 			break;
@@ -5634,7 +5711,7 @@ server_Main.prototype = {
 			client.setGroupFlag(ClientGroup.Banned,!isOutdated);
 			if(isOutdated) {
 				HxOverrides.remove(this.userList.bans,ban);
-				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1155, className : "server.Main", methodName : "checkBan"});
+				haxe_Log.trace("" + client.name + " ban removed",{ fileName : "src/server/Main.hx", lineNumber : 1173, className : "server.Main", methodName : "checkBan"});
 				this.sendClientList();
 			}
 			break;
@@ -5659,6 +5736,27 @@ server_Main.prototype = {
 			return true;
 		}
 		return false;
+	}
+	,uniqueLoginName: function(desired) {
+		var base = StringTools.trim(desired);
+		if(base.length == 0 || this.matchGuestName.match(base.toLowerCase())) {
+			base = "User";
+		}
+		if(base.length > this.config.maxLoginLength) {
+			base = HxOverrides.substr(base,0,this.config.maxLoginLength);
+		}
+		if(!this.isBadClientName(base.toLowerCase())) {
+			return base;
+		}
+		var n = 1;
+		while(true) {
+			var suffix = " (" + ++n + ")";
+			var maxBase = this.config.maxLoginLength - suffix.length;
+			var candidate = (base.length > maxBase ? HxOverrides.substr(base,0,maxBase) : base) + suffix;
+			if(!this.isBadClientName(candidate.toLowerCase())) {
+				return candidate;
+			}
+		}
 	}
 	,restartWaitTimer: function() {
 		this.videoTimer.stop();
@@ -5746,6 +5844,517 @@ server_Main.prototype = {
 		});
 	}
 	,__class__: server_Main
+};
+var server_Oidc = function(config,opts) {
+	this.matchHtmlChars = new EReg("[&^<>'\"]","g");
+	this.pending = new haxe_ds_StringMap();
+	this.sessions = new haxe_ds_StringMap();
+	this.config = config;
+	this.maxLoginLength = opts.maxLoginLength;
+	this.isHttps = opts.isHttps;
+};
+server_Oidc.__name__ = true;
+server_Oidc.prototype = {
+	beginLogin: function(req,res) {
+		var _gthis = this;
+		this.ensureDiscovery(function(disc) {
+			if(disc == null) {
+				_gthis.showError(res,"OIDC discovery failed");
+				return;
+			}
+			var state = js_node_Crypto.randomBytes(16).toString("hex");
+			var nonce = js_node_Crypto.randomBytes(16).toString("hex");
+			var verifier = js_node_Crypto.randomBytes(32).toString("base64url");
+			var challenge = js_node_Crypto.createHash("sha256").update(verifier).digest("base64url");
+			var redirect = _gthis.redirectUri(req);
+			var this1 = _gthis.pending;
+			var v = { verifier : verifier, nonce : nonce, redirectUri : redirect, createdAt : new Date().getTime()};
+			this1.h[state] = v;
+			_gthis.prunePending();
+			var params = { k : "client_id", v : _gthis.config.clientId};
+			var params1 = _gthis.scopes();
+			var params2 = [{ k : "response_type", v : "code"},params,{ k : "redirect_uri", v : redirect},{ k : "scope", v : params1},{ k : "state", v : state},{ k : "nonce", v : nonce},{ k : "code_challenge", v : challenge},{ k : "code_challenge_method", v : "S256"}];
+			var result = new Array(params2.length);
+			var _g = 0;
+			var _g1 = params2.length;
+			while(_g < _g1) {
+				var i = _g++;
+				var p = params2[i];
+				result[i] = "" + encodeURIComponent(p.k) + "=" + encodeURIComponent(p.v);
+			}
+			var query = result.join("&");
+			tools_HttpServerTools.redirect(res,"" + Std.string(disc.authorization_endpoint) + (disc.authorization_endpoint.indexOf("?") != -1 ? "&" : "?") + query);
+		});
+	}
+	,handleCallback: function(req,res) {
+		var _gthis = this;
+		var url;
+		try {
+			url = new js_node_url_URL(req.url,"http://localhost");
+		} catch( _g ) {
+			url = null;
+		}
+		if(url == null) {
+			this.showError(res,"Invalid callback request");
+			return;
+		}
+		var params = url.searchParams;
+		var error = params.get("error");
+		if(error != null) {
+			this.showError(res,"OIDC provider error: " + error);
+			return;
+		}
+		var code = params.get("code");
+		var state = params.get("state");
+		if(code == null || state == null) {
+			this.showError(res,"Missing code or state");
+			return;
+		}
+		var pend = this.pending.h[state];
+		var _this = this.pending;
+		if(Object.prototype.hasOwnProperty.call(_this.h,state)) {
+			delete(_this.h[state]);
+		}
+		if(pend == null || new Date().getTime() - pend.createdAt > 600000) {
+			this.showError(res,"Invalid or expired login state");
+			return;
+		}
+		this.ensureDiscovery(function(disc) {
+			if(disc == null) {
+				_gthis.showError(res,"OIDC discovery failed");
+				return;
+			}
+			var params = [{ k : "grant_type", v : "authorization_code"},{ k : "code", v : code},{ k : "redirect_uri", v : pend.redirectUri},{ k : "client_id", v : _gthis.config.clientId},{ k : "client_secret", v : _gthis.config.clientSecret},{ k : "code_verifier", v : pend.verifier}];
+			var result = new Array(params.length);
+			var _g = 0;
+			var _g1 = params.length;
+			while(_g < _g1) {
+				var i = _g++;
+				var p = params[i];
+				result[i] = "" + encodeURIComponent(p.k) + "=" + encodeURIComponent(p.v);
+			}
+			var body = result.join("&");
+			var headers = { "content-type" : "application/x-www-form-urlencoded", "content-length" : "" + js_node_buffer_Buffer.byteLength(body), "accept" : "application/json"};
+			_gthis.httpJson("POST",disc.token_endpoint,headers,body,function(tok) {
+				if(tok == null || tok.id_token == null) {
+					_gthis.showError(res,"Token exchange failed");
+					return;
+				}
+				_gthis.verifyIdToken(disc,tok.id_token,pend.nonce,function(claims) {
+					if(claims == null) {
+						_gthis.showError(res,"ID token validation failed");
+						return;
+					}
+					_gthis.maybeUserinfo(disc,tok,claims,function(merged) {
+						_gthis.finishLogin(merged,res);
+					});
+				});
+			});
+		});
+	}
+	,logout: function(req,res) {
+		var id = this.getCookie(req,"synctube_session");
+		if(id != null) {
+			var _this = this.sessions;
+			if(Object.prototype.hasOwnProperty.call(_this.h,id)) {
+				delete(_this.h[id]);
+			}
+		}
+		this.clearSessionCookie(res);
+		tools_HttpServerTools.redirect(res,"/");
+	}
+	,resolveSession: function(req) {
+		var id = this.getCookie(req,"synctube_session");
+		if(id == null) {
+			return null;
+		}
+		var s = this.sessions.h[id];
+		if(s == null) {
+			return null;
+		}
+		if(s.exp < new Date().getTime()) {
+			var _this = this.sessions;
+			if(Object.prototype.hasOwnProperty.call(_this.h,id)) {
+				delete(_this.h[id]);
+			}
+			return null;
+		}
+		return { name : s.name, isAdmin : s.isAdmin};
+	}
+	,finishLogin: function(claims,res) {
+		var name = this.pickName(claims);
+		var isAdmin = this.isAdminFromClaims(claims);
+		var sessionId = js_node_Crypto.randomBytes(32).toString("hex");
+		var this1 = this.sessions;
+		var v = { name : name, isAdmin : isAdmin, exp : new Date().getTime() + 604800000};
+		this1.h[sessionId] = v;
+		this.setSessionCookie(res,sessionId);
+		tools_HttpServerTools.redirect(res,"/");
+	}
+	,verifyIdToken: function(disc,idToken,nonce,cb) {
+		var _gthis = this;
+		var parts = idToken.split(".");
+		if(parts.length != 3) {
+			cb(null);
+			return;
+		}
+		var header;
+		try {
+			header = JSON.parse(js_node_buffer_Buffer.from(parts[0],"base64url").toString("utf8"));
+		} catch( _g ) {
+			header = null;
+		}
+		var payload;
+		try {
+			payload = JSON.parse(js_node_buffer_Buffer.from(parts[1],"base64url").toString("utf8"));
+		} catch( _g ) {
+			payload = null;
+		}
+		if(header == null || payload == null) {
+			cb(null);
+			return;
+		}
+		if(!this.validateClaims(disc,payload,nonce)) {
+			cb(null);
+			return;
+		}
+		var alg = header.alg;
+		if(alg == null) {
+			cb(null);
+			return;
+		}
+		var signingInput = "" + parts[0] + "." + parts[1];
+		var sig = js_node_buffer_Buffer.from(parts[2],"base64url");
+		if(StringTools.startsWith(alg,"HS")) {
+			cb(this.verifyHmac(alg,signingInput,sig) ? payload : null);
+			return;
+		}
+		var tryVerify = null;
+		tryVerify = function(retried) {
+			_gthis.ensureJwks(disc,function(keys) {
+				if(keys == null) {
+					cb(null);
+					return;
+				}
+				var jwk = _gthis.findKey(keys,header.kid);
+				if(jwk == null) {
+					if(!retried) {
+						_gthis.jwks = null;
+						tryVerify(true);
+						return;
+					}
+					cb(null);
+					return;
+				}
+				cb(_gthis.verifyAsymmetric(alg,jwk,signingInput,sig) ? payload : null);
+			});
+		};
+		tryVerify(false);
+	}
+	,validateClaims: function(disc,payload,nonce) {
+		if(payload.iss != disc.issuer) {
+			return false;
+		}
+		var aud = payload.aud;
+		if(!(((aud) instanceof Array) ? aud.indexOf(this.config.clientId) != -1 : aud == this.config.clientId)) {
+			return false;
+		}
+		if(payload.azp != null && payload.azp != this.config.clientId) {
+			return false;
+		}
+		var exp = payload.exp;
+		if(exp == null || exp + 60 < new Date().getTime() / 1000) {
+			return false;
+		}
+		if(nonce != null && payload.nonce != nonce) {
+			return false;
+		}
+		return true;
+	}
+	,verifyHmac: function(alg,signingInput,sig) {
+		try {
+			var hmac = js_node_Crypto.createHmac("sha" + HxOverrides.substr(alg,2,null),this.config.clientSecret);
+			hmac.update(signingInput);
+			var expected = hmac.digest();
+			if(expected.length != sig.length) {
+				return false;
+			}
+			return js_node_Crypto.timingSafeEqual(expected,sig);
+		} catch( _g ) {
+			return false;
+		}
+	}
+	,verifyAsymmetric: function(alg,jwk,signingInput,sig) {
+		try {
+			var crypto = js_node_Crypto;
+			var keyObj = crypto.createPublicKey({ key : jwk, format : "jwk"});
+			var verifier = crypto.createVerify("sha" + HxOverrides.substr(alg,2,null));
+			verifier.update(signingInput);
+			verifier.end();
+			var key = StringTools.startsWith(alg,"ES") ? { key : keyObj, dsaEncoding : "ieee-p1363"} : StringTools.startsWith(alg,"PS") ? { key : keyObj, padding : crypto.constants.RSA_PKCS1_PSS_PADDING, saltLength : crypto.constants.RSA_PSS_SALTLEN_DIGEST} : keyObj;
+			return verifier.verify(key,sig);
+		} catch( _g ) {
+			return false;
+		}
+	}
+	,findKey: function(keys,kid) {
+		if(kid != null) {
+			var _g = 0;
+			while(_g < keys.length) {
+				var key = keys[_g];
+				++_g;
+				if(key.kid == kid) {
+					return key;
+				}
+			}
+			return null;
+		}
+		if(keys.length == 1) {
+			return keys[0];
+		} else {
+			return null;
+		}
+	}
+	,maybeUserinfo: function(disc,tok,claims,cb) {
+		if(disc.userinfo_endpoint == null || tok.access_token == null || !(this.config.groupClaim != null && this.config.groupClaim.length > 0 && Reflect.field(claims,this.config.groupClaim) == null)) {
+			cb(claims);
+			return;
+		}
+		this.httpJson("GET",disc.userinfo_endpoint,{ "authorization" : "Bearer " + Std.string(tok.access_token)},null,function(info) {
+			if(info != null) {
+				var _g = 0;
+				var _g1 = Reflect.fields(info);
+				while(_g < _g1.length) {
+					var field = _g1[_g];
+					++_g;
+					if(Reflect.field(claims,field) == null) {
+						claims[field] = Reflect.field(info,field);
+					}
+				}
+			}
+			cb(claims);
+		});
+	}
+	,pickName: function(claims) {
+		var candidates = ["preferred_username","name","nickname","email","sub"];
+		if(this.config.usernameClaim != null && this.config.usernameClaim.length > 0) {
+			candidates.unshift(this.config.usernameClaim);
+		}
+		var _g = 0;
+		while(_g < candidates.length) {
+			var value = Reflect.field(claims,candidates[_g++]);
+			if(value == null) {
+				continue;
+			}
+			var name = this.sanitizeName(Std.string(value));
+			if(name.length > 0) {
+				return name;
+			}
+		}
+		return "User";
+	}
+	,isAdminFromClaims: function(claims) {
+		if(this.config.groupClaim == null || this.config.groupClaim.length == 0) {
+			return false;
+		}
+		var tmp = this.config.adminValues;
+		var adminValues = tmp != null ? tmp : [];
+		if(adminValues.length == 0) {
+			return false;
+		}
+		var raw = Reflect.field(claims,this.config.groupClaim);
+		if(raw == null) {
+			return false;
+		}
+		var values;
+		if(((raw) instanceof Array)) {
+			var _g = [];
+			var _g1 = 0;
+			var _g2 = raw;
+			while(_g1 < _g2.length) _g.push(Std.string(_g2[_g1++]));
+			values = _g;
+		} else {
+			values = [Std.string(raw)];
+		}
+		var _g = 0;
+		while(_g < values.length) if(adminValues.indexOf(values[_g++]) != -1) {
+			return true;
+		}
+		return false;
+	}
+	,sanitizeName: function(name) {
+		name = StringTools.trim(name).replace(this.matchHtmlChars.r,"");
+		if(name.length > this.maxLoginLength) {
+			name = HxOverrides.substr(name,0,this.maxLoginLength);
+		}
+		return StringTools.trim(name);
+	}
+	,ensureDiscovery: function(cb) {
+		var _gthis = this;
+		if(this.discovery != null) {
+			cb(this.discovery);
+			return;
+		}
+		var base = this.config.issuer;
+		if(StringTools.endsWith(base,"/")) {
+			base = HxOverrides.substr(base,0,base.length - 1);
+		}
+		this.httpJson("GET","" + base + "/.well-known/openid-configuration",null,null,function(json) {
+			if(json == null || json.authorization_endpoint == null || json.token_endpoint == null || json.issuer == null) {
+				cb(null);
+				return;
+			}
+			_gthis.discovery = json;
+			cb(_gthis.discovery);
+		});
+	}
+	,ensureJwks: function(disc,cb) {
+		var _gthis = this;
+		if(this.jwks != null) {
+			cb(this.jwks);
+			return;
+		}
+		if(disc.jwks_uri == null) {
+			cb(null);
+			return;
+		}
+		this.httpJson("GET",disc.jwks_uri,null,null,function(json) {
+			if(json == null || json.keys == null) {
+				cb(null);
+				return;
+			}
+			_gthis.jwks = json.keys;
+			cb(_gthis.jwks);
+		});
+	}
+	,httpJson: function(method,urlStr,headers,body,cb) {
+		var url;
+		try {
+			url = new js_node_url_URL(urlStr);
+		} catch( _g ) {
+			cb(null);
+			return;
+		}
+		var tmp = headers;
+		var options = { method : method, hostname : url.hostname, path : url.pathname + url.search, headers : tmp != null ? tmp : { }};
+		if(url.port != null && url.port != "") {
+			options.port = Std.parseInt(url.port);
+		}
+		var transport = url.protocol == "https:" ? js_node_Https : js_node_Http;
+		var request = transport.request(options,function(res) {
+			var chunks = [];
+			res.on("data",function(chunk) {
+				return chunks.push(chunk);
+			});
+			return res.on("end",function() {
+				var text = js_node_buffer_Buffer.concat(chunks).toString();
+				if(res.statusCode >= 400) {
+					cb(null);
+					return;
+				}
+				var cb1 = cb;
+				var request;
+				try {
+					request = JSON.parse(text);
+				} catch( _g ) {
+					request = null;
+				}
+				cb1(request);
+			});
+		});
+		request.on("error",function(e) {
+			cb(null);
+		});
+		if(body != null) {
+			request.write(body);
+		}
+		request.end();
+	}
+	,redirectUri: function(req) {
+		if(this.config.redirectUri != null && this.config.redirectUri.length > 0) {
+			return this.config.redirectUri;
+		}
+		var host = req.headers["host"];
+		return "" + this.requestProtocol(req) + "://" + host + "/auth/callback";
+	}
+	,requestProtocol: function(req) {
+		var forwarded = req.headers["x-forwarded-proto"];
+		if(forwarded != null) {
+			return StringTools.trim(forwarded.split(",")[0]);
+		}
+		if(this.isHttps) {
+			return "https";
+		} else {
+			return "http";
+		}
+	}
+	,scopes: function() {
+		var s = this.config.scopes;
+		if(s == null || s.length == 0) {
+			return "openid profile";
+		}
+		if(s.indexOf("openid") != -1) {
+			return s;
+		} else {
+			return "openid " + s;
+		}
+	}
+	,setSessionCookie: function(res,id) {
+		var cookie = "synctube_session" + "=" + id + "; Path=/; HttpOnly; SameSite=Lax; Max-Age=" + 604800;
+		if(this.isHttps) {
+			cookie += "; Secure";
+		}
+		res.setHeader("set-cookie",cookie);
+	}
+	,clearSessionCookie: function(res) {
+		var cookie = "synctube_session" + "=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0";
+		if(this.isHttps) {
+			cookie += "; Secure";
+		}
+		res.setHeader("set-cookie",cookie);
+	}
+	,getCookie: function(req,name) {
+		var header = req.headers["cookie"];
+		if(header == null) {
+			return null;
+		}
+		var _g = 0;
+		var _g1 = header.split(";");
+		while(_g < _g1.length) {
+			var pair = StringTools.trim(_g1[_g++]);
+			var i = pair.indexOf("=");
+			if(i < 0) {
+				continue;
+			}
+			if(HxOverrides.substr(pair,0,i) == name) {
+				return HxOverrides.substr(pair,i + 1,null);
+			}
+		}
+		return null;
+	}
+	,prunePending: function() {
+		var limit = new Date().getTime() - 600000;
+		var h = this.pending.h;
+		var _g_keys = Object.keys(h);
+		var _g_length = _g_keys.length;
+		var _g_current = 0;
+		while(_g_current < _g_length) {
+			var key = _g_keys[_g_current++];
+			if(h[key].createdAt < limit) {
+				var _this = this.pending;
+				if(Object.prototype.hasOwnProperty.call(_this.h,key)) {
+					delete(_this.h[key]);
+				}
+			}
+		}
+	}
+	,showError: function(res,msg) {
+		haxe_Log.trace("OIDC: " + msg,{ fileName : "src/server/Oidc.hx", lineNumber : 426, className : "server.Oidc", methodName : "showError"});
+		res.statusCode = 400;
+		res.setHeader("content-type","text/html");
+		res.end("<p>" + StringTools.htmlEscape(msg,true) + "</p><p><a href=\"/\">Back</a></p>");
+	}
+	,__class__: server_Oidc
 };
 var server_Utils = function() { };
 server_Utils.__name__ = true;

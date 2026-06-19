@@ -39,6 +39,7 @@ class Main {
 	public var isPlaylistOpen(default, null) = true;
 	public var playersCacheSupport(default, null):Array<PlayerType> = [];
 	public var showingServerPause(default, null) = false;
+	public var isOidcSession(default, null) = false;
 	/** How much time passed since lastState.time update **/
 	public var timeFromLastState(default, null) = 0.0;
 	public final lastState:GetTimeEvent = {
@@ -747,15 +748,16 @@ class Main {
 			updateClients(connected.clients);
 			personal = clients.getByName(connected.clientName, personal);
 			showGuestLoginPanel();
+			final guestName:InputElement = getEl("#guestname");
+			var name = settings.name;
+			if (name.length == 0) name = guestName.value;
+			final hash = settings.hash;
+			if (hash.length > 0) loginRequest(name, hash);
+			else guestLogin(name);
 		} else {
+			if (config.isOidcEnabled == true) isOidcSession = true;
 			onLogin(connected.clients, connected.clientName);
 		}
-		final guestName:InputElement = getEl("#guestname");
-		var name = settings.name;
-		if (name.length == 0) name = guestName.value;
-		final hash = settings.hash;
-		if (hash.length > 0) loginRequest(name, hash);
-		else guestLogin(name);
 
 		setLeaderButton(isLeader());
 		setPlaylistLock(connected.isPlaylistOpen);
@@ -891,6 +893,7 @@ class Main {
 			config.unpauseWithoutLeader = false;
 		}
 		pageTitle = config.channelName;
+		getEl("#sso_btn").style.display = config.isOidcEnabled == true ? "" : "none";
 		final login:InputElement = getEl("#guestname");
 		login.maxLength = config.maxLoginLength;
 		final form:InputElement = getEl("#chatline");

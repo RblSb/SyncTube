@@ -277,8 +277,13 @@ class Buttons {
 		final exitBtn = getEl("#exitBtn");
 		exitBtn.onclick = e -> {
 			showOptions.onclick();
-			if (main.isUser()) main.send({type: Logout});
-			else getEl("#guestname").focus();
+			if (main.isOidcSession) {
+				window.location.href = "/auth/logout";
+			} else if (main.isUser()) {
+				main.send({type: Logout});
+			} else {
+				getEl("#guestname").focus();
+			}
 		}
 
 		final swapLayoutBtn = getEl("#swapLayoutBtn");
@@ -425,6 +430,10 @@ class Buttons {
 				main.guestLogin(guestName.value);
 				if (Utils.isTouch()) guestName.blur();
 			}
+		}
+
+		getEl("#sso_btn").onclick = e -> {
+			window.location.href = "/auth/login";
 		}
 
 		final guestPass:InputElement = getEl("#guestpass");

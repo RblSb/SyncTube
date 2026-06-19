@@ -222,7 +222,12 @@
       <!-- Guest login -->
       <div id="guestlogin" style="display: none;">
         <label>${enterAsGuest}</label>
-        <input id="guestname" type="text" placeholder="${yourName}">
+        <div id="guestnamebox">
+          <input id="guestname" type="text" placeholder="${yourName}">
+          <button id="sso_btn" style="display: none;" title="${ssoLogin}">
+            <ion-icon name="log-in"></ion-icon>
+          </button>
+        </div>
       </div>
       <div id="guestpassword" style="display: none;">
         <label>${enterUserPassword}</label>

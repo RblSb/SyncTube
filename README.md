@@ -95,6 +95,28 @@ It just works, but you can also check [user/ folder](/user/README.md) for server
 - Remove `user/` folder from `.gitignore` and commit it to change default configuration
 - Add `APP_URL` config var with `your-app-link.herokuapp.com` value if you need to prevent sleeping when clients online
 
+### OIDC / SSO login
+You can let users sign in through any OpenID Connect provider (Authentik, Keycloak, Auth0, Google, GitHub via a compatible gateway, etc). It works alongside the regular guest/admin login: when enabled, a "Sign in with SSO" button appears next to the name input. Add an `oidc` block to `user/config.json`:
+```json
+"oidc": {
+  "enabled": true,
+  "issuer": "https://id.example.com/application/o/synctube/",
+  "clientId": "your-client-id",
+  "clientSecret": "your-client-secret",
+  "redirectUri": "",
+  "scopes": "openid profile",
+  "usernameClaim": "preferred_username",
+  "groupClaim": "groups",
+  "adminValues": ["synctube-admins"]
+}
+```
+- `issuer` — base URL used for discovery (`<issuer>/.well-known/openid-configuration`).
+- `redirectUri` — leave empty to derive `<scheme>://<host>/auth/callback` from the request; set it explicitly behind a reverse proxy if needed. Register this exact URL in your provider.
+- `usernameClaim` — claim used for the display name (falls back to `preferred_username`/`name`/`email`/`sub`).
+- `groupClaim` + `adminValues` — if the named claim contains any of these values, the user becomes an admin; other authenticated users get the `user` group. Leave `adminValues` empty to map everyone to `user`.
+
+Uses the authorization-code flow with PKCE; the client secret never leaves the server. Note that `localAdmins` still grants admin to local connections when enabled.
+
 ## Development
 - Install [Haxe 4.3](https://haxe.org/download/), [VSCode](https://code.visualstudio.com) and [Haxe extension](https://marketplace.visualstudio.com/items?itemName=nadako.vshaxe)
 - `haxelib install all` to install extern libs

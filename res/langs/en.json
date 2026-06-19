@@ -63,6 +63,7 @@
 	"leader": "Leader",
 	"enterAsGuest": "Enter As Guest:",
 	"yourName": "Your Name",
+	"ssoLogin": "Sign in with SSO",
 	"enterUserPassword": "Enter User Password",
 	"yourPassword": "Your Password",
 	"emotes": "Emotes",

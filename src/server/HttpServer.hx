@@ -90,6 +90,20 @@ class HttpServer {
 		res.setHeader("accept-ranges", "bytes");
 		res.setHeader("content-type", getMimeType(ext));
 
+		if (main.oidc != null) {
+			switch url.pathname {
+				case "/auth/login":
+					main.oidc.beginLogin(req, res);
+					return;
+				case "/auth/callback":
+					main.oidc.handleCallback(req, res);
+					return;
+				case "/auth/logout":
+					main.oidc.logout(req, res);
+					return;
+			}
+		}
+
 		if (req.method == "POST") {
 			if (cache != null) {
 				switch url.pathname {

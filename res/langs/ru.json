@@ -63,6 +63,7 @@
 	"leader": "Лидер",
 	"enterAsGuest": "Войти как гость:",
 	"yourName": "Ваш ник",
+	"ssoLogin": "Войти через SSO",
 	"enterUserPassword": "Введите пароль пользователя",
 	"yourPassword": "Ваш пароль",
 	"emotes": "Смайлы",

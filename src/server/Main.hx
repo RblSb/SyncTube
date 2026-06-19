@@ -49,6 +49,7 @@ class Main {
 	public final logsDir:String;
 	public final config:ServerConfig;
 	public final isNoState:Bool;
+	public final oidc:Null<Oidc>;
 
 	final verbose:Bool;
 	final statePath:String;
@@ -128,6 +129,15 @@ class Main {
 		config.isVerbose = verbose;
 		userList = loadUsers();
 		config.salt = generateConfigSalt(userList);
+
+		final oidcConfig = config.oidc;
+		if (oidcConfig != null && oidcConfig.enabled) {
+			oidc = new Oidc(oidcConfig, {
+				maxLoginLength: config.maxLoginLength,
+				isHttps: getSslConfig(config) != null,
+			});
+		}
+		config.isOidcEnabled = oidc != null;
 
 		logger = new Logger(logsDir, 10, verbose);
 		consoleInput = new ConsoleInput(this);
@@ -511,6 +521,14 @@ class Main {
 		final client = new Client(ws, req, id, name, 0);
 		client.uuid = uuid;
 		client.isAdmin = isAdmin;
+		if (oidc != null) {
+			final session = oidc.resolveSession(req);
+			if (session != null) {
+				client.name = uniqueLoginName(session.name);
+				client.isUser = true;
+				if (session.isAdmin) client.isAdmin = true;
+			}
+		}
 		clients.push(client);
 		ws.on("pong", () -> client.isAlive = true);
 		onMessage(client, {
@@ -574,7 +592,7 @@ class Main {
 						uuid: client.uuid,
 						config: Macro.getTypedObject(config, Config),
 						history: messages,
-						isUnknownClient: true,
+						isUnknownClient: !client.isUser,
 						clientName: client.name,
 						clients: clientList(),
 						videoList: videoList.getItems(),
@@ -1169,6 +1187,21 @@ class Main {
 		if (matchGuestName.match(name)) return true;
 		if (clients.exists(i -> i.name.toLowerCase() == name)) return true;
 		return false;
+	}
+
+	function uniqueLoginName(desired:String):String {
+		var base = desired.trim();
+		if (base.length == 0 || matchGuestName.match(base.toLowerCase())) base = "User";
+		if (base.length > config.maxLoginLength) base = base.substr(0, config.maxLoginLength);
+		if (!isBadClientName(base.toLowerCase())) return base;
+		var n = 1;
+		while (true) {
+			final suffix = ' (${++n})';
+			final maxBase = config.maxLoginLength - suffix.length;
+			final trimmed = base.length > maxBase ? base.substr(0, maxBase) : base;
+			final candidate = trimmed + suffix;
+			if (!isBadClientName(candidate.toLowerCase())) return candidate;
+		}
 	}
 
 	var waitVideoStart:Null<Timer>;
