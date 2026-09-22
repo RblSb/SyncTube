@@ -52,6 +52,17 @@ or
 
 - (Docker container hides real local/global ips, so you need to checkout it manually)
 
+## Setup (NixOS)
+A [NixOS module](nix/README.md) is included: it packages the project (Haxe build, no npm/haxelib network access at build time beyond pinned tarballs), assembles a writable runtime tree under `/var/lib/synctube` at service start and runs a hardened systemd service:
+```nix
+ services.synctube = {
+   enable = true;
+   openFirewall = true;
+   enableYtDlp = true; # optional "Cache on server" (yt-dlp + ffmpeg)
+   settings.channelName = "-=SuperChannel=-";
+ };
+```
+For a one-off local run without NixOS: `nix-run github:RblSb/SyncTube` (see [nix/README.md](nix/README.md)).
 
 ## Optional dependencies
 If you want to enable `Cache on server` feature for Youtube and other [supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md), you can also run:

@@ -1,4 +1,5 @@
 /node_modules
+/result
 /build/tests.js
 /res/temp
 /user/crashes/
