@@ -1,4 +1,4 @@
-package;
+package tools;
 
 class ClientTools {
 	public static function setLeader(clients:Array<Client>, name:String):Void {

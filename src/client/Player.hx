@@ -422,10 +422,7 @@ class Player {
 		if (videoList.length == 0) return;
 		if (!main.isLeader()) {
 			if (main.hasLeader() || main.lastState.pausedByServer) {
-				final off = isPaused() ? 0 : main.timeFromLastState;
-				final time = main.lastState.time;
-				final delta = Math.abs(time - getTime());
-				setTime(time);
+				setTime(main.lastState.time);
 				main.blinkLeaderButton();
 			} else {
 				// we dont want to seek back here because

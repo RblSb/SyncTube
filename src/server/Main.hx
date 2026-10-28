@@ -139,7 +139,7 @@ class Main {
 			playersCacheSupport.push(VkType);
 			playersCacheSupport.push(VimeoType);
 		}
-		initIntergationHandlers();
+		initIntegrationHandlers();
 		loadState();
 		cache.setStorageLimit(cast config.cacheStorageLimitGiB * 1024 * 1024 * 1024);
 
@@ -147,13 +147,10 @@ class Main {
 		else localIp = Utils.getLocalIp();
 		globalIp = localIp;
 		port = config.port;
-		final envPort = (process.env : Dynamic).PORT;
+		final envPort = Std.parseInt((process.env : Dynamic).PORT);
 		if (envPort != null) port = envPort;
-		final argPort = args["port"];
-		if (argPort != null) {
-			final newPort = Std.parseInt(argPort);
-			if (newPort != null) port = newPort;
-		}
+		final argPort = Std.parseInt(args["port"]);
+		if (argPort != null) port = argPort;
 
 		var attempts = isNoState ? 500 : 5;
 		function preparePort():Void {
@@ -416,7 +413,7 @@ class Main {
 		File.saveContent('$crashesFolder/$name.json', Json.stringify(data, "\t"));
 	}
 
-	function initIntergationHandlers():Void {
+	function initIntegrationHandlers():Void {
 		// Prevent heroku-like services to sleep when clients online
 		var url = process.env["APP_URL"] ?? return;
 		if (!url.startsWith("http")) url = 'http://$url';

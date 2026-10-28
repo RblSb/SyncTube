@@ -63,6 +63,7 @@ class Buttons {
 					wrap.style.display = "none";
 					wrap.removeEventListener("transitionend", onTransitionEnd);
 				}
+				wrap.addEventListener("transitionend", onTransitionEnd);
 			}
 			if (list.firstElementChild.dataset.src == null) return;
 			for (child in list.children) {
@@ -115,7 +116,6 @@ class Buttons {
 			if (isHidden) {
 				icon.setAttribute("name", "chevron-down");
 				style.display = "";
-				final list = wrap.firstElementChild;
 				wrap.style.height = "15vh";
 				wrap.style.marginBottom = "1rem";
 			} else {
@@ -131,7 +131,6 @@ class Buttons {
 		if (settings.isUserListHidden) userlistToggle.onclick();
 		else {
 			final wrap = getEl("#userlist-wrap");
-			final list = wrap.firstElementChild;
 			wrap.style.height = "15vh";
 		}
 		// enable animation after page loads

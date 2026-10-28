@@ -10,7 +10,7 @@ class Cache {
 	public final isYtReady = false;
 
 	/** In bytes **/
-	public var storageLimit(default, null) = 3 * 1024 * 1024 * 1024;
+	public var storageLimit(default, null):Float = 3.0 * 1024 * 1024 * 1024;
 
 	final main:Main;
 
@@ -104,9 +104,8 @@ class Cache {
 		});
 	}
 
-	public function setStorageLimit(bytes:Int) {
-		storageLimit = cast bytes;
-		storageLimit = storageLimit.limitMin(0);
+	public function setStorageLimit(bytes:Float) {
+		storageLimit = bytes.limitMin(0);
 		getFreeDiskSpace(availSpace -> {
 			final availSpace = (availSpace - freeSpaceBlock).limitMin(0);
 			removeOlderCache();
@@ -120,7 +119,7 @@ class Cache {
 		});
 	}
 
-	public function getFreeDiskSpace(callback:(availSpace:Int) -> Void):Void {
+	public function getFreeDiskSpace(callback:(availSpace:Float) -> Void):Void {
 		final statfs = (Fs : Dynamic).statfs ?? {
 			trace("Warning: no fs.statfs support in current nodejs version (needs v18+)");
 			callback(storageLimit);
@@ -152,7 +151,7 @@ class Cache {
 	}
 
 	/** Returns `true` if there is enough space to save `addFileSize` bytes. **/
-	public function removeOlderCache(addFileSize = 0):Bool {
+	public function removeOlderCache(addFileSize:Float = 0):Bool {
 		var space = getUsedSpace(addFileSize);
 		for (name in cachedFiles.reversed()) {
 			if (space <= storageLimit) break;
@@ -169,14 +168,19 @@ class Cache {
 		if (FileSystem.exists(path)) FileSystem.deleteFile(path);
 	}
 
-	public function getFreeFileName(fullName = "video.mp4"):String {
+	public function getFreeFileName(
+		fullName = "video.mp4",
+		?isReserved:(name:String) -> Bool
+	):String {
 		final baseName = Path.withoutDirectory(Path.withoutExtension(fullName));
 		final ext = Path.extension(fullName);
 		var i = 1;
 		while (true) {
 			final n = i == 1 ? "" : '$i';
 			final name = '$baseName$n.$ext';
-			if (!isFileExists(name)) return name;
+			if (!isFileExists(name) && (isReserved == null || !isReserved(name))) {
+				return name;
+			}
 			i++;
 		}
 	}
@@ -202,11 +206,11 @@ class Cache {
 		return null;
 	}
 
-	public function getFreeSpace():Int {
+	public function getFreeSpace():Float {
 		return storageLimit - getUsedSpace();
 	}
 
-	public function getUsedSpace(addFileSize = 0):Int {
+	public function getUsedSpace(addFileSize:Float = 0):Float {
 		var total = addFileSize.limitMin(0);
 		for (name in cachedFiles.reversed()) {
 			final path = getFilePath(name);

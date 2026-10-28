@@ -31,7 +31,7 @@ class RawCache {
 		final isM3U8 = url.contains(".m3u8");
 		final ext = isM3U8 ? "m3u8" : "mp4";
 
-		final matchName = ~/^([^:.]+)\.(.+)/;
+		final matchName = ~/^([^:?#\\\/\.]+)\.(.+)/;
 		final decodedUrl = try url.urlDecode() catch (e) url;
 		final lastPart = decodedUrl.substr(decodedUrl.lastIndexOf("/") + 1);
 		var outName = matchName.match(lastPart) ? matchName.matched(1)
@@ -135,14 +135,9 @@ class RawCache {
 								trace('All ${downloaded}/${segments.length} segments downloaded');
 
 								File.saveContent('${cache.cacheDir}/$outName', playlist);
+								for (s in segments) cache.add(s.name);
 								cache.add(outName);
 								cb.onComplete();
-								// buildTsFiles(
-								// 	segments.map(item -> item.name),
-								// 	outName,
-								// 	client,
-								// 	cb
-								// );
 							} else {
 								downloadNextBatch();
 							}
@@ -169,10 +164,16 @@ class RawCache {
 
 	function request(url:String, ?options:Null<HttpsRequestOptions>, ?callback:Null<IncomingMessage->
 		Void>):ClientRequest {
+		final parsed = try new js.node.url.URL(url) catch (e) null;
+		if (parsed == null || (parsed.protocol != "http:" && parsed.protocol != "https:")
+			|| HttpProxy.isPrivateHost(parsed.hostname)) {
+			throw 'Blocked or invalid URL: $url';
+		}
 		final httpsOptions:HttpsRequestOptions = options ?? {};
 		// Allow self-signed certificates
 		httpsOptions.rejectUnauthorized = false;
 		httpsOptions.headers ??= {};
+			(httpsOptions : Dynamic).lookup = HttpProxy.safeLookup;
 
 		if (url.startsWith("https:")) {
 			return Https.request(url, httpsOptions, callback);
@@ -195,7 +196,7 @@ class RawCache {
 			}
 		};
 
-		final req = request(url, options, (res:IncomingMessage) -> {
+		final req = try request(url, options, (res:IncomingMessage) -> {
 			if (res.statusCode >= 300 && res.statusCode < 400) {
 				final redirectUrl = res.headers.get("location");
 				if (redirectUrl != null) {
@@ -235,8 +236,16 @@ class RawCache {
 						segments.push(segment);
 						lines[lineI] = './${segment.name}';
 						if (useProxy) {
-							lines[lineI] = '/proxy?url=$segmentUrl';
+							lines[lineI] = '/proxy?url=${segmentUrl.urlEncode()}';
 						}
+					}
+					if (segments.length == 0) {
+						onError("No segments in M3U8 playlist");
+						return;
+					}
+					if (useProxy) {
+						onSuccess(lines.join("\n"), 0, segments);
+						return;
 					}
 
 					// Head request can return full stream size, so lets do loose assumption
@@ -258,7 +267,10 @@ class RawCache {
 					onError('Playlist processing error: $e');
 				}
 			});
-		});
+		}) catch (e) {
+			onError('$e');
+			return;
+		};
 
 		req.on("error", onError);
 		req.end();
@@ -269,19 +281,18 @@ class RawCache {
 		onProgress:(downloaded:Int, total:Int) -> Void,
 		onComplete:() -> Void,
 		onError:(err:String) -> Void,
-		?onCancelable:(cancel:() -> Void) -> Void
+		?onCancelable:(cancel:() -> Void)->Void
 	):Void {
 		final outPath = '${cache.cacheDir}/$fileName';
 		final file = Fs.createWriteStream(outPath);
 		final options:HttpsRequestOptions = {
 			method: Get,
 			headers: {
-				"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537." +
-				Std.random(100),
+				"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
 				"Accept": "*/*",
 			}
 		};
-		final req = request(url, options, (res:IncomingMessage) -> {
+		final req = try request(url, options, (res:IncomingMessage) -> {
 			final total = Std.parseInt(res.headers["content-length"]) ?? 0;
 			var downloaded = 0;
 
@@ -305,7 +316,12 @@ class RawCache {
 				file.destroy();
 				onError('Response error: $err');
 			});
-		});
+		}) catch (e) {
+			file.destroy();
+			if (FileSystem.exists(outPath)) FileSystem.deleteFile(outPath);
+			onError('$e');
+			return;
+		};
 
 		// Handle file write completion
 		file.on("finish", onComplete);
@@ -329,97 +345,6 @@ class RawCache {
 		});
 
 		req.end();
-	}
-
-	function buildTsFiles(tempFiles:Array<String>, outName:String, client:Client, cb:CacheCallbacks) {
-		final clientName = client.name;
-		final missingFiles = tempFiles.filter(f ->
-			!FileSystem.exists('${cache.cacheDir}/$f'));
-		if (missingFiles.length > 0) {
-			log(clientName, 'Concatenation failed: ${missingFiles.length} segments are missing');
-			cb.onError();
-			cleanupFiles(tempFiles);
-			return;
-		}
-
-		// Create concat file with absolute paths and proper escaping
-		final concatFile = 'concat_list.txt';
-		final concatContent = tempFiles.map(f -> {
-			final path = './$f';
-			return 'file \'${path}\'';
-		}).join("\n");
-
-		File.saveContent('${cache.cacheDir}/$concatFile', concatContent);
-
-		// Prepare FFmpeg args with proper bitstream filters for TS files
-		final args = [
-			"-y", // Overwrite output without asking
-			"-f", "concat", // Use concat format
-			"-safe", "0", // Allow absolute paths
-			"-i", concatFile, // Input file list
-			"-c", "copy", // Copy streams without re-encoding
-			"-bsf:a", "aac_adtstoasc", // Fix AAC audio streams from TS files
-			"-movflags", "+faststart", // Optimize for web streaming
-			outName // Output filename
-		];
-
-		trace('Executing FFmpeg with args: ${args.join(" ")}');
-
-		// Create process with proper error capturing
-		final process = ChildProcess.spawn("ffmpeg", args, {
-			cwd: cache.cacheDir,
-			// stderr: "pipe" // Capture stderr for error reporting
-		});
-
-		final errorOutput:Array<Buffer> = [];
-		process.stderr.on("data", (data) -> errorOutput.push(data));
-
-		// Set a reasonable timeout
-		final timeout = 5 * 60 * 1000; // 5 minutes
-		final timeoutId = js.Node.setTimeout(() -> {
-			process.kill();
-			log(clientName, 'FFmpeg process timed out after ${timeout / 1000} seconds');
-			cb.onError();
-			cleanupFiles(tempFiles.concat([concatFile]));
-		}, timeout);
-
-		process.on("close", (code:Int) -> {
-			js.Node.clearTimeout(timeoutId);
-
-			if (code != 0) {
-				final errorMsg = Buffer.concat(errorOutput).toString();
-				cache.logWithAdmins(client, 'FFmpeg concatenation failed with code $code');
-				final ffmpegErr = 'FFmpeg error output: $errorMsg';
-				trace(ffmpegErr);
-
-				// Log detailed error to admins
-				final admins = main.clients.filter(client -> client.isAdmin);
-				for (admin in admins) main.serverMessage(admin, ffmpegErr);
-
-				cb.onError();
-			} else {
-				// Verify the output file exists and has content
-				if (FileSystem.exists('${cache.cacheDir}/$outName')
-					&& FileSystem.stat('${cache.cacheDir}/$outName').size > 0) {
-					cache.add(outName);
-					cb.onComplete();
-				} else {
-					log(clientName, 'FFmpeg process completed but output file is missing or empty');
-					cb.onError();
-				}
-			}
-
-			// Clean up temporary files after everything is done
-			cleanupFiles(tempFiles.concat([concatFile]));
-		});
-
-		// Handle process errors (like if FFmpeg isn't found)
-		process.on("error", (err) -> {
-			js.Node.clearTimeout(timeoutId);
-			log(clientName, 'Failed to start FFmpeg: $err');
-			cb.onError();
-			cleanupFiles(tempFiles.concat([concatFile]));
-		});
 	}
 
 	function probeDuration(fileName:String, callback:(duration:Float) -> Void):Void {

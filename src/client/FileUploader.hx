@@ -22,15 +22,15 @@ class FileUploader {
 	public function uploadFile(file:File):Void {
 		var title = ~/[?#%\/\\]/g.replace(file.name, "").trim();
 		if (title.length == 0) title = "video";
-		final name = (window : Dynamic).encodeURIComponent(title);
+		final name = title.urlEncode();
 
 		final checkboxTemp:InputElement = getEl("#addfromurl .add-temp");
 		final isTemp = Main.isTempChecked(checkboxTemp);
 
 		// send last chunk separately to allow server file streaming while uploading
 		uploadLastChunk(file, name, data -> {
-			if (data.errorId != null) {
-				main.serverMessage(data.info, true, false);
+			if (data.errorId != null || data.url == null) {
+				main.serverMessage(data.info ?? Lang.get("addVideoError"), true, false);
 				return;
 			}
 			final url = data.url;
@@ -64,9 +64,11 @@ class FileUploader {
 	}
 
 	function uploadFullFile(name:String, file:File, url:String, onStarted:() -> Void):Void {
+		final resolvedName = url.substr(url.lastIndexOf("/") + 1);
+		final headerName = resolvedName.length > 0 ? resolvedName.urlEncode() : name;
 		final request = new XMLHttpRequest();
 		request.open("POST", "/upload", true);
-		request.setRequestHeader("content-name", name);
+		request.setRequestHeader("content-name", headerName);
 
 		var added = false;
 		function ensureAdded():Void {
@@ -136,10 +138,11 @@ class FileUploader {
 			},
 			body: lastChunk,
 		});
-		chunkReq.then(e -> {
-			e.json().then((data:UploadResponse) -> {
-				callback(data);
-			});
+		chunkReq.then(e -> e.json()).then((data:UploadResponse) -> {
+			callback(data);
+		}).catchError(err -> {
+			trace(err);
+			main.serverMessage(Lang.get("addVideoError"), true, false);
 		});
 	}
 }

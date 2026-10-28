@@ -1,25 +1,36 @@
 package server;
 
 import Types.UploadResponse;
+import haxe.Timer;
 import haxe.io.Path;
+import js.lib.Error;
 import js.node.Buffer;
 import js.node.Fs.Fs;
-import js.node.Http;
-import js.node.Https;
 import js.node.Path as JsPath;
-import js.node.http.ClientRequest;
+import js.node.Stream;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
+import js.node.stream.Readable.IReadable;
+import js.node.stream.Writable.IWritable;
 import js.node.url.URL;
 import json2object.ErrorUtils;
 import json2object.JsonParser;
 import server.cache.Cache;
 import sys.FileSystem;
 
+@:forward
+private abstract SystemError(Error) from Error to Error {
+	public var code(get, never):Null<String>;
+
+	inline function get_code() {
+		return (this : Dynamic).code;
+	}
+}
+
 @:structInit
 private class HttpServerConfig {
 	public final dir:String;
-	public final customDir:String = null;
+	public final customDir:Null<String> = null;
 	public final allowLocalRequests = false;
 	public final enableCORS = false;
 	public final enableProxy = false;
@@ -36,8 +47,13 @@ class HttpServer {
 	static final mimeTypes = [
 		"html" => "text/html",
 		"js" => "text/javascript",
+		"mjs" => "text/javascript",
 		"css" => "text/css",
 		"json" => "application/json",
+		"map" => "application/json",
+		"txt" => "text/plain; charset=utf-8",
+		"xml" => "application/xml",
+		"webmanifest" => "application/manifest+json",
 		"png" => "image/png",
 		"jpg" => "image/jpeg",
 		"jpeg" => "image/jpeg",
@@ -48,29 +64,42 @@ class HttpServer {
 		"ico" => "image/x-icon",
 		"wav" => "audio/wav",
 		"mp3" => "audio/mpeg",
+		"m4a" => "audio/mp4",
+		"flac" => "audio/flac",
 		"ogg" => "audio/ogg",
+		"opus" => "audio/ogg",
 		"mp4" => "video/mp4",
 		"webm" => "video/webm",
-		"woff" => "application/font-woff",
-		"ttf" => "application/font-ttf",
+		"woff" => "font/woff",
+		"woff2" => "font/woff2",
+		"ttf" => "font/ttf",
+		"otf" => "font/otf",
 		"eot" => "application/vnd.ms-fontobject",
-		"otf" => "application/font-otf",
 		"wasm" => "application/wasm"
 	];
+	static final ctrlCharacters = ~/[\u0000-\u001F\u007F-\u009F\u2000-\u200D\uFEFF]/g;
+	static final matchRange = ~/^bytes=(\d*)-(\d*)$/;
+	static final matchLang = ~/^[A-Za-z]+/;
+	static final matchVarString = ~/\${([A-Za-z0-9_]+)}/g;
+	static final MAX_SETUP_BODY_SIZE = 16 * 1024;
+	static final MAX_LAST_CHUNKS = 16;
+	static final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
 
 	final main:Main;
 	final dir:String;
 	final customDir:String;
-	final hasCustomRes = false;
+	final hasCustomRes:Bool;
 	final allowedLocalFiles:Map<String, Bool> = [];
-	final allowLocalRequests = false;
-	final enableCORS = false;
-	final enableProxy = false;
-	final cache:Cache = null;
-	final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
+	final allowLocalRequests:Bool;
+	final enableCORS:Bool;
+	final enableProxy:Bool;
+	final cache:Cache;
 	// temp media data while file is uploading to allow instant streaming
-	final uploadingFilesSizes:Map<String, Int> = [];
+	// first last chunk is uploaded with `/upload-last-chunk` and returns url for full file
 	final uploadingFilesLastChunks:Map<String, Buffer> = [];
+	// then `/upload` gets size from `Content-Length` and sets it
+	// so `serveMedia` streaming works while file is uploading
+	final uploadingFilesSizes:Map<String, Float> = [];
 
 	public function new(main:Main, config:HttpServerConfig):Void {
 		this.main = main;
@@ -81,122 +110,169 @@ class HttpServer {
 		enableProxy = config.enableProxy;
 		cache = config.cache;
 
-		if (customDir != null) hasCustomRes = FileSystem.exists(customDir);
+		hasCustomRes = customDir != null && FileSystem.exists(customDir);
 	}
 
 	public function serveFiles(req:IncomingMessage, res:ServerResponse):Void {
 		final url = try {
-			new URL(safeDecodeURI(req.url), "http://localhost");
+			new URL(req.url, "http://localhost");
 		} catch (e) {
 			new URL("/", "http://localhost");
 		}
-		var filePath = getPath(dir, url);
-		final ext = Path.extension(filePath).toLowerCase();
+		final pathname = safeDecodeURI(url.pathname);
+
+		res.setHeader("x-content-type-options", "nosniff");
 
 		if (enableCORS) {
 			res.setHeader("access-control-allow-origin", "*");
 			res.setHeader("access-control-allow-headers", "content-type, range, content-name");
 			res.setHeader("access-control-expose-headers", "accept-ranges, content-encoding, content-length, content-range");
 			if (req.method == "OPTIONS") {
-				res.setHeader("access-control-allow-methods", "GET, HEAD, POST, OPTIONS");
+				res.setHeader("access-control-allow-methods", "GET, HEAD, OPTIONS");
 				res.statusCode = 204;
 				res.end();
 				return;
 			}
 		}
 
-		res.setHeader("accept-ranges", "bytes");
-		res.setHeader("content-type", getMimeType(ext));
-
 		if (req.method == "POST") {
-			if (cache != null) {
-				switch url.pathname {
-					case "/upload-last-chunk":
-						uploadFileLastChunk(req, res);
-					case "/upload":
-						uploadFile(req, res);
-				}
-			}
-			switch url.pathname {
+			switch pathname {
+				case "/upload-last-chunk" if (cache != null):
+					uploadFileLastChunk(req, res);
+				case "/upload" if (cache != null):
+					uploadFile(req, res);
 				case "/setup":
 					finishSetup(req, res);
+				case _:
+					sendText(res, 404, "Not found.");
 			}
 			return;
 		}
 
-		if (allowLocalRequests && req.socket.remoteAddress == req.socket.localAddress
-			|| allowedLocalFiles[url.pathname]) {
-			if (isMediaExtension(ext)) {
-				allowedLocalFiles[url.pathname] = true;
-				if (serveMedia(req, res, url.pathname.urlDecode())) return;
-			}
-		}
-
-		if (!isChildOf(dir, filePath)) {
-			res.statusCode = 500;
-			var rel = JsPath.relative(dir, filePath);
-			res.end('Error getting the file: No access to $rel.');
+		if (req.method != "GET" && req.method != "HEAD") {
+			res.setHeader("allow", enableCORS ? "GET, HEAD, POST, OPTIONS" : "GET, HEAD, POST");
+			sendText(res, 405, "Method not allowed.");
 			return;
 		}
 
-		if (url.pathname == "/setup") {
+		if (pathname == "/proxy") {
+			if (!enableProxy) {
+				sendText(res, 400, "Proxy error: bad request");
+				return;
+			}
+			HttpProxy.proxyUrl(req, res, url);
+			return;
+		}
+
+		if (pathname == "/setup") {
 			if (main.hasAdmins()) {
 				res.redirect("/");
 				return;
 			}
+		}
 
-			Fs.readFile('$dir/setup.html', (err:Dynamic, data:Buffer) -> {
-				data = Buffer.from(localizeHtml(data.toString(), req.headers["accept-language"]));
-				res.setHeader("content-type", getMimeType("html"));
-				res.end(data);
-			});
+		var filePath = pathname == "/setup" ? '$dir/setup.html' : getPath(dir, pathname);
+		var ext = Path.extension(filePath).toLowerCase();
+		res.setHeader("content-type", getMimeType(ext));
+
+		if (isLocalRequest(req) || allowedLocalFiles[pathname]) {
+			if (isMediaExtension(ext) && serveMedia(req, res, pathname)) {
+				if (!allowedLocalFiles.exists(pathname)
+					&& allowedLocalFiles.count() >= MAX_LAST_CHUNKS) {
+					allowedLocalFiles.clear();
+				}
+				allowedLocalFiles[pathname] = true;
+				return;
+			}
+		}
+
+		if (!isChildOf(dir, filePath)) {
+			sendText(res, 403, "Error getting the file: No access.");
 			return;
 		}
 
-		if (url.pathname == "/proxy") {
-			if (!enableProxy || !proxyUrl(req, res)) res.end('Proxy error: ${req.url}');
-			return;
-		}
-
-		if (hasCustomRes) {
-			final path = getPath(customDir, url);
-			if (Fs.existsSync(path)) filePath = path;
-			final ext = Path.extension(filePath).toLowerCase();
-			res.setHeader("content-type", getMimeType(ext));
+		if (hasCustomRes && pathname != "/setup") {
+			final path = getPath(customDir, pathname);
+			if (isChildOf(customDir, path) && Fs.existsSync(path)) {
+				filePath = path;
+				ext = Path.extension(filePath).toLowerCase();
+				res.setHeader("content-type", getMimeType(ext));
+			}
 		}
 
 		if (isMediaExtension(ext)) {
 			if (serveMedia(req, res, filePath)) return;
 		}
 
-		Fs.readFile(filePath, (err:Dynamic, data:Buffer) -> {
+		if (ext == "html" && pathname != "/setup" && !main.isNoState && !main.hasAdmins()) {
+			res.redirect("/setup");
+			return;
+		}
+
+		Fs.readFile(filePath, (err, data:Buffer) -> {
 			if (err != null) {
 				readFileError(err, res, filePath);
 				return;
 			}
-
+			if (req.method == "HEAD") {
+				res.end();
+				return;
+			}
 			if (ext == "html") {
-				if (!main.isNoState && !main.hasAdmins()) {
-					res.redirect("/setup");
-					return;
-				}
 				// replace ${textId} to localized strings
-				data = cast localizeHtml(data.toString(), req.headers["accept-language"]);
+				final html = localizeHtml(data.toString(), getLang(req));
+				res.end(html);
+				return;
 			}
 			res.end(data);
 		});
 	}
 
-	function uploadFileLastChunk(req:IncomingMessage, res:ServerResponse) {
-		var fileName = try decodeURIComponent(req.headers["content-name"]) catch (e) "";
-		if (fileName.trim().length == 0) fileName = null;
-		final name = cache.getFreeFileName(fileName);
-		final filePath = cache.getFilePath(name);
-		final body:Array<Any> = [];
-		req.on("data", chunk -> body.push(chunk));
-		req.on("end", () -> {
-			final buffer = Buffer.concat(body);
+	function getUploadName(req:IncomingMessage):Null<String> {
+		final raw:String = req.headers["content-name"] ?? return null;
+		final decoded = try raw.decodeURIComponent() catch (e) "";
+		final name = Path.withoutDirectory(ctrlCharacters.replace(decoded, "").trim());
+		final base = Path.withoutExtension(name);
+		final ext = Path.extension(name).toLowerCase();
+		if (base.length == 0 || base == "." || !isMediaExtension(ext)) return null;
+		return name;
+	}
+
+	function getFreeUploadName(req:IncomingMessage):String {
+		final rawName = getUploadName(req) ?? "video.mp4";
+		return cache.getFreeFileName(rawName, name -> {
+			final path = JsPath.normalize(cache.getFilePath(name));
+			return uploadingFilesLastChunks.exists(path) || uploadingFilesSizes.exists(path);
+		});
+	}
+
+	function pickUploadName(req:IncomingMessage):String {
+		final reqName = getUploadName(req);
+		final reqPath = reqName != null ? JsPath.normalize(cache.getFilePath(reqName)) : null;
+		return (reqPath != null
+			&& uploadingFilesLastChunks.exists(reqPath)
+			&& !uploadingFilesSizes.exists(reqPath)
+			&& !cache.isFileExists(reqName)) ? reqName : getFreeUploadName(req);
+	}
+
+	function uploadFileLastChunk(req:IncomingMessage, res:ServerResponse):Void {
+		final name = getFreeUploadName(req);
+		final filePath = JsPath.normalize(cache.getFilePath(name));
+		if (!uploadingFilesLastChunks.exists(filePath)
+			&& uploadingFilesLastChunks.count() >= MAX_LAST_CHUNKS) {
+			respondAndClose(req, res, 503, {
+				info: "Too many pending uploads.",
+				errorId: "tooManyUploads"});
+			return;
+		}
+		readBody(req, res, CHUNK_SIZE, buffer -> {
 			uploadingFilesLastChunks[filePath] = buffer;
+			Timer.delay(() -> {
+				if (uploadingFilesLastChunks[filePath] == buffer
+					&& !uploadingFilesSizes.exists(filePath)) {
+					uploadingFilesLastChunks.remove(filePath);
+				}
+			}, 60000);
 			final json:UploadResponse = {
 				info: "File last chunk uploaded",
 				url: cache.getFileUrl(name)
@@ -205,15 +281,16 @@ class HttpServer {
 		});
 	}
 
-	function uploadFile(req:IncomingMessage, res:ServerResponse) {
-		var fileName = try decodeURIComponent(req.headers["content-name"]) catch (e) "";
-		if (fileName.trim().length == 0) fileName = null;
-		final name = cache.getFreeFileName(fileName);
-		final filePath = cache.getFilePath(name);
-		final size = Std.parseInt(req.headers["content-length"]) ?? return;
+	function uploadFile(req:IncomingMessage, res:ServerResponse):Void {
+		final name = pickUploadName(req);
+		final filePath = JsPath.normalize(cache.getFilePath(name));
+		final size = Std.parseFloat(req.headers["content-length"]);
+		if (Math.isNaN(size) || size < 0) {
+			respondAndClose(req, res, 411, {info: "Content-Length required."});
+			return;
+		}
 
-		inline function end(code:Int, json:UploadResponse):Void {
-			res.status(code).json(json);
+		inline function cleanUploadState():Void {
 			uploadingFilesSizes.remove(filePath);
 			uploadingFilesLastChunks.remove(filePath);
 		}
@@ -223,69 +300,57 @@ class HttpServer {
 			cache.removeOlderCache(size);
 		}
 		if (cache.getFreeSpace() < size) {
-			end(413, { // Payload Too Large
+			cleanUploadState();
+			respondAndClose(req, res, 413, { // Payload Too Large
 				info: cache.notEnoughSpaceErrorText,
 				errorId: "freeSpace",
 			});
-			req.destroy();
-			final client = main.clients.getByName(name) ?? return;
-			main.serverMessage(client, cache.notEnoughSpaceErrorText);
 			return;
 		}
 
 		final stream = Fs.createWriteStream(filePath);
-		req.pipe(stream);
-
 		cache.add(name);
 		uploadingFilesSizes[filePath] = size;
 
-		stream.on("close", () -> {
-			end(200, {
-				info: "File write stream closed.",
-			});
-		});
-		stream.on("error", err -> {
-			trace(err);
-			end(500, {
-				info: "File write stream error.",
-			});
+		pipeline(req, stream, err -> {
+			cleanUploadState();
+			if (err == null) {
+				res.status(200).json({info: "File write stream closed."});
+				return;
+			}
+			onPipelineDone(err);
 			cache.remove(name);
-		});
-		req.on("error", err -> {
-			trace("Request Error:", err);
-			stream.destroy();
-			end(500, {
-				info: "File request error.",
-			});
-			cache.remove(name);
+			if (!res.headersSent) {
+				res.status(500).json({info: "File write stream error."});
+			}
 		});
 	}
 
-	function finishSetup(req:IncomingMessage, res:ServerResponse) {
+	function finishSetup(req:IncomingMessage, res:ServerResponse):Void {
 		if (main.hasAdmins()) {
-			return res.redirect("/");
+			res.redirect("/");
+			return;
 		}
 
-		final bodyChunks:Array<Buffer> = [];
-
-		req.on("data", chunk -> {
-			bodyChunks.push(chunk);
-		});
-
-		req.on("end", () -> {
-			final body = Buffer.concat(bodyChunks).toString();
+		readBody(req, res, MAX_SETUP_BODY_SIZE, buffer -> {
+			if (main.hasAdmins()) {
+				res.status(409).json({success: false, errors: []});
+				return;
+			}
+			final body = buffer.toString();
 			final jsonParser = new JsonParser<SetupAdminRequest>();
 			final jsonData = jsonParser.fromJson(body);
-			if (jsonParser.errors.length > 0) {
-				final errors = ErrorUtils.convertErrorArray(jsonParser.errors);
-				trace(errors);
+			if (jsonData == null || jsonParser.errors.length > 0) {
+				if (jsonParser.errors.length > 0) {
+					trace(ErrorUtils.convertErrorArray(jsonParser.errors));
+				}
 				res.status(400).json({success: false, errors: []});
 				return;
 			}
-			final name = jsonData.name;
-			final password = jsonData.password;
-			final passwordConfirmation = jsonData.passwordConfirmation;
-			final lang = req.headers["accept-language"] ?? "en";
+			final name = jsonData.name ?? "";
+			final password = jsonData.password ?? "";
+			final passwordConfirmation = jsonData.passwordConfirmation ?? "";
+			final lang = getLang(req);
 			final errors:Array<{type:String, error:String}> = [];
 
 			if (main.isBadClientName(name)) {
@@ -325,218 +390,225 @@ class HttpServer {
 		});
 	}
 
-	function getPath(dir:String, url:URL):String {
-		final filePath = dir.urlDecode() + decodeURIComponent(url.pathname);
-		if (!FileSystem.isDirectory(filePath)) return filePath;
+	function getPath(dir:String, pathname:String):String {
+		final filePath = dir + pathname;
+		if (pathname != "/"
+			&& (!isChildOf(dir, filePath) || !FileSystem.isDirectory(filePath))) return
+				filePath;
 		return Path.addTrailingSlash(filePath) + "index.html";
 	}
 
-	function readFileError(err:Dynamic, res:ServerResponse, filePath:String):Void {
-		res.setHeader("content-type", getMimeType("html"));
+	function readFileError(err:SystemError, res:ServerResponse, filePath:String):Void {
 		if (err.code == "ENOENT") {
-			res.statusCode = 404;
-			var rel = JsPath.relative(dir, filePath);
-			res.end('File $rel not found.');
+			final rel = JsPath.relative(dir, filePath);
+			sendText(res, 404, 'File $rel not found.');
 		} else {
-			res.statusCode = 500;
-			res.end('Error getting the file: $err.');
+			sendText(res, 500, "Error getting the file.");
 		}
 	}
 
 	function serveMedia(req:IncomingMessage, res:ServerResponse, filePath:String):Bool {
-		if (!Fs.existsSync(filePath)) return false;
-		var videoSize:Int = cast Fs.statSync(filePath).size;
-		// use future content length to start playing it before uploaded
-		if (uploadingFilesSizes.exists(filePath)) {
-			videoSize = uploadingFilesSizes[filePath];
-		}
+		final stats = try Fs.statSync(filePath) catch (e) return false;
+		if (!stats.isFile()) return false;
+		final key = JsPath.normalize(filePath);
+		final isUploading = uploadingFilesSizes.exists(key);
+		final videoSize:Float = isUploading ? uploadingFilesSizes[key] : stats.size;
+		res.setHeader("accept-ranges", "bytes");
+		final isHead = req.method == "HEAD";
 		final rangeHeader:String = req.headers["range"];
-		if (rangeHeader == null) {
+		final range = rangeHeader == null ? null : parseRangeHeader(rangeHeader, videoSize);
+		if (range == null) {
+			final contentLength:Float = isUploading ? stats.size : videoSize;
 			res.statusCode = 200;
-			res.setHeader("content-length", '$videoSize');
-			final videoStream = Fs.createReadStream(filePath);
-			videoStream.pipe(res);
-			res.on("error", () -> videoStream.destroy());
-			res.on("close", () -> videoStream.destroy());
+			res.setHeader("content-length", '$contentLength');
+			if (isHead || contentLength == 0) res.end();
+			else pipeFile(res, filePath, {start: 0, end: contentLength - 1});
 			return true;
 		}
-		final range = parseRangeHeader(rangeHeader, videoSize);
+		if (range.start >= videoSize || range.start > range.end) {
+			send416(res, videoSize);
+			return true;
+		}
 		final start = range.start;
-		final end = range.end;
-		final contentLength = end - start + 1;
-
-		res.setHeader("content-range", 'bytes $start-$end/$videoSize');
-		res.setHeader("content-length", '$contentLength');
-		res.statusCode = 206; // partial content
+		var end = range.end;
 
 		// check for last chunk cache for instant play while uploading
-		final buffer = uploadingFilesLastChunks[filePath];
-		if (buffer != null && end == videoSize - 1 && contentLength < buffer.byteLength) {
-			final bufferStart = (buffer.byteLength - contentLength).limitMin(0);
-			res.end(buffer.slice(bufferStart));
+		final buffer = uploadingFilesLastChunks[key];
+		if (buffer != null && start >= videoSize - buffer.byteLength) {
+			setRange(res, start, end, videoSize);
+			if (isHead) {
+				res.end();
+				return true;
+			}
+			final offset = videoSize - buffer.byteLength;
+			res.end(buffer.subarray(Std.int(start - offset), Std.int(end - offset + 1)));
+			return true;
+		}
+
+		if (isUploading) {
+			if (start >= stats.size) {
+				send416(res, videoSize);
+				return true;
+			}
+			if (end >= stats.size) end = stats.size - 1;
+		}
+
+		setRange(res, start, end, videoSize);
+		if (isHead) {
+			res.end();
 			return true;
 		}
 
 		// stream the video chunk to the client
-		final videoStream = Fs.createReadStream(
-			filePath,
-			{start: start, end: end}
-		);
-		videoStream.pipe(res);
-		res.on("error", () -> videoStream.destroy());
-		res.on("close", () -> videoStream.destroy());
+		pipeFile(res, filePath, {start: start, end: end});
 		return true;
 	}
 
-	function parseRangeHeader(rangeHeader:String, videoSize:Int):{start:Int, end:Int} {
-		final ranges = ~/[=-]/g.split(rangeHeader);
-		var start = Std.parseInt(ranges[1]);
-		var end = Std.parseInt(ranges[2]);
-		// handle file end requests like `bytes=-500`: ["bytes","","500"]
-		if (start == null) {
-			final suffix = end ?? 0;
-			start = (videoSize - suffix).limitMin(0);
-			end = videoSize - 1;
+	static function send416(res:ServerResponse, size:Float):Void {
+		res.statusCode = 416; // range not satisfiable
+		res.setHeader("content-range", 'bytes */$size');
+		res.end();
+	}
+
+	static function setRange(res:ServerResponse, start:Float, end:Float, size:Float):Void {
+		final contentLength = end - start + 1;
+		res.setHeader("content-range", 'bytes $start-$end/$size');
+		res.setHeader("content-length", '$contentLength');
+		res.statusCode = 206; // partial content
+	}
+
+	function pipeFile(res:ServerResponse, filePath:String, ?options:{?start:Float, ?end:Float}):Void {
+		final stream = Fs.createReadStream(filePath, cast options);
+		pipeline(stream, res, onPipelineDone);
+	}
+
+	function parseRangeHeader(rangeHeader:String, size:Float):Null<{start:Float, end:Float}> {
+		if (!matchRange.match(rangeHeader.trim())) return null;
+		final s = matchRange.matched(1);
+		final e = matchRange.matched(2);
+		var start:Float;
+		var end:Float;
+		if (s == "") {
+			// handle file end requests like `bytes=-500`
+			if (e == "") return null;
+			final suffix = Std.parseFloat(e);
+			if (suffix == 0) return {start: size, end: size - 1};
+			start = (size - suffix).limitMin(0);
+			end = size - 1;
+		} else {
+			start = Std.parseFloat(s);
+			end = e == "" ? start + CHUNK_SIZE - 1 : Std.parseFloat(e);
 		}
-		if (Utils.isOutOfRange(start, 0, videoSize - 1)) start = 0;
-		if (end == null) end = start + CHUNK_SIZE;
-		if (Utils.isOutOfRange(end, start, videoSize - 1)) end = (videoSize - 1).limitMin(0);
-		return {
-			start: start,
-			end: end
-		};
+		end = end.limitMax(size - 1);
+		return {start: start, end: end};
 	}
 
 	function isMediaExtension(ext:String):Bool {
-		return switch ext {
-			case "mp4", "webm", "mp3", "ogg", "wav": true;
-			case _: false;
-		}
+		final mime = getMimeType(ext);
+		return mime.startsWith("audio/") || mime.startsWith("video/");
 	}
 
-	final matchLang = ~/^[A-z]+/;
-	final matchVarString = ~/\${([A-z_]+)}/g;
+	function getLang(req:IncomingMessage):String {
+		final header:String = req.headers["accept-language"];
+		if (header != null && matchLang.match(header)) {
+			return matchLang.matched(0).toLowerCase();
+		}
+		return "en";
+	}
 
 	function localizeHtml(data:String, lang:String):String {
 		if (!data.contains("<!-- localization-template -->")) return data;
-		if (lang != null && matchLang.match(lang)) {
-			lang = matchLang.matched(0);
-		} else lang = "en";
-		data = matchVarString.map(data, (regExp) -> {
+		return matchVarString.map(data, regExp -> {
 			final key = regExp.matched(1);
 			return Lang.get(lang, key);
 		});
-		return data;
 	}
 
-	function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
-		if (req.method != "GET" && req.method != "HEAD") return false;
-		final url = req.url.replace("/proxy?url=", "");
-		final proxy = proxyRequest(url, req, res, proxyRes -> {
-			final redirectUrl = proxyRes.headers["location"] ?? return false;
-			final proxy2 = proxyRequest(redirectUrl, req, res, proxyRes -> false);
-			if (proxy2 == null) {
-				if (!res.headersSent) {
-					res.end('Proxy error: multiple redirects for url $redirectUrl');
-				}
-				return true;
-			}
-			proxy2.end();
-			req.on("error", () -> proxy2.destroy());
-			return true;
-		});
-		if (proxy == null) return false;
-		proxy.end();
-		req.on("error", () -> proxy.destroy());
-		return true;
+	function isLocalRequest(req:IncomingMessage):Bool {
+		return allowLocalRequests
+			&& req.socket.remoteAddress == req.socket.localAddress
+			&& req.headers["x-forwarded-for"] == null
+			&& req.headers["sec-fetch-site"] != "cross-site";
 	}
 
-	final matchPrivateHost = ~/^(localhost$|.*\.(localhost|local)$|0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|\[?(::1?(\]|$)|::ffff:|fc|fd|fe[89ab]))/i;
-
-	function proxyRequest(
-		url:String,
+	function readBody(
 		req:IncomingMessage,
 		res:ServerResponse,
-		cancelProxyRequest:(proxyRes:IncomingMessage) -> Bool
-	):Null<ClientRequest> {
-		final url = try {
-			new URL(safeDecodeURI(url));
-		} catch (e) {
-			return null;
-		}
-		if (url.protocol != "http:" && url.protocol != "https:") return null;
-		if (url.host == req.headers["host"]) return null;
-		if (matchPrivateHost.match(url.hostname)) return null;
-		final options = {
-			host: url.hostname,
-			port: Std.parseInt(url.port),
-			path: url.pathname + url.search,
-			method: req.method,
-		};
-		req.headers["referer"] = url.toString();
-		req.headers["host"] = url.hostname;
-
-		final request = url.protocol == "https:" ? Https.request : Http.request;
-		final proxy = request(options, proxyRes -> {
-			if (cancelProxyRequest(proxyRes)) {
-				proxyRes.destroy();
+		maxSize:Int,
+		onBody:Buffer->Void
+	):Void {
+		final chunks:Array<Buffer> = [];
+		var size = 0;
+		var rejected = false;
+		req.on("data", (chunk:Buffer) -> {
+			if (rejected) return;
+			size += chunk.length;
+			if (size > maxSize) {
+				rejected = true;
+				chunks.resize(0);
+				req.pause();
+				respondAndClose(req, res, 413, {
+					info: "Payload too large.",
+					errorId: "payloadTooLarge",
+					success: false,
+					errors: []
+				});
 				return;
 			}
-			proxyRes.headers["content-type"] = "application/octet-stream";
-			res.writeHead(proxyRes.statusCode, proxyRes.headers);
-			proxyRes.pipe(res);
+			chunks.push(chunk);
+		});
+		req.on("end", () -> {
+			if (!rejected) onBody(Buffer.concat(chunks));
+		});
+	}
 
-			// clean up when response ends
-			proxyRes.on("end", () -> {
-				if (!res.writableEnded) res.end();
-			});
-		});
+	function respondAndClose(req:IncomingMessage, res:ServerResponse, code:Int, json:Any):Void {
+		res.setHeader("connection", "close");
+		res.once("finish", () -> req.destroy());
+		res.status(code).json(json);
+	}
 
-		proxy.on("socket", socket -> {
-			socket.on("lookup", (err, address:String) -> {
-				if (address != null && matchPrivateHost.match(address)) proxy.destroy();
-			});
-		});
-		proxy.on("error", err -> {
-			proxy.destroy();
-			if (!res.headersSent) {
-				res.end('Proxy error: ${url.href}');
-			}
-		});
-		// clean up when client disconnects (seeking/abort)
-		res.on("close", () -> {
-			if (!proxy.destroyed) proxy.destroy();
-		});
+	public static function sendText(res:ServerResponse, code:Int, text:String):Void {
+		if (res.headersSent) {
+			if (!res.writableEnded) res.end();
+			return;
+		}
+		res.statusCode = code;
+		res.setHeader("content-type", getMimeType("txt"));
+		res.end(text);
+	}
 
-		return proxy;
+	public static function pipeline(src:IReadable, dst:IWritable, ?cb:Null<SystemError>->Void):Void {
+		cb ??= onPipelineDone;
+		Stream.pipeline(src, dst, cb);
+	}
+
+	static function onPipelineDone(err:Null<SystemError>):Void {
+		if (err != null && err.code != "ERR_STREAM_PREMATURE_CLOSE") {
+			trace("Stream error:", err);
+		}
+	}
+
+	static function getMimeType(ext:String):String {
+		return mimeTypes[ext] ?? "application/octet-stream";
 	}
 
 	function isChildOf(parent:String, child:String):Bool {
 		final rel = JsPath.relative(parent, child);
-		return rel.length > 0 && !rel.startsWith("..") && !JsPath.isAbsolute(rel);
+		return rel.length > 0
+			&& rel != ".."
+			&& !rel.startsWith('..${JsPath.sep}')
+			&& !JsPath.isAbsolute(rel);
 	}
-
-	function getMimeType(ext:String):String {
-		return mimeTypes[ext] ?? "application/octet-stream";
-	}
-
-	final ctrlCharacters = ~/[\u0000-\u001F\u007F-\u009F\u2000-\u200D\uFEFF]/g;
 
 	function safeDecodeURI(data:String):String {
 		try {
-			data = decodeURI(data);
+			data = data.decodeURIComponent();
 		} catch (err) {
-			data = "";
+			return "/";
 		}
 		data = ctrlCharacters.replace(data, "");
+		if (data.trim() == "/") return "/";
 		return data;
-	}
-
-	inline function decodeURI(data:String):String {
-		return js.Syntax.code("decodeURI({0})", data);
-	}
-
-	inline function decodeURIComponent(data:String):String {
-		return js.Syntax.code("decodeURIComponent({0})", data);
 	}
 }

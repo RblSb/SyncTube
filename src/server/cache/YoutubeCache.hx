@@ -84,6 +84,7 @@ class YoutubeCache {
 			final audioFormat:VideoFormat = aformats[0] ?? {
 				log(clientName, "Error: format with audio not found");
 				for (format in aformats) trace(format);
+				cb.onError();
 				return;
 			}
 			final vformats = info.formats.filter(f -> {
@@ -94,6 +95,7 @@ class YoutubeCache {
 			var videoFormat = getBestYoutubeVideoFormat(vformats) ?? {
 				log(clientName, "Error: video format not found");
 				for (format in vformats) trace(format);
+				cb.onError();
 				return;
 			}
 			inline function getTotalFormatsSize():Int {
