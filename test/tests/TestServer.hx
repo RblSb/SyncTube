@@ -42,6 +42,9 @@ class TestServer extends Test {
 			request('$url/build/../../server.js', data -> {
 				Assert.equals("File server.js not found.", data);
 			});
+			request('$url/proxy?url=http://127.0.0.1:${server.port}/', data -> {
+				Assert.isTrue(data.startsWith("Proxy error:"));
+			});
 			request('$url/?meh', data -> {
 				Assert.equals("<!DOCTYPE html>", splitLines(data)[1]);
 				async.done();

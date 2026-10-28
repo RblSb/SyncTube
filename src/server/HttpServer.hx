@@ -22,6 +22,7 @@ private class HttpServerConfig {
 	public final customDir:String = null;
 	public final allowLocalRequests = false;
 	public final enableCORS = false;
+	public final enableProxy = false;
 	public final cache:Cache = null;
 }
 
@@ -64,6 +65,7 @@ class HttpServer {
 	final allowedLocalFiles:Map<String, Bool> = [];
 	final allowLocalRequests = false;
 	final enableCORS = false;
+	final enableProxy = false;
 	final cache:Cache = null;
 	final CHUNK_SIZE = 1024 * 1024 * 5; // 5 MB
 	// temp media data while file is uploading to allow instant streaming
@@ -76,6 +78,7 @@ class HttpServer {
 		customDir = config.customDir;
 		allowLocalRequests = config.allowLocalRequests;
 		enableCORS = config.enableCORS;
+		enableProxy = config.enableProxy;
 		cache = config.cache;
 
 		if (customDir != null) hasCustomRes = FileSystem.exists(customDir);
@@ -151,7 +154,7 @@ class HttpServer {
 		}
 
 		if (url.pathname == "/proxy") {
-			if (!proxyUrl(req, res)) res.end('Proxy error: ${req.url}');
+			if (!enableProxy || !proxyUrl(req, res)) res.end('Proxy error: ${req.url}');
 			return;
 		}
 
@@ -427,6 +430,7 @@ class HttpServer {
 	}
 
 	function proxyUrl(req:IncomingMessage, res:ServerResponse):Bool {
+		if (req.method != "GET" && req.method != "HEAD") return false;
 		final url = req.url.replace("/proxy?url=", "");
 		final proxy = proxyRequest(url, req, res, proxyRes -> {
 			final redirectUrl = proxyRes.headers["location"] ?? return false;
@@ -437,15 +441,17 @@ class HttpServer {
 				}
 				return true;
 			}
-			req.pipe(proxy2);
+			proxy2.end();
 			req.on("error", () -> proxy2.destroy());
 			return true;
 		});
 		if (proxy == null) return false;
-		req.pipe(proxy);
+		proxy.end();
 		req.on("error", () -> proxy.destroy());
 		return true;
 	}
+
+	final matchPrivateHost = ~/^(localhost$|.*\.(localhost|local)$|0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|\[?(::1?(\]|$)|::ffff:|fc|fd|fe[89ab]))/i;
 
 	function proxyRequest(
 		url:String,
@@ -458,12 +464,14 @@ class HttpServer {
 		} catch (e) {
 			return null;
 		}
+		if (url.protocol != "http:" && url.protocol != "https:") return null;
 		if (url.host == req.headers["host"]) return null;
+		if (matchPrivateHost.match(url.hostname)) return null;
 		final options = {
 			host: url.hostname,
 			port: Std.parseInt(url.port),
 			path: url.pathname + url.search,
-			method: req.method
+			method: req.method,
 		};
 		req.headers["referer"] = url.toString();
 		req.headers["host"] = url.hostname;
@@ -484,6 +492,11 @@ class HttpServer {
 			});
 		});
 
+		proxy.on("socket", socket -> {
+			socket.on("lookup", (err, address:String) -> {
+				if (address != null && matchPrivateHost.match(address)) proxy.destroy();
+			});
+		});
 		proxy.on("error", err -> {
 			proxy.destroy();
 			if (!res.headersSent) {

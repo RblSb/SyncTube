@@ -12,6 +12,7 @@
 	"allowProxyIps": true,
 	"localNetworkOnly": false,
 	"enableCORS": false,
+	"enableProxy": false,
 	"sslKeyPemPath": "",
 	"sslCertPemPath": "",
 	"templateUrl": "https://youtube.com/playlist?list=PL9FiZUDVMu9tc_85frYognMOVFC_-VkSX",

@@ -87,7 +87,7 @@ class RawCache {
 
 	function handleM3u8(client:Client, url:String, outName:String, cb:CacheCallbacks):Void {
 		final clientName = client.name;
-		final useProxy = true;
+		final useProxy = main.config.enableProxy;
 		var canceled = false;
 		if (cb.registerCancel != null) cb.registerCancel(() -> canceled = true);
 		downloadM3u8Playlist(client, url, useProxy, (playlist, totalSize, segments) -> {

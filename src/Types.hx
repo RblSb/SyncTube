@@ -36,6 +36,7 @@ typedef ServerConfig = Config & {
 	allowProxyIps:Bool,
 	localNetworkOnly:Bool,
 	enableCORS:Bool,
+	enableProxy:Bool,
 	sslKeyPemPath:String,
 	sslCertPemPath:String,
 	cacheStorageLimitGiB:Float,
