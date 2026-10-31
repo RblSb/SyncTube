@@ -3931,7 +3931,7 @@ client_Player.prototype = {
 		return this.videoList.pos;
 	}
 	,hasVideo: function() {
-		return this.playerEl.querySelector("video, iframe, embed, object") != null;
+		return this.playerEl.querySelector("video, iframe") != null;
 	}
 	,getDuration: function() {
 		if(this.videoList.pos >= this.videoList.items.length) {
@@ -4439,6 +4439,20 @@ client_players_Iframe.extractTwitchChannel = function(url) {
 	}
 	return client_players_Iframe.matchTwitchChannel.matched(1);
 };
+client_players_Iframe.extractIframeSrc = function(html) {
+	try {
+		var doc = new DOMParser().parseFromString(html,"text/html");
+		var el = doc.body.firstElementChild;
+		if(el != null && el.nodeName == "IFRAME") {
+			var src = el.getAttribute("src");
+			if(src != null && new EReg("^(?:https?:)?//","i").match(src)) {
+				return src;
+			}
+		}
+	} catch( _g ) {
+	}
+	return "";
+};
 client_players_Iframe.prototype = {
 	getPlayerType: function() {
 		return "IframeType";
@@ -4448,7 +4462,7 @@ client_players_Iframe.prototype = {
 		if(client_players_Iframe.extractTwitchChannel(trimmed).length > 0) {
 			return true;
 		}
-		if(StringTools.startsWith(trimmed,"<iframe") || StringTools.startsWith(trimmed,"<object")) {
+		if(StringTools.startsWith(trimmed,"<iframe")) {
 			return true;
 		}
 		return false;
@@ -4460,41 +4474,34 @@ client_players_Iframe.prototype = {
 			callback({ duration : 356400, title : "Twitch: " + channel, url : "<iframe src=\"https://player.twitch.tv/?channel=" + channel + "&parent=www.example.com\" frameborder=\"0\" allowfullscreen=\"true\" scrolling=\"no\" height=\"378\" width=\"620\"></iframe>"});
 			return;
 		}
-		var iframe = window.document.createElement("div");
-		iframe.innerHTML = rawUrl;
-		if(this.isValidIframe(iframe)) {
-			callback({ duration : 356400, title : "Iframe media", url : rawUrl});
+		var src = client_players_Iframe.extractIframeSrc(rawUrl);
+		if(src.length > 0) {
+			callback({ duration : 356400, title : "Iframe media", url : "<iframe src=\"" + src + "\"></iframe>"});
 		} else {
 			callback({ duration : 0});
 		}
 	}
-	,isValidIframe: function(iframe) {
-		if(iframe.children.length != 1) {
-			return false;
-		}
-		return iframe.firstChild.nodeName == "IFRAME" || iframe.firstChild.nodeName == "OBJECT";
-	}
 	,loadVideo: function(item) {
 		this.removeVideo();
-		this.video = window.document.createElement("div");
-		var data = item.url;
-		if(data.indexOf("player.twitch.tv") != -1) {
+		var src = client_players_Iframe.extractIframeSrc(item.url);
+		if(src.length == 0) {
+			return;
+		}
+		if(src.indexOf("player.twitch.tv") != -1) {
 			var hostname = $global.location.hostname;
-			data = StringTools.replace(data,"parent=www.example.com","parent=" + hostname);
+			src = StringTools.replace(src,"parent=www.example.com","parent=" + hostname);
 			if(!new EReg("[A-z]","").match(hostname)) {
 				client_Main.instance.serverMessage("Twitch player blocks access from ips, please use SyncTube from any domain for it.\nYou can register some on <a href=\"https://nya.pub\" target=\"_blank\">nya.pub</a>.",false);
 			}
 		}
-		this.video.innerHTML = data;
-		if(!this.isValidIframe(this.video)) {
-			this.video = null;
-			return;
-		}
-		if(this.video.firstChild.nodeName == "IFRAME") {
-			this.video.setAttribute("sandbox","allow-scripts");
-			this.video.classList.add("videoplayerIframeParent");
-		}
-		this.video.firstElementChild.id = "videoplayer";
+		var iframe = window.document.createElement("iframe");
+		iframe.id = "videoplayer";
+		iframe.src = src;
+		iframe.allowFullscreen = true;
+		iframe.setAttribute("allow","accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture");
+		this.video = window.document.createElement("div");
+		this.video.classList.add("videoplayerIframeParent");
+		this.video.appendChild(iframe);
 		this.playerEl.appendChild(this.video);
 	}
 	,removeVideo: function() {

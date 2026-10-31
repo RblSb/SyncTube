@@ -7,7 +7,9 @@ import Types.VideoItem;
 import client.Main.getEl;
 import js.Browser.document;
 import js.Browser;
+import js.html.DOMParser;
 import js.html.Element;
+import js.html.SupportedType;
 
 class Iframe implements IPlayer {
 	static final matchTwitchChannel = ~/^(?:https?:\/\/)?(?:www\.|m\.)?twitch\.tv\/([A-Za-z0-9_]+)\/?$/i;
@@ -33,10 +35,22 @@ class Iframe implements IPlayer {
 		return channel;
 	}
 
+	public static function extractIframeSrc(html:String):String {
+		try {
+			final doc = new DOMParser().parseFromString(html, SupportedType.TEXT_HTML);
+			final el = doc.body.firstElementChild;
+			if (el != null && el.nodeName == "IFRAME") {
+				final src = el.getAttribute("src");
+				if (src != null && ~/^(?:https?:)?\/\//i.match(src)) return src;
+			}
+		} catch (e:Dynamic) {}
+		return "";
+	}
+
 	public function isSupportedLink(url:String):Bool {
 		final trimmed = url.trim();
 		if (extractTwitchChannel(trimmed).length > 0) return true;
-		if (trimmed.startsWith("<iframe") || trimmed.startsWith("<object")) return true;
+		if (trimmed.startsWith("<iframe")) return true;
 		return false;
 	}
 
@@ -53,33 +67,26 @@ class Iframe implements IPlayer {
 			return;
 		}
 
-		final iframe = document.createDivElement();
-		iframe.innerHTML = rawUrl;
-		if (isValidIframe(iframe)) {
+		final src = extractIframeSrc(rawUrl);
+		if (src.length > 0) {
 			callback({
 				duration: 99 * 60 * 60,
 				title: "Iframe media",
-				url: rawUrl
+				url: '<iframe src="$src"></iframe>'
 			});
 		} else {
 			callback({duration: 0});
 		}
 	}
 
-	function isValidIframe(iframe:Element):Bool {
-		if (iframe.children.length != 1) return false;
-		return (iframe.firstChild.nodeName == "IFRAME"
-			|| iframe.firstChild.nodeName == "OBJECT");
-	}
-
 	public function loadVideo(item:VideoItem):Void {
 		removeVideo();
-		video = document.createDivElement();
-		var data = item.url;
+		var src = extractIframeSrc(item.url);
+		if (src.length == 0) return;
 
-		if (data.contains("player.twitch.tv")) {
+		if (src.contains("player.twitch.tv")) {
 			final hostname = Browser.location.hostname;
-			data = data.replace("parent=www.example.com", 'parent=$hostname');
+			src = src.replace("parent=www.example.com", 'parent=$hostname');
 			if (!~/[A-z]/.match(hostname)) {
 				Main.instance.serverMessage(
 					'Twitch player blocks access from ips, please use SyncTube from any domain for it.
@@ -89,16 +96,15 @@ You can register some on <a href="https://nya.pub" target="_blank">nya.pub</a>.'
 			}
 		}
 
-		video.innerHTML = data;
-		if (!isValidIframe(video)) {
-			video = null;
-			return;
-		}
-		if (video.firstChild.nodeName == "IFRAME") {
-			video.setAttribute("sandbox", "allow-scripts");
-			video.classList.add("videoplayerIframeParent");
-		}
-		video.firstElementChild.id = "videoplayer";
+		final iframe = document.createIFrameElement();
+		iframe.id = "videoplayer";
+		iframe.src = src;
+		iframe.allowFullscreen = true;
+		iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture");
+
+		video = document.createDivElement();
+		video.classList.add("videoplayerIframeParent");
+		video.appendChild(iframe);
 		playerEl.appendChild(video);
 	}
 

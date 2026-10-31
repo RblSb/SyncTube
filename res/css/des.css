@@ -527,7 +527,7 @@ header h4 {
 /* Embed responsive */
 
 .embed-responsive:empty,
-.embed-responsive:not(:has(iframe, video, object, embed)) {
+.embed-responsive:not(:has(iframe, video)) {
   aspect-ratio: 16 / 9;
   min-height: unset;
 }

@@ -642,7 +642,7 @@ class Player {
 	}
 
 	public function hasVideo():Bool {
-		return playerEl.querySelector("video, iframe, embed, object") != null;
+		return playerEl.querySelector("video, iframe") != null;
 	}
 
 	public function getDuration():Float {
